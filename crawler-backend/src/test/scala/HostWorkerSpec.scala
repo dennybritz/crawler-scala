@@ -9,7 +9,6 @@ import scala.concurrent.duration._
 
 class HostWorkerSpec extends AkkaSingleNodeSpec("HostWorkerSpec") {
 
-  def workerProps = Props(classOf[HostWorker], "localhost")
   val testProcessor = new TestResponseProcessor(self)
 
   describe("HostWorker") {
@@ -17,29 +16,17 @@ class HostWorkerSpec extends AkkaSingleNodeSpec("HostWorkerSpec") {
     it("should work with a simple processor") {
       val parentProbe = TestProbe()
       val jobConf = JobConfiguration.empty("testJob").copy(processors = List(testProcessor))
-      val actor = TestActorRef(workerProps, parentProbe.ref, "worker")
+      val actor = TestActorRef(HostWorker.props(parentProbe.ref), parentProbe.ref, "worker")
       actor.receive(new FetchRequest(WrappedHttpRequest.getUrl("http://localhost:9090"), "testJob"))
       parentProbe.expectMsg(GetJob("testJob"))
       parentProbe.reply(Some(jobConf))
-      expectMsg("success!")
-    }
-
-    it("should only request the same job configuration once") {
-      val parentProbe = TestProbe()
-      val jobConf = JobConfiguration.empty("testJob").copy(processors = List(testProcessor))
-      val actor = TestActorRef(workerProps, parentProbe.ref, "worker")
-      actor.receive(new FetchRequest(WrappedHttpRequest.getUrl("http://localhost:9090"), "testJob"))
-      parentProbe.expectMsg(GetJob("testJob"))
-      parentProbe.reply(Some(jobConf))
-      expectMsg("success!")
-      actor.receive(new FetchRequest(WrappedHttpRequest.getUrl("http://localhost:9090"), "testJob"))
       expectMsg("success!")
     }
 
     it("should not process the response if it cannot find the job configuration") {
       val parentProbe = TestProbe()
       val jobConf = JobConfiguration.empty("testJob").copy(processors = List(testProcessor))
-      val actor = TestActorRef(workerProps, parentProbe.ref, "worker")
+      val actor = TestActorRef(HostWorker.props(parentProbe.ref), parentProbe.ref, "worker")
       actor.receive(new FetchRequest(WrappedHttpRequest.getUrl("http://localhost:9090"), "testJob"))
       parentProbe.expectMsg(GetJob("testJob"))
       parentProbe.reply(None)
@@ -50,7 +37,7 @@ class HostWorkerSpec extends AkkaSingleNodeSpec("HostWorkerSpec") {
       val parentProbe = TestProbe()
       def jobConf = JobConfiguration.empty("testJob").copy(
         processors = List(testProcessor, testProcessor, testProcessor))
-      val actor = TestActorRef(workerProps, parentProbe.ref, "worker")
+      val actor = TestActorRef(HostWorker.props(parentProbe.ref), parentProbe.ref, "worker")
       actor.receive(new FetchRequest(WrappedHttpRequest.getUrl("http://localhost:9090"), "testJob"))
       parentProbe.expectMsg(GetJob("testJob"))
       parentProbe.reply(Some(jobConf))

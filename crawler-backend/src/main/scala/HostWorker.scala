@@ -9,22 +9,15 @@ import scala.concurrent.duration._
 import scala.util.{Try, Success, Failure}
 
 object HostWorker {
-  def props(host: String) = Props(classOf[HostWorker], host)
+  def props(service: ActorRef) = Props(classOf[HostWorker], service)
 }
 
-class HostWorker(host: String) extends Actor with HttpFetcher with ActorLogging {
+class HostWorker(service: ActorRef) extends Actor with HttpFetcher with ActorLogging {
 
   implicit val askTimeout = Timeout(5 seconds)
 
   /* Keeps track of all the processors a response goes through */
   val processors = scala.collection.mutable.ArrayBuffer.empty[ResponseProcessor]
-  /* Caches job configurations so we don't need to ask our parent every time */
-  val jobCache = MutableMap[String, JobConfiguration]()
-
-  override def preStart() : Unit = {
-    log.info("started for host={}", host)
-    initializeHttpFetcher(host)
-  }
 
   val workerBehavior : Receive = {
     case FetchRequest(req: WrappedHttpRequest, jobId) =>
@@ -44,19 +37,14 @@ class HostWorker(host: String) extends Actor with HttpFetcher with ActorLogging 
   def receive = workerBehavior
 
   def getJobConf(jobId: String) : Future[JobConfiguration] = {
-    jobCache.get(jobId) match {
-      case Some(jobConf) => return Promise.successful(jobConf).future
-      case None =>
-        // Request the job configuration from the parent
-        // This is probably the first time we're dealing with this job
-        context.parent ? GetJob(jobId) map {
-          case Some(jobConf: JobConfiguration) => 
-            jobCache.put(jobId, jobConf)
-            jobConf
-          case _ => 
-            throw new IllegalArgumentException(
-              s"Could not find job configuration for job=${jobId}")
-        }
+    // We request the jobConf every time because it allows us to change
+    // job properties on the fly. Possibly a bottleneck soon?
+    // TODO: Store in locale cache (redis)
+    service ? GetJob(jobId) map {
+      case Some(jobConf: JobConfiguration) => jobConf
+      case _ => 
+        throw new IllegalArgumentException(
+          s"Could not find job configuration for job=${jobId}")
     }
   }
 

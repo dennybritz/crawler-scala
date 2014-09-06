@@ -11,7 +11,6 @@ import akka.util.Timeout
 
 class TestHttpFetcher extends Actor with ActorLogging with HttpFetcher {
   implicit val askTimeout = Timeout(5 seconds)
-  initializeHttpFetcher("localhost")
   def receive = {
     case _ => // Ignore
   } 

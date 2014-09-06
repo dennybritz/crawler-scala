@@ -2,9 +2,7 @@ package org.blikk.crawler
 
 import spray.http._
 
-trait Request extends Serializable {
-  def host : String
-}
+trait Request extends Serializable
 
 // We use spray.io for HTTP requests
 object WrappedHttpRequest {

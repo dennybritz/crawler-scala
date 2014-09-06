@@ -25,24 +25,26 @@ class CrawlServiceSpec extends AkkaSingleNodeSpec("CrawlServiceSpec") {
     describe("Registering an existing job") {
         
         it("should work") {
-          val service = TestActorRef[TestCrawlService]
+          val service = TestActorRef(Props[TestCrawlService], "crawlService1")
           service.receive(RegisterJob(jobConf))
           service.receive(GetJob("testJob"), self)
           expectMsg(Some(jobConf))
+          service.stop()
         }
     }
 
     describe("Routing a request") {
       
       it("should work when the worker does not exist yet") {
-        val service = TestActorRef[TestCrawlService]
+        val service = TestActorRef(Props[TestCrawlService], "crawlService2")
         service.receive(RegisterJob(jobConf))
         service.receive(new FetchRequest(WrappedHttpRequest.getUrl("http://localhost:9090"), "testJob"))
         expectMsg("success!")
+        service.stop()
       }
 
-      it("should work when the worker already exists") {
-        val service = TestActorRef[TestCrawlService]
+      it("should work with multiple requests to the same host") {
+        val service = TestActorRef(Props[TestCrawlService], "crawlService3")
         service.receive(RegisterJob(jobConf))
         service.receive(new FetchRequest(WrappedHttpRequest.getUrl("http://localhost:9090"), "testJob"))
         service.receive(new FetchRequest(WrappedHttpRequest.getUrl("http://localhost:9090"), "testJob"))
@@ -50,13 +52,14 @@ class CrawlServiceSpec extends AkkaSingleNodeSpec("CrawlServiceSpec") {
         expectMsg("success!")
         expectMsg("success!")
         expectMsg("success!")
+        service.stop()
       }
     }
 
-    describe("Running a new job") {
+    describe("Running a new job with multiple requests") {
 
       it("should work") {
-        val service = TestActorRef[TestCrawlService]
+        val service = TestActorRef(Props[TestCrawlService], "crawlService4")
         val confWithSeeds= jobConf.copy(seeds = List(WrappedHttpRequest.getUrl("http://localhost:9090"), 
           WrappedHttpRequest.getUrl("http://localhost:9090")))
         service.receive(RunJob(confWithSeeds))

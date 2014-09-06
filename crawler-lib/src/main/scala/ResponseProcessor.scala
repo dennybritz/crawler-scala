@@ -1,7 +1,5 @@
 package org.blikk.crawler
 
-import scala.util.Try
-
 trait ResponseProcessor extends Serializable {
   def name : String
   def process(

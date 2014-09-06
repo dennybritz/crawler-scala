@@ -6,6 +6,7 @@ case class InitializeFetcher(host: String)
 
 case class FetchRequest(req: WrappedHttpRequest, jobId: String)
 case class FetchResponse(res: WrappedHttpResponse, req: WrappedHttpRequest, jobId: String)
+case class RouteFetchRequest(fetchReq: FetchRequest)
 
 case class AddProcessor(proc: ResponseProcessor, host: String)
 

@@ -3,21 +3,29 @@ package org.blikk.crawler
 import akka.pattern.{pipe, ask}
 import akka.actor.{Actor, ActorLogging, ActorRef, Props, Status}
 import akka.cluster.routing._
-import akka.routing.{Broadcast, FromConfig}
+import akka.routing.{Broadcast, FromConfig, BalancingPool}
 import scala.collection.mutable.{Map => MutableMap}
 import scala.concurrent.duration._
 import scala.concurrent.Future
 
 trait CrawlServiceLike { this: Actor with ActorLogging =>
 
-  /* Keeps track of which worker is responsible for which host */
-  val hostWorkers = MutableMap[String, ActorRef]()
+  val NumWorkers = 50
+
   /* Keeps track of all jobs */
   val jobCache = MutableMap[String, JobConfiguration]()
 
+  /* The balancing router distributed work across all workers */
+  lazy val workerPool = context.actorOf(
+    BalancingPool(NumWorkers).props(HostWorker.props(self)), "balancingPool")
+
+  /* Routes request globally across the cluster */
   def serviceRouter : ActorRef 
 
   def crawlServiceBehavior : Receive = {
+    case RouteFetchRequest(fetchReq) => 
+      log.debug("routing fetch request {}", fetchReq.req)
+      routeFetchRequestGlobally(fetchReq)
     case msg @ FetchRequest(req, jobId) =>
       // We assume that the request comes from the consistent hasing router
       // and that this node is in fact responsible for handling it.
@@ -34,11 +42,11 @@ trait CrawlServiceLike { this: Actor with ActorLogging =>
       // Send out the initial requests to appropriate workers
       job.seeds.foreach { seedRequest =>
         val fetchReq = FetchRequest(seedRequest, job.jobId)
-        routeFetchRequest(fetchReq)
+        routeFetchRequestGlobally(fetchReq)
       }
   }
 
-  def routeFetchRequest(fetchRequest: FetchRequest) : Unit = {
+  def routeFetchRequestGlobally(fetchRequest: FetchRequest) : Unit = {
     serviceRouter ! fetchRequest
   }
 
@@ -47,22 +55,15 @@ trait CrawlServiceLike { this: Actor with ActorLogging =>
     Starts a new worker if no responsible worker exists yet.
   */
   def routeFetchRequestLocally(req: FetchRequest, sender: ActorRef) : Unit = {
-    val host = req.req.host
-    log.debug(s"locally routing fetch request for host={}", host)
-    hostWorkers.get(host) match {
-      case Some(worker) => worker.tell(req, sender) 
-      case None => 
-        val newWorker = startWorkerForHost(host)
-        hostWorkers.put(host, newWorker)
-        newWorker.tell(req, sender)
-    }
+    // Router does the managing for us
+    workerPool.tell(req, sender)
   }
 
   /* Starts a new worker actor for a given host */
-  def startWorkerForHost(host: String) : ActorRef = {
-    log.debug(s"starting worker for host={}", host)
-    val newWorker = context.actorOf(HostWorker.props(host), s"hostWorker-${host}")
-    newWorker
-  }
+  // def startWorkerForHost(host: String) : ActorRef = {
+  //   log.debug(s"starting worker for host={}", host)
+  //   val newWorker = context.actorOf(HostWorker.props(host), s"hostWorker-${host}")
+  //   newWorker
+  // }
 
 }
