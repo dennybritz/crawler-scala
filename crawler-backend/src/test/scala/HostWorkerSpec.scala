@@ -20,7 +20,7 @@ class HostWorkerSpec extends AkkaSingleNodeSpec("HostWorkerSpec") {
       actor.receive(new FetchRequest(WrappedHttpRequest.getUrl("http://localhost:9090"), "testJob"))
       parentProbe.expectMsg(GetJob("testJob"))
       parentProbe.reply(Some(jobConf))
-      expectMsg("success!")
+      expectMsg("http://localhost:9090")
     }
 
     it("should not process the response if it cannot find the job configuration") {
@@ -41,9 +41,9 @@ class HostWorkerSpec extends AkkaSingleNodeSpec("HostWorkerSpec") {
       actor.receive(new FetchRequest(WrappedHttpRequest.getUrl("http://localhost:9090"), "testJob"))
       parentProbe.expectMsg(GetJob("testJob"))
       parentProbe.reply(Some(jobConf))
-      expectMsg("success!")
-      expectMsg("success!")
-      expectMsg("success!")
+      expectMsg("http://localhost:9090")
+      expectMsg("http://localhost:9090")
+      expectMsg("http://localhost:9090")
     }
   }
 

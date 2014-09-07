@@ -8,12 +8,30 @@ import spray.can._
 import spray.http._
 import scala.concurrent.Await
 import scala.concurrent.duration._
+import scala.io.Source
 import akka.util.Timeout
 
 class HttpServerListener extends Actor with ActorLogging {
 
   def receive = {
     case _: Http.Connected => sender ! Http.Register(self)
+    case req @ HttpRequest(HttpMethods.GET, Uri.Path("/links/1"), _, _, _) =>
+      log.debug("HTTP Request: {}", req.toString)
+      sender ! HttpResponse(entity = """
+      <html><body>
+      <a href="/links/2">This is a link</a>
+      </body></html>""")
+    case req @ HttpRequest(HttpMethods.GET, Uri.Path("/links/2"), _, _, _) =>
+      log.debug("HTTP Request: {}", req.toString)
+      sender ! HttpResponse(entity = """
+      <html><body>
+      <a href="/links/3">This is a link</a>
+      </body></html>""")
+    case req @ HttpRequest(HttpMethods.GET, Uri.Path("/links/3"), _, _, _) =>
+      log.debug("HTTP Request: {}", req.toString)
+      sender ! HttpResponse(entity = """
+      <html><body>
+      </body></html>""")
     case req: HttpRequest =>
       log.debug("HTTP Request: {}", req.toString)
       sender() ! HttpResponse(StatusCodes.OK)

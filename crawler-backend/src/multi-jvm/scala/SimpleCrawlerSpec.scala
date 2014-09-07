@@ -7,17 +7,13 @@ import akka.cluster.ClusterEvent._
 import akka.remote.testkit.MultiNodeSpec
 import akka.testkit.ImplicitSender
 
-
 class SimpleCrawlerSpecMultiJvmNode1 extends SimpleCrawlerSpec
 class SimpleCrawlerSpecMultiJvmNode2 extends SimpleCrawlerSpec
 class SimpleCrawlerSpecMultiJvmNode3 extends SimpleCrawlerSpec
 
-
 class SimpleCrawlerSpec extends CrawlClusterSpec {
   
   import CrawlClusterConfig._
-
-  val testProcessor = new NullProcessor()
 
   describe("A crawl cluster doing localhost requests"){
     
@@ -30,7 +26,7 @@ class SimpleCrawlerSpec extends CrawlClusterSpec {
 
       // The job configuration
       val simpleJobConf = JobConfiguration.empty("testJob").copy(
-        seeds = List(WrappedHttpRequest.getUrl("http://localhost:9090"), WrappedHttpRequest.getUrl("http://localhost:9090")),
+        seeds = List(WrappedHttpRequest.getUrl("http://localhost:9090/1"), WrappedHttpRequest.getUrl("http://localhost:9090/2")),
         processors = List(new RemoteTestResponseProcessor(remoteActorAddress))
       );
 
@@ -48,20 +44,19 @@ class SimpleCrawlerSpec extends CrawlClusterSpec {
       runOn(node1) {
         val service = system.actorSelection("akka://" + system.name + "/user/crawlService")
         service ! RunJob(simpleJobConf)
-        expectMsg("success!")
-        expectMsg("success!")
+        receiveN(2).toSet == Set("http://localhost:9090/1", "http://localhost:9090/2")
         expectNoMsg()
       }
       testConductor.enter("job-run-1")
 
       // Send another request on each node 
       // It should be routed appropriately
-      val fetchReq = FetchRequest(WrappedHttpRequest.getUrl("http://localhost:9090"), "testJob")
+      val fetchReq = FetchRequest(WrappedHttpRequest.getUrl("http://localhost:9090/3"), "testJob")
       val service = system.actorSelection("akka://" + system.name + "/user/crawlService")
       service ! RouteFetchRequest(fetchReq)
       // We should receive 3 responses on node1
       runOn(node1) {
-        roles.foreach { _ => expectMsg("success!") }
+        expectMsg("http://localhost:9090/3")
         expectNoMsg()
       }
       testConductor.enter("finished")

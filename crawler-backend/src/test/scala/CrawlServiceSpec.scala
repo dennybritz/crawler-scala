@@ -39,19 +39,17 @@ class CrawlServiceSpec extends AkkaSingleNodeSpec("CrawlServiceSpec") {
         val service = TestActorRef(Props[TestCrawlService], "crawlService2")
         service.receive(RegisterJob(jobConf))
         service.receive(new FetchRequest(WrappedHttpRequest.getUrl("http://localhost:9090"), "testJob"))
-        expectMsg("success!")
+        expectMsg("http://localhost:9090")
         service.stop()
       }
 
       it("should work with multiple requests to the same host") {
         val service = TestActorRef(Props[TestCrawlService], "crawlService3")
         service.receive(RegisterJob(jobConf))
-        service.receive(new FetchRequest(WrappedHttpRequest.getUrl("http://localhost:9090"), "testJob"))
-        service.receive(new FetchRequest(WrappedHttpRequest.getUrl("http://localhost:9090"), "testJob"))
-        service.receive(new FetchRequest(WrappedHttpRequest.getUrl("http://localhost:9090"), "testJob"))
-        expectMsg("success!")
-        expectMsg("success!")
-        expectMsg("success!")
+        service.receive(new FetchRequest(WrappedHttpRequest.getUrl("http://localhost:9090/1"), "testJob"))
+        service.receive(new FetchRequest(WrappedHttpRequest.getUrl("http://localhost:9090/2"), "testJob"))
+        service.receive(new FetchRequest(WrappedHttpRequest.getUrl("http://localhost:9090/3"), "testJob"))
+        receiveN(3).toSet == Set("http://localhost:9090/1", "http://localhost:9090/2", "http://localhost:9090/3")
         service.stop()
       }
     }
@@ -60,15 +58,13 @@ class CrawlServiceSpec extends AkkaSingleNodeSpec("CrawlServiceSpec") {
 
       it("should work") {
         val service = TestActorRef(Props[TestCrawlService], "crawlService4")
-        val confWithSeeds= jobConf.copy(seeds = List(WrappedHttpRequest.getUrl("http://localhost:9090"), 
-          WrappedHttpRequest.getUrl("http://localhost:9090")))
+        val confWithSeeds= jobConf.copy(seeds = List(WrappedHttpRequest.getUrl("http://localhost:9090/1"), 
+          WrappedHttpRequest.getUrl("http://localhost:9090/2")))
         service.receive(RunJob(confWithSeeds))
-        expectMsg("success!")
-        expectMsg("success!")
-        service.receive(new FetchRequest(WrappedHttpRequest.getUrl("http://localhost:9090"), "testJob"))
-        service.receive(new FetchRequest(WrappedHttpRequest.getUrl("http://localhost:9090"), "testJob"))
-        expectMsg("success!")
-        expectMsg("success!")
+        receiveN(2).toSet == Set("http://localhost:9090/1", "http://localhost:9090/2")
+        service.receive(new FetchRequest(WrappedHttpRequest.getUrl("http://localhost:9090/3"), "testJob"))
+        service.receive(new FetchRequest(WrappedHttpRequest.getUrl("http://localhost:9090/4"), "testJob"))
+        receiveN(2).toSet == Set("http://localhost:9090/3", "http://localhost:9090/4")
         expectNoMsg()
       }
 

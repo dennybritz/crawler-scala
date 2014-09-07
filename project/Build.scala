@@ -27,7 +27,9 @@ object BlikkBuild extends Build {
       "io.spray" %% "spray-http" % "1.3.1",
       "io.spray" %% "spray-can" % "1.3.1",
       "org.scalatest" %% "scalatest" % "2.2.1" % "test",
-      "org.scalautils" %% "scalautils" % "2.1.5"
+      "org.scalautils" %% "scalautils" % "2.1.5",
+      "com.rabbitmq" % "amqp-client" % "3.3.5",
+      "org.jsoup" % "jsoup" % "1.7.3"
     ),
     parallelExecution in Test := false
   )
@@ -42,7 +44,8 @@ object BlikkBuild extends Build {
       "io.spray" %% "spray-can" % "1.3.1",
       "ch.qos.logback" % "logback-classic" % "1.1.2",
       "org.scalatest" %% "scalatest" % "2.2.1" % "test",
-      "org.scalautils" %% "scalautils" % "2.1.5"
+      "org.scalautils" %% "scalautils" % "2.1.5",
+      "org.jsoup" % "jsoup" % "1.7.3"
     ),
     parallelExecution in Test := false
   )

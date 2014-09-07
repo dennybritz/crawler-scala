@@ -6,7 +6,8 @@ import akka.cluster.routing._
 import akka.routing.{Broadcast, FromConfig, BalancingPool}
 import scala.collection.mutable.{Map => MutableMap}
 import scala.concurrent.duration._
-import scala.concurrent.Future
+import scala.concurrent.{Future}
+import scala.collection.concurrent.TrieMap
 
 trait CrawlServiceLike { this: Actor with ActorLogging =>
 
@@ -18,7 +19,8 @@ trait CrawlServiceLike { this: Actor with ActorLogging =>
   /* The balancing router distributed work across all workers */
   lazy val workerPool = context.actorOf(
     BalancingPool(NumWorkers).props(HostWorker.props(self)), "balancingPool")
-
+  /* Keep track of URLs already requested */
+  val jobUrlCache = MutableMap[String, TrieMap[String, Long]]().withDefaultValue(TrieMap[String, Long]())
   /* Routes request globally across the cluster */
   def serviceRouter : ActorRef 
 
@@ -29,7 +31,12 @@ trait CrawlServiceLike { this: Actor with ActorLogging =>
     case msg @ FetchRequest(req, jobId) =>
       // We assume that the request comes from the consistent hasing router
       // and that this node is in fact responsible for handling it.
-      val res = routeFetchRequestLocally(msg, sender())
+      // We only handle it if it not present in the cache (for this job)
+      // TODO: We should do this globally (e.g. in redis) and with timeout
+      jobUrlCache(jobId).putIfAbsent(req.uri.toString, System.currentTimeMillis) match {
+        case Some(previousValue) => log.debug("Ignoring url=\"{}\". Fetched previously.", req.uri.toString)
+        case None => routeFetchRequestLocally(msg, sender())
+      }
     case GetJob(jobId) =>
       sender ! jobCache.get(jobId)
     case RegisterJob(job) =>

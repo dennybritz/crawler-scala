@@ -1,5 +1,6 @@
 package org.blikk.crawler
 
+import org.blikk.crawler.channels.OutputputChannelPipeline
 import akka.actor.{Actor, ActorLogging, ActorRef, Props}
 import akka.pattern.{ask, pipe}
 import akka.util.{Timeout}
@@ -7,6 +8,7 @@ import scala.collection.mutable.{Map => MutableMap}
 import scala.concurrent.{Future, Promise}
 import scala.concurrent.duration._
 import scala.util.{Try, Success, Failure}
+import com.typesafe.config.ConfigFactory
 
 object HostWorker {
   def props(service: ActorRef) = Props(classOf[HostWorker], service)
@@ -18,6 +20,8 @@ class HostWorker(service: ActorRef) extends Actor with HttpFetcher with ActorLog
 
   /* Keeps track of all the processors a response goes through */
   val processors = scala.collection.mutable.ArrayBuffer.empty[ResponseProcessor]
+  /* Handles the output */
+  val outputChannels = new OutputputChannelPipeline()
 
   val workerBehavior : Receive = {
     case FetchRequest(req: WrappedHttpRequest, jobId) =>
@@ -50,10 +54,11 @@ class HostWorker(service: ActorRef) extends Actor with HttpFetcher with ActorLog
 
   def processResponse(res: WrappedHttpResponse, req: WrappedHttpRequest, 
     jobConf: JobConfiguration) : Unit = {
-    val finalContext = jobConf.processors.foldLeft(Map.empty[String,Any]) { (ctx, proc) =>
-      proc.process(res, req, jobConf, ctx)
+    val finalContext = jobConf.processors.foldLeft(Map.empty[String, ProcessorOutput]) { (ctx, proc) =>
+      ctx ++ proc.process(res, req, jobConf, ctx)
     }
     log.debug("final context: {}", finalContext.toString)
+    outputChannels.process(finalContext)
   }
 
 }
