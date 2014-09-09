@@ -1,6 +1,6 @@
 package org.blikk.crawler
 
-import com.redis.RedisClient
+import com.redis.RedisClientPool
 import akka.actor.{Actor, ActorLogging, ActorRef, Props, Status}
 import akka.cluster.routing._
 import akka.routing.{Broadcast, FromConfig, BalancingPool, GetRoutees, Routees, ActorRefRoutee, ActorSelectionRoutee}
@@ -18,7 +18,7 @@ trait CrawlServiceLike extends JobManagerBehavior { this: Actor with ActorLoggin
   import context.dispatcher
 
   /* Local redis instance used for caching */
-  implicit def localRedis: RedisClient
+  implicit def localRedis: RedisClientPool
 
   /* The balancing router distributed work across all workers */
   lazy val workerPool = context.actorOf(
@@ -42,14 +42,17 @@ trait CrawlServiceLike extends JobManagerBehavior { this: Actor with ActorLoggin
       routeFetchRequestLocally(msg, sender())
     case GetJob(jobId) =>
       sender ! jobCache.get(jobId)
-    case RegisterJob(job) =>
+    case RegisterJob(job, clearOldJob) =>
       log.info("registering job=\"{}\"", job.jobId)
+      if(clearOldJob) {
+        jobStatsCollector ! ClearJobEventCounts(job.jobId)
+      }
       jobCache.put(job.jobId, job)
       startFrontier(job.jobId)
-    case RunJob(job) =>
+    case RunJob(job, clearOldJob) =>
       // Store the job configuration locally and send it to all workers for caching
       log.debug("broadcasting new job=\"{}\"", job.jobId)
-      serviceRouter ! Broadcast(RegisterJob(job))
+      serviceRouter ! Broadcast(RegisterJob(job, clearOldJob))
       // Send out the initial requests to appropriate workers
       job.seeds.foreach { seedRequest =>
         routeFetchRequestGlobally(FetchRequest(seedRequest, job.jobId))

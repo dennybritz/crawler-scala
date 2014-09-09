@@ -1,8 +1,8 @@
 package org.blikk.test
 
-import com.redis.RedisClient
+import com.redis.RedisClientPool
 
 trait LocalRedis {
-  lazy val _localRedis = new RedisClient("localhost", 6379)
+  lazy val _localRedis = new RedisClientPool("localhost", 6379)
   implicit def localRedis = _localRedis
 }

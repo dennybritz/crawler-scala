@@ -12,8 +12,8 @@ case class RouteFetchRequest(fetchReq: FetchRequest)
 
 case class AddProcessor(proc: ResponseProcessor, host: String)
 
-case class RunJob(job: JobConfiguration)
-case class RegisterJob(job: JobConfiguration)
+case class RunJob(job: JobConfiguration, clear: Boolean = false)
+case class RegisterJob(job: JobConfiguration, clear: Boolean = false)
 case class GetJob(jobId: String)
 
 case class JobEvent(jobId : String, event: Any)

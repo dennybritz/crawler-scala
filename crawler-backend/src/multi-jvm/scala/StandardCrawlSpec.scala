@@ -1,6 +1,6 @@
 package org.blikk.test
 
-import com.redis.RedisClient
+import com.redis.RedisClientPool
 import org.blikk.crawler.processors.{LinkExtractor, RabbitMQProducer}
 import org.blikk.crawler._
 import akka.actor._
@@ -45,7 +45,7 @@ class StandardCrawlSpec extends CrawlClusterSpec {
       // Start all nodes in the cluster and wait for them to join
       Cluster(system).subscribe(self, initialStateMode = InitialStateAsEvents, classOf[MemberUp])
       Cluster(system) join node(node1).address
-      val localRedis = new RedisClient("localhost", 6379)
+      val localRedis = new RedisClientPool("localhost", 6379)
       system.actorOf(CrawlService.props(localRedis), name = s"crawlService")
       roles.foreach { r => expectMsgClass(classOf[MemberUp]) }
       Cluster(system).unsubscribe(self)

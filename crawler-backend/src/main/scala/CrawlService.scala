@@ -1,6 +1,6 @@
 package org.blikk.crawler
 
-import com.redis.RedisClient
+import com.redis.RedisClientPool
 import akka.actor.{Actor, ActorLogging, ActorRef, Props, Status}
 import akka.cluster.Cluster
 import akka.cluster.ClusterEvent._
@@ -12,10 +12,10 @@ import scala.concurrent.duration._
 
 
 object CrawlService {
-  def props(localRedis: RedisClient) = Props(classOf[CrawlService], localRedis)
+  def props(localRedis: RedisClientPool) = Props(classOf[CrawlService], localRedis)
 }
 
-class CrawlService(val localRedis: RedisClient) 
+class CrawlService(val localRedis: RedisClientPool) 
   extends CrawlServiceLike with Actor with ActorLogging {
 
   /* Consistent-hashing router that forwards requests to the appropriate crawl service node */

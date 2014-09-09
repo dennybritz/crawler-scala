@@ -1,11 +1,12 @@
 package org.blikk.crawler
 
-import com.redis.RedisClient
+import com.redis.RedisClientPool
 import akka.actor._
 import scala.collection.mutable.{Map => MutableMap}
+import com.redis.serialization.Parse
 
 object JobStatsCollector {
-  def props(localRedis: RedisClient) = Props(classOf[JobStatsCollector], localRedis)
+  def props(localRedis: RedisClientPool) = Props(classOf[JobStatsCollector], localRedis)
 }
 
 /* 
@@ -13,7 +14,7 @@ object JobStatsCollector {
   Note: This runs locally on each node and only collects local job statistics.
   To obtain global job statistics across all nodes one must aggregate all local statistics. 
 */
-class JobStatsCollector(localRedis: RedisClient) extends Actor with ActorLogging {
+class JobStatsCollector(localRedis: RedisClientPool) extends Actor with ActorLogging {
 
   val events = MutableMap[(String, String), Int]().withDefaultValue(0)
 
@@ -31,7 +32,7 @@ class JobStatsCollector(localRedis: RedisClient) extends Actor with ActorLogging
       log.info(e.toString)
       increaseEventCounts(jobId, processJobEvent(e))
     case GetJobEventCount(jobId, event) =>
-      sender ! JobStats(jobId, Map(event.toString -> getEventCount(jobId, event.toString)))
+      sender ! JobStats(jobId, getEventCounts(jobId, List(event.toString)))
     case GetJobEventCounts(jobId) =>
       // Return all events counts for this job but strip off the jobId from the result
       sender ! JobStats(jobId, getAllEventCounts(jobId))
@@ -40,31 +41,42 @@ class JobStatsCollector(localRedis: RedisClient) extends Actor with ActorLogging
   }
 
   def clearEventCounts(jobId: String) : Unit = {
-    localRedis.smembers(eventKeys(jobId)).foreach { keys =>
-      keys.flatten.foreach { eventName =>
-        localRedis.del(key(jobId, eventName))
+    localRedis.withClient { client =>
+      client.smembers(eventKeys(jobId)).foreach { keys =>
+        keys.flatten.foreach { eventName =>
+          client.del(key(jobId, eventName))
+        }
       }
+      client.del(eventKeys(jobId))
     }
-    localRedis.del(eventKeys(jobId))
   } 
 
   def getAllEventCounts(jobId: String) : Map[String, Int] = {
-    localRedis.smembers(eventKeys(jobId)).map { keys =>
-      keys.flatMap { 
-        case Some(eventName) => Some(eventName, getEventCount(jobId, eventName))
-        case _ => None
-      }.toMap
-    }.getOrElse(Map.empty)
+    localRedis.withClient { client =>
+      client.smembers(eventKeys(jobId)).map { keys =>
+        getEventCounts(jobId, keys.flatten.toList)
+      }.getOrElse(Map.empty)
+    }
   }
 
-  def getEventCount(jobId: String, eventName: String) : Int = {
-    localRedis.get(key(jobId, eventName)).map(_.toInt).getOrElse(0)
+  def getEventCounts(jobId: String, eventNames: List[String]) : Map[String,Int] = {
+    localRedis.withClient { client =>
+      if (eventNames.isEmpty) return Map.empty 
+      val keys = eventNames.map(e => key(jobId, e))
+      import Parse.Implicits.parseInt
+      client.mget[Int](keys.head, keys.tail: _*).map { values =>
+        keys.zip(values.flatten).toMap
+      }.getOrElse(Map.empty)
+    }
   }
 
   def increaseEventCounts(jobId: String, events: List[String]) ={
-    localRedis.sadd(eventKeys(jobId), events.head, events.tail: _*)
-    events.foreach { e => 
-      localRedis.incr(key(jobId, e))
+    localRedis.withClient { client =>
+      client.sadd(eventKeys(jobId), events.head, events.tail: _*)
+      events.foreach { e => 
+        log.debug(key(jobId, e))
+        client.incr(key(jobId, e))
+      }
     }
   }
 

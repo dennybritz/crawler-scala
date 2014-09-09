@@ -17,9 +17,9 @@ class JobStatsCollectorSpec extends AkkaSingleNodeSpec("JobStatsCollectorSpec") 
       actor ! JobEvent("testJob2", "request")
       actor ! JobEvent("testJob1", "response")
       actor ! GetJobEventCount("testJob1", "request")
-      expectMsg(JobStats("testJob1", Map("request" -> 3)))
+      expectMsg(JobStats("testJob1", Map("stats:testJob1:request" -> 3)))
       actor ! GetJobEventCount("testJob1", "response")
-      expectMsg(JobStats("testJob1", Map("response" -> 1)))
+      expectMsg(JobStats("testJob1", Map("stats:testJob1:response" -> 1)))
       actor.stop()
     }
 
@@ -33,7 +33,7 @@ class JobStatsCollectorSpec extends AkkaSingleNodeSpec("JobStatsCollectorSpec") 
       actor ! JobEvent("testJob1", "response")
       actor ! JobEvent("testJob1", "response")
       actor ! GetJobEventCounts("testJob1")
-      expectMsg(JobStats("testJob1", Map("request" -> 3, "response" -> 2)))
+      expectMsg(JobStats("testJob1", Map("stats:testJob1:request" -> 3, "stats:testJob1:response" -> 2)))
       actor.stop()
     }
 
@@ -44,7 +44,7 @@ class JobStatsCollectorSpec extends AkkaSingleNodeSpec("JobStatsCollectorSpec") 
       system.eventStream.publish(JobEvent("testJob1", "request"))
       system.eventStream.publish(JobEvent("testJob1", "request"))
       actor ! GetJobEventCount("testJob1", "request")
-      expectMsg(JobStats("testJob1", Map("request" -> 2)))
+      expectMsg(JobStats("testJob1", Map("stats:testJob1:request" -> 2)))
       actor.stop()
     }
 

@@ -5,6 +5,7 @@
 			"follow_symlinks": true,
 			"path": ".",
       "folder_exclude_patterns": ["target"],
+      "binary_file_patterns": ["*.log"]
 		},
 	]
 }
