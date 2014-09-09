@@ -26,9 +26,11 @@ class HostWorker(service: ActorRef) extends Actor with HttpFetcher with ActorLog
   val workerBehavior : Receive = {
     case FetchRequest(req: WrappedHttpRequest, jobId) =>
       log.debug("requesting url=\"{}\"", req.req.uri)
+      context.system.eventStream.publish(JobEvent(jobId, req))
       dispatchHttpRequest(req, jobId, self)
-    case FetchResponse(res, req, jobId) =>
+    case msg @ FetchResponse(res, req, jobId) =>
       log.debug("processing response for url=\"{}\"", req.req.uri)
+      context.system.eventStream.publish(JobEvent(jobId, msg))
       getJobConf(jobId) onComplete {
         case Success(jobConf) => processResponse(res, req, jobConf)
         case Failure(err) => log.error(err.toString)

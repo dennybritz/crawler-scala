@@ -18,9 +18,7 @@ class LinkExtractor(val name: String, filterFunc: Option[(Uri, Uri) => Boolean] 
     // Extract all URLs and create requests
     // Add the current request to the provenance
     val newRequests = getUrls(res.entity.asString, baseUri).toSet[String].map { newUrl  =>
-      WrappedHttpRequest.getUrl(newUrl).copy(
-        provenance = (req.provenance :+ req.copy(provenance=Nil)).takeRight(MaxProvenance)
-      )
+      WrappedHttpRequest.getUrl(newUrl).withProvenance(req)
     }
     // Optionally Filter the URLs based on the given filter function
     val filteredRequests = filterFunc match {

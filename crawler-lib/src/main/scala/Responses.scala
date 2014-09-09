@@ -3,6 +3,7 @@ package org.blikk.crawler
 trait Response extends Serializable
 
 import spray.http.HttpResponse
+import java.util.UUID
 
 // We use spray.io for HTTP responses
 
@@ -19,6 +20,8 @@ object WrappedHttpResponse {
   )
 }
 
-case class WrappedHttpResponse(rawResponse: HttpResponse, timestamp: Long) extends Response {
+case class WrappedHttpResponse(rawResponse: HttpResponse, 
+  timestamp: Long,
+  uuid : String = UUID.randomUUID.toString()) extends Response {
   def this(rawResponse: HttpResponse) = this(rawResponse, System.currentTimeMillis)
 }

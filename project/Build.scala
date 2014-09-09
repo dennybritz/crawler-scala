@@ -26,10 +26,13 @@ object BlikkBuild extends Build {
       "ch.qos.logback" % "logback-classic" % "1.1.2",
       "io.spray" %% "spray-http" % "1.3.1",
       "io.spray" %% "spray-can" % "1.3.1",
+      "io.spray" %% "spray-routing" % "1.3.1",
       "org.scalatest" %% "scalatest" % "2.2.1" % "test",
       "org.scalautils" %% "scalautils" % "2.1.5",
       "com.rabbitmq" % "amqp-client" % "3.3.5",
-      "org.jsoup" % "jsoup" % "1.7.3"
+      "org.jsoup" % "jsoup" % "1.7.3",
+      "net.debasishg" %% "redisclient" % "2.13",
+      "com.esotericsoftware.kryo" % "kryo" % "2.24.0"
     ),
     parallelExecution in Test := false
   )
@@ -45,7 +48,8 @@ object BlikkBuild extends Build {
       "ch.qos.logback" % "logback-classic" % "1.1.2",
       "org.scalatest" %% "scalatest" % "2.2.1" % "test",
       "org.scalautils" %% "scalautils" % "2.1.5",
-      "org.jsoup" % "jsoup" % "1.7.3"
+      "org.jsoup" % "jsoup" % "1.7.3",
+      "com.esotericsoftware.kryo" % "kryo" % "2.24.0"
     ),
     parallelExecution in Test := false
   )

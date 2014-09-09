@@ -1,60 +1,72 @@
 package org.blikk.crawler
 
-import akka.pattern.{pipe, ask}
+import com.redis.RedisClient
 import akka.actor.{Actor, ActorLogging, ActorRef, Props, Status}
 import akka.cluster.routing._
-import akka.routing.{Broadcast, FromConfig, BalancingPool}
+import akka.routing.{Broadcast, FromConfig, BalancingPool, GetRoutees, Routees, ActorRefRoutee, ActorSelectionRoutee}
+import akka.routing.ConsistentHashingRouter.ConsistentHashableEnvelope
+import akka.util.Timeout
 import scala.collection.mutable.{Map => MutableMap}
 import scala.concurrent.duration._
-import scala.concurrent.{Future}
 import scala.collection.concurrent.TrieMap
 
-trait CrawlServiceLike { this: Actor with ActorLogging =>
+trait CrawlServiceLike extends JobManagerBehavior { this: Actor with ActorLogging =>
 
   val NumWorkers = 50
+  
+  implicit val askTimeout = Timeout(5.seconds)
+  import context.dispatcher
 
-  /* Keeps track of all jobs */
-  val jobCache = MutableMap[String, JobConfiguration]()
+  /* Local redis instance used for caching */
+  implicit def localRedis: RedisClient
 
   /* The balancing router distributed work across all workers */
   lazy val workerPool = context.actorOf(
     BalancingPool(NumWorkers).props(HostWorker.props(self)), "balancingPool")
-  /* Keep track of URLs already requested */
-  val jobUrlCache = MutableMap[String, TrieMap[String, Long]]().withDefaultValue(TrieMap[String, Long]())
+
+  /* Keeps track of all jobs */
+  val jobCache = MutableMap[String, JobConfiguration]()
+  /* Keeps track of frontiers for different jobs */
+  val frontiers = MutableMap[String, ActorRef]()
+
   /* Routes request globally across the cluster */
   def serviceRouter : ActorRef 
+  /* Collects job statistics */
+  def jobStatsCollector : ActorRef
 
   def crawlServiceBehavior : Receive = {
     case RouteFetchRequest(fetchReq) => 
       log.debug("routing fetch request {}", fetchReq.req)
       routeFetchRequestGlobally(fetchReq)
     case msg @ FetchRequest(req, jobId) =>
-      // We assume that the request comes from the consistent hasing router
-      // and that this node is in fact responsible for handling it.
-      // We only handle it if it not present in the cache (for this job)
-      // TODO: We should do this globally (e.g. in redis) and with timeout
-      jobUrlCache(jobId).putIfAbsent(req.uri.toString, System.currentTimeMillis) match {
-        case Some(previousValue) => log.debug("Ignoring url=\"{}\". Fetched previously.", req.uri.toString)
-        case None => routeFetchRequestLocally(msg, sender())
-      }
+      routeFetchRequestLocally(msg, sender())
     case GetJob(jobId) =>
       sender ! jobCache.get(jobId)
     case RegisterJob(job) =>
       log.info("registering job=\"{}\"", job.jobId)
       jobCache.put(job.jobId, job)
+      startFrontier(job.jobId)
     case RunJob(job) =>
       // Store the job configuration locally and send it to all workers for caching
       log.debug("broadcasting new job=\"{}\"", job.jobId)
       serviceRouter ! Broadcast(RegisterJob(job))
       // Send out the initial requests to appropriate workers
       job.seeds.foreach { seedRequest =>
-        val fetchReq = FetchRequest(seedRequest, job.jobId)
-        routeFetchRequestGlobally(fetchReq)
+        routeFetchRequestGlobally(FetchRequest(seedRequest, job.jobId))
+      }
+    case msg @ AddToFrontier(req, jobId) => 
+      frontiers.get(jobId) match {
+        case Some(frontier) => frontier ! msg
+        case None => log.warning("""no frontier running for job="{}" """, jobId)
       }
   }
 
+  def defaultBehavior : Receive = crawlServiceBehavior orElse jobManagerBehavior
+
+  /* Routes a fetch request using consistent hasing to the right cluster node */
   def routeFetchRequestGlobally(fetchRequest: FetchRequest) : Unit = {
-    serviceRouter ! fetchRequest
+    serviceRouter ! ConsistentHashableEnvelope(
+      AddToFrontier(fetchRequest.req, fetchRequest.jobId), fetchRequest.req.host)
   }
 
   /* 
@@ -66,11 +78,13 @@ trait CrawlServiceLike { this: Actor with ActorLogging =>
     workerPool.tell(req, sender)
   }
 
-  /* Starts a new worker actor for a given host */
-  // def startWorkerForHost(host: String) : ActorRef = {
-  //   log.debug(s"starting worker for host={}", host)
-  //   val newWorker = context.actorOf(HostWorker.props(host), s"hostWorker-${host}")
-  //   newWorker
-  // }
+  /* Starts a new frontier worker for a given job */
+  def startFrontier(jobId: String) : Unit = {
+    val newFrontierActor = context.actorOf(Frontier.props(jobId, localRedis), s"frontier-${jobId}")
+    context.watch(newFrontierActor)
+    newFrontierActor ! ClearFrontier
+    newFrontierActor ! StartFrontier(1.seconds, self)
+    frontiers.put(jobId, newFrontierActor)
+  }
 
 }

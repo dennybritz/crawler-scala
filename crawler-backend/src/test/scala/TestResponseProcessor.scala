@@ -19,7 +19,6 @@ class TestResponseProcessor(target: ActorRef)(implicit val system: ActorSystem)
 
 class RemoteTestResponseProcessor(remoteTarget: String)
   extends ResponseProcessor {
-  
   def name = "RemoteTestProcessor"
   def process(res: WrappedHttpResponse, req: WrappedHttpRequest, 
     jobConf: JobConfiguration, context: Map[String, ProcessorOutput])  = {

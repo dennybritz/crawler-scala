@@ -1,6 +1,7 @@
 package org.blikk.crawler
 
 import spray.http._
+import java.util.UUID
 
 trait Request extends Serializable
 
@@ -18,8 +19,18 @@ object WrappedHttpRequest {
 
 case class WrappedHttpRequest(req: HttpRequest, 
   timestamp : Long,
-  provenance: Seq[WrappedHttpRequest] = Seq.empty) extends Request {
-  def this(req: HttpRequest) = this(req, System.currentTimeMillis)
+  scheduledTime : Option[Long],
+  provenance: Seq[WrappedHttpRequest] = Seq.empty,
+  uuid : String = UUID.randomUUID.toString()) extends Request {
+  def this(req: HttpRequest) = this(req, System.currentTimeMillis, None)
   def host = req.uri.authority.host.toString
   def port = req.uri.authority.port
+
+  def withProvenance(source: WrappedHttpRequest, maxProvenance : Int = 10) : 
+    WrappedHttpRequest = {
+    this.copy(
+      provenance = (source.provenance :+ source.copy(provenance=Nil)).takeRight(maxProvenance)
+    )
+  }
+
 }

@@ -6,6 +6,7 @@ import akka.cluster.Cluster
 import akka.cluster.ClusterEvent._
 import akka.remote.testkit.MultiNodeSpec
 import akka.testkit.ImplicitSender
+import com.redis.RedisClient
 
 class SimpleCrawlerSpecMultiJvmNode1 extends SimpleCrawlerSpec
 class SimpleCrawlerSpecMultiJvmNode2 extends SimpleCrawlerSpec
@@ -35,7 +36,8 @@ class SimpleCrawlerSpec extends CrawlClusterSpec {
       // Start all nodes in the cluster
       Cluster(system).subscribe(self, initialStateMode = InitialStateAsEvents, classOf[MemberUp])
       Cluster(system) join node(node1).address
-      system.actorOf(Props[CrawlService], name = s"crawlService")
+      val localRedis = new RedisClient("localhost", 6379)
+      system.actorOf(CrawlService.props(localRedis), name = s"crawlService")
       roles.foreach { r => expectMsgClass(classOf[MemberUp]) }
       Cluster(system).unsubscribe(self)
       testConductor.enter("cluster-up")

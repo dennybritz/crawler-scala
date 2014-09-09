@@ -6,7 +6,7 @@ import akka.testkit.{TestKit, ImplicitSender, TestActorRef}
 import com.typesafe.config.ConfigFactory
 
 class AkkaSingleNodeSpec(name: String) extends TestKit(ActorSystem(name, ConfigFactory.load("application.test"))) 
-  with ImplicitSender with FunSpecLike with BeforeAndAfter with BeforeAndAfterAll {
+  with ImplicitSender with FunSpecLike with BeforeAndAfter with BeforeAndAfterAll with LocalRedis {
 
   override def beforeAll() {
     // Start a local HTTP server for request testing

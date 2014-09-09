@@ -1,5 +1,6 @@
 package org.blikk.test
 
+import com.redis.RedisClient
 import org.blikk.crawler.processors.{LinkExtractor, RabbitMQProducer}
 import org.blikk.crawler._
 import akka.actor._
@@ -44,7 +45,8 @@ class StandardCrawlSpec extends CrawlClusterSpec {
       // Start all nodes in the cluster and wait for them to join
       Cluster(system).subscribe(self, initialStateMode = InitialStateAsEvents, classOf[MemberUp])
       Cluster(system) join node(node1).address
-      system.actorOf(Props[CrawlService], name = s"crawlService")
+      val localRedis = new RedisClient("localhost", 6379)
+      system.actorOf(CrawlService.props(localRedis), name = s"crawlService")
       roles.foreach { r => expectMsgClass(classOf[MemberUp]) }
       Cluster(system).unsubscribe(self)
       testConductor.enter("cluster-up")
@@ -53,7 +55,7 @@ class StandardCrawlSpec extends CrawlClusterSpec {
       runOn(node1) {
         val service = system.actorSelection("akka://" + system.name + "/user/crawlService")
         service ! RunJob(jobConf)
-        receiveN(3).toSet == Set("http://localhost:9090/1", "http://localhost:9090/2", "http://localhost:9090/3")
+        receiveN(3, 10.seconds).toSet == Set("http://localhost:9090/1", "http://localhost:9090/2", "http://localhost:9090/3")
       }
       testConductor.enter("job-run-1")
 

@@ -1,5 +1,6 @@
 package org.blikk.crawler
 
+import com.redis.RedisClient
 import akka.actor.{Actor, ActorLogging, ActorRef, Props, Status}
 import akka.cluster.Cluster
 import akka.cluster.ClusterEvent._
@@ -9,7 +10,13 @@ import akka.routing.{Broadcast, FromConfig, BroadcastGroup, ConsistentHashingGro
 import scala.collection.mutable.{Map => MutableMap}
 import scala.concurrent.duration._
 
-class CrawlService extends CrawlServiceLike with Actor with ActorLogging {
+
+object CrawlService {
+  def props(localRedis: RedisClient) = Props(classOf[CrawlService], localRedis)
+}
+
+class CrawlService(val localRedis: RedisClient) 
+  extends CrawlServiceLike with Actor with ActorLogging {
 
   /* Consistent-hashing router that forwards requests to the appropriate crawl service node */
   val _serviceRouter : ActorRef = context.actorOf(ClusterRouterGroup(
@@ -19,6 +26,7 @@ class CrawlService extends CrawlServiceLike with Actor with ActorLogging {
     name="serviceRouter")
 
   def serviceRouter = _serviceRouter
+  val jobStatsCollector = context.actorOf(JobStatsCollector.props(localRedis), "jobStatsCollector")
 
   override def preStart() : Unit = {
     log.info(s"starting at ${self.path}")
@@ -32,10 +40,6 @@ class CrawlService extends CrawlServiceLike with Actor with ActorLogging {
       log.info("Cluster event: {}", clusterEvent.toString)
   }
   
-  def receive = clusterBehavior orElse crawlServiceBehavior
-
-  override def routeFetchRequestGlobally(fetchRequest: FetchRequest) : Unit = {
-    serviceRouter ! ConsistentHashableEnvelope(fetchRequest, fetchRequest.req.host)
-  }
+  def receive = clusterBehavior orElse defaultBehavior
 
 }
