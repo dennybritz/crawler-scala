@@ -5,10 +5,11 @@ import akka.actor.{Actor, ActorLogging, ActorRef, Props, Status}
 import akka.cluster.routing._
 import akka.routing.{Broadcast, FromConfig, BalancingPool, GetRoutees, Routees, ActorRefRoutee, ActorSelectionRoutee}
 import akka.routing.ConsistentHashingRouter.ConsistentHashableEnvelope
-import akka.util.Timeout
+import akka.util.{Timeout}
 import scala.collection.mutable.{Map => MutableMap}
 import scala.concurrent.duration._
 import scala.collection.concurrent.TrieMap
+import scala.util.{Try, Success, Failure}
 
 trait CrawlServiceLike extends JobManagerBehavior { this: Actor with ActorLogging =>
 
@@ -22,7 +23,7 @@ trait CrawlServiceLike extends JobManagerBehavior { this: Actor with ActorLoggin
 
   /* The balancing router distributed work across all workers */
   lazy val workerPool = context.actorOf(
-    BalancingPool(NumWorkers).props(HostWorker.props(self)), "balancingPool")
+    BalancingPool(NumWorkers).props(HostWorker.props(self, jobStatsCollector)), "balancingPool")
 
   /* Keeps track of all jobs */
   val jobCache = MutableMap[String, JobConfiguration]()
@@ -41,7 +42,11 @@ trait CrawlServiceLike extends JobManagerBehavior { this: Actor with ActorLoggin
     case msg @ FetchRequest(req, jobId) =>
       routeFetchRequestLocally(msg, sender())
     case GetJob(jobId) =>
-      sender ! jobCache.get(jobId)
+      val jobConf = Try(jobCache(jobId)) match {
+        case Success(x) => x
+        case Failure(err) => Status.Failure(err) 
+      }
+      sender ! jobConf
     case RegisterJob(job, clearOldJob) =>
       log.info("registering job=\"{}\"", job.jobId)
       if(clearOldJob) {

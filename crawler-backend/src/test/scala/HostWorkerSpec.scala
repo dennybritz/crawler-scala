@@ -16,20 +16,22 @@ class HostWorkerSpec extends AkkaSingleNodeSpec("HostWorkerSpec") {
     it("should work with a simple processor") {
       val parentProbe = TestProbe()
       val jobConf = JobConfiguration.empty("testJob").copy(processors = List(testProcessor))
-      val actor = TestActorRef(HostWorker.props(parentProbe.ref), parentProbe.ref, "worker")
+      val actor = TestActorRef(HostWorker.props(parentProbe.ref, parentProbe.ref), parentProbe.ref, "worker")
       actor.receive(new FetchRequest(WrappedHttpRequest.getUrl("http://localhost:9090"), "testJob"))
       parentProbe.expectMsg(GetJob("testJob"))
-      parentProbe.reply(Some(jobConf))
+      parentProbe.reply(jobConf)
+      parentProbe.expectMsg(GetJobEventCounts("testJob"))
+      parentProbe.reply(JobStats("testJob", Map.empty))
       expectMsg("http://localhost:9090")
     }
 
     it("should not process the response if it cannot find the job configuration") {
       val parentProbe = TestProbe()
       val jobConf = JobConfiguration.empty("testJob").copy(processors = List(testProcessor))
-      val actor = TestActorRef(HostWorker.props(parentProbe.ref), parentProbe.ref, "worker")
+      val actor = TestActorRef(HostWorker.props(parentProbe.ref, parentProbe.ref), parentProbe.ref, "worker")
       actor.receive(new FetchRequest(WrappedHttpRequest.getUrl("http://localhost:9090"), "testJob"))
       parentProbe.expectMsg(GetJob("testJob"))
-      parentProbe.reply(None)
+      parentProbe.reply(Status.Failure(new NoSuchElementException()))
       expectNoMsg(500.millis)
     }
 
@@ -37,10 +39,12 @@ class HostWorkerSpec extends AkkaSingleNodeSpec("HostWorkerSpec") {
       val parentProbe = TestProbe()
       def jobConf = JobConfiguration.empty("testJob").copy(
         processors = List(testProcessor, testProcessor, testProcessor))
-      val actor = TestActorRef(HostWorker.props(parentProbe.ref), parentProbe.ref, "worker")
+      val actor = TestActorRef(HostWorker.props(parentProbe.ref, parentProbe.ref), parentProbe.ref, "worker")
       actor.receive(new FetchRequest(WrappedHttpRequest.getUrl("http://localhost:9090"), "testJob"))
       parentProbe.expectMsg(GetJob("testJob"))
-      parentProbe.reply(Some(jobConf))
+      parentProbe.reply(jobConf)
+      parentProbe.expectMsg(GetJobEventCounts("testJob"))
+      parentProbe.reply(JobStats("testJob", Map.empty))
       expectMsg("http://localhost:9090")
       expectMsg("http://localhost:9090")
       expectMsg("http://localhost:9090")

@@ -42,7 +42,7 @@ class CrawlServiceSpec extends AkkaSingleNodeSpec("CrawlServiceSpec") {
           val service = TestActorRef(TestCrawlService.props, "crawlService1")
           service.receive(RegisterJob(jobConf, true))
           service.receive(GetJob("testJob"), self)
-          expectMsg(Some(jobConf))
+          expectMsg(jobConf)
           service.stop()
         }
     }
