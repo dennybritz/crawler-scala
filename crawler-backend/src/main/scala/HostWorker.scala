@@ -1,6 +1,7 @@
 package org.blikk.crawler
 
 import org.blikk.crawler.channels.OutputputChannelPipeline
+import org.blikk.crawler._
 import akka.actor.{Actor, ActorLogging, ActorRef, Props}
 import akka.pattern.{ask, pipe}
 import akka.util.{Timeout}
@@ -50,11 +51,11 @@ class HostWorker(service: ActorRef, statsCollector: ActorRef) extends Actor with
 
     initialProcessorInputF onComplete {
       case Success(initialInput) =>
-        val finalPinuput = initialInput.jobConf.processors.foldLeft(initialInput) { (pin, proc) =>
+        val result = initialInput.jobConf.processors.foldLeft(initialInput) { (pin, proc) =>
           pin.copy(context = pin.context ++ proc.process(pin))
         }
-        log.debug("final context: {}", finalPinuput.context.toString)
-        outputChannels.process(finalPinuput.context)
+        log.debug("final context: {}", result.context.toString)
+        outputChannels.process(result)
       case Failure(err) =>
         log.error(err.toString)
     }

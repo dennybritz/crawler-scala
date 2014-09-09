@@ -24,7 +24,7 @@ class LinkExtractor(val name: String, filterFunc: Option[(Uri, Uri) => Boolean] 
       case Some(f: ((Uri, Uri) => Boolean)) => newRequests.filter(r => f(in.req.uri, r.uri))
       case None => newRequests
     }
-    Map(name -> FrontierChannelInput(in.jobConf.jobId, filteredRequests.toSeq))
+    Map(name -> FrontierChannelInput(filteredRequests.toSeq))
   }
 
   def getUrls(htmlString: String, baseUri: String) : List[String] = {

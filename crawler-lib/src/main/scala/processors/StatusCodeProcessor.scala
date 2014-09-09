@@ -16,7 +16,7 @@ class StatusCodeProcessor(val name: String)  extends ResponseProcessor with Logg
           case HttpHeaders.Location(url) => 
              WrappedHttpRequest.getUrl(url.toString).withProvenance(in.req)
         }
-        Some(FrontierChannelInput(in.jobConf.jobId, newRequests))
+        Some(FrontierChannelInput(newRequests))
       case code : ServerError =>
         log.warn("error fetching {} ({}): {}", in.req.uri.toString, in.req.uuid, in.res)
         None

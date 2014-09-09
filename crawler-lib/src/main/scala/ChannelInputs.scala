@@ -9,6 +9,17 @@ case class RabbitMQChannelInput(
   messages: List[String]) extends ProcessorOutput
 
 case class FrontierChannelInput(
-  jobId: String,
   newRequests: Seq[WrappedHttpRequest]
+) extends ProcessorOutput
+
+object JobChannelInput {
+  case class JobAction(name: String)
+  object Actions {
+    def Terminate = JobAction("Terminate")
+    def Stop = JobAction("Stop")
+  }
+}
+
+case class JobChannelInput(
+  action: JobChannelInput.JobAction
 ) extends ProcessorOutput

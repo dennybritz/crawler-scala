@@ -1,13 +1,13 @@
 package org.blikk.crawler.channels
 
-import org.blikk.crawler.Logging
+import org.blikk.crawler.{Logging, JobConfiguration}
 import com.typesafe.config._
 import scala.collection.JavaConversions._
 import com.rabbitmq.client._
 
 class RabbitMQChannel extends OutputChannel[RabbitMQChannelInput] with Logging {
   
-  def pipe(input: RabbitMQChannelInput) : Unit = {
+  def pipe(input: RabbitMQChannelInput, jobConf: JobConfiguration, jobStats: Map[String, Int]) : Unit = {
     val connectionString = input.connectionString
 
     val factory = new ConnectionFactory()
