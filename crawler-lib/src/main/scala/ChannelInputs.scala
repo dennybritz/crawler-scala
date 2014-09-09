@@ -15,8 +15,8 @@ case class FrontierChannelInput(
 object JobChannelInput {
   case class JobAction(name: String)
   object Actions {
-    def Terminate = JobAction("Terminate")
-    def Stop = JobAction("Stop")
+    val Terminate = JobAction("Terminate")
+    val Stop = JobAction("Stop")
   }
 }
 
