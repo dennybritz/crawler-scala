@@ -18,7 +18,7 @@ class StatusCodeProcessorSpec extends FunSpec {
         rawResponse = HttpResponse(StatusCodes.OK)
       )
       val processor = new StatusCodeProcessor("statusCodeProcessor")
-      val result = processor.process(res, req, jobConf, Map.empty)
+      val result = processor.process(ResponseProcessorInput(res, req, jobConf))
       assert(result === Map.empty)
     }
 
@@ -29,7 +29,7 @@ class StatusCodeProcessorSpec extends FunSpec {
           headers=List(HttpHeaders.Location(Uri("http://localhost"))))
       )
       val processor = new StatusCodeProcessor("statusCodeProcessor")
-      val result = processor.process(res, req, jobConf, Map.empty)
+      val result = processor.process(ResponseProcessorInput(res, req, jobConf))
       assert(result.contains("statusCodeProcessor"))
       val fci = result("statusCodeProcessor").asInstanceOf[FrontierChannelInput]
       assert(fci.newRequests.size == 1)
@@ -42,7 +42,7 @@ class StatusCodeProcessorSpec extends FunSpec {
         rawResponse = HttpResponse(StatusCodes.NotFound)
       )
       val processor = new StatusCodeProcessor("statusCodeProcessor")
-      val result = processor.process(res, req, jobConf, Map.empty)
+      val result = processor.process(ResponseProcessorInput(res, req, jobConf))
       assert(result === Map.empty)
     }
 
@@ -52,7 +52,7 @@ class StatusCodeProcessorSpec extends FunSpec {
         rawResponse = HttpResponse(StatusCodes.ServiceUnavailable)
       )
       val processor = new StatusCodeProcessor("statusCodeProcessor")
-      val result = processor.process(res, req, jobConf, Map.empty)
+      val result = processor.process(ResponseProcessorInput(res, req, jobConf))
       assert(result === Map.empty)
     }
   }

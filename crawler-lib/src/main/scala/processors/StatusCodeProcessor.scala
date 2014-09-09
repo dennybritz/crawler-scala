@@ -7,22 +7,21 @@ import spray.http.StatusCodes._
 
 class StatusCodeProcessor(val name: String)  extends ResponseProcessor with Logging {
 
-  def process(res: WrappedHttpResponse, req: WrappedHttpRequest, jobConf: JobConfiguration, 
-    context: Map[String, ProcessorOutput]) : Map[String, ProcessorOutput] = {
+  def process(in: ResponseProcessorInput) : Map[String, ProcessorOutput] = {
     
-    val output : Option[FrontierChannelInput] = res.status match {
+    val output : Option[FrontierChannelInput] = in.res.status match {
       case code : Success => None
       case code : Redirection => 
-        val newRequests = res.headers.map {
+        val newRequests = in.res.headers.map {
           case HttpHeaders.Location(url) => 
-             WrappedHttpRequest.getUrl(url.toString).withProvenance(req)
+             WrappedHttpRequest.getUrl(url.toString).withProvenance(in.req)
         }
-        Some(FrontierChannelInput(jobConf.jobId, newRequests))
+        Some(FrontierChannelInput(in.jobConf.jobId, newRequests))
       case code : ServerError =>
-        log.warn("error fetching {} ({}): {}", req.uri.toString, req.uuid, res)
+        log.warn("error fetching {} ({}): {}", in.req.uri.toString, in.req.uuid, in.res)
         None
       case code : ClientError =>
-        log.warn("error fetching {} ({}): {}", req.uri.toString, req.uuid, res)
+        log.warn("error fetching {} ({}): {}", in.req.uri.toString, in.req.uuid, in.res)
         None
       case otherCode => 
         log.warn("unhandled HTTP status code: {}", otherCode.toString)

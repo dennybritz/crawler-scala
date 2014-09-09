@@ -7,9 +7,13 @@ trait ProcessorOutput extends Serializable
 
 trait ResponseProcessor extends Serializable {
   def name : String
-  def process(
-    res: WrappedHttpResponse, 
-    req: WrappedHttpRequest, 
-    jobConf: JobConfiguration,
-    context: Map[String, ProcessorOutput]) : Map[String, ProcessorOutput]
+  def process(in: ResponseProcessorInput) : Map[String, ProcessorOutput]
 }
+
+case class ResponseProcessorInput(
+  res: WrappedHttpResponse, 
+  req: WrappedHttpRequest, 
+  jobConf: JobConfiguration,
+  jobStats: Map[String, Int] = Map.empty,
+  context: Map[String, ProcessorOutput] = Map.empty
+)

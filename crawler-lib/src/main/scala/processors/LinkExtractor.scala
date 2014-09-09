@@ -11,21 +11,20 @@ class LinkExtractor(val name: String, filterFunc: Option[(Uri, Uri) => Boolean] 
 
   val MaxProvenance = 10
 
-  def process(res: WrappedHttpResponse, req: WrappedHttpRequest, jobConf: JobConfiguration, 
-    context: Map[String, ProcessorOutput]) : Map[String, ProcessorOutput] = {
+  def process(in: ResponseProcessorInput) : Map[String, ProcessorOutput] = {
     // The baseUri is used to resolve relative Uris
-    val baseUri = req.uri.scheme + ":" + req.uri.authority + req.uri.path
+    val baseUri = in.req.uri.scheme + ":" + in.req.uri.authority + in.req.uri.path
     // Extract all URLs and create requests
     // Add the current request to the provenance
-    val newRequests = getUrls(res.entity.asString, baseUri).toSet[String].map { newUrl  =>
-      WrappedHttpRequest.getUrl(newUrl).withProvenance(req)
+    val newRequests = getUrls(in.res.entity.asString, baseUri).toSet[String].map { newUrl  =>
+      WrappedHttpRequest.getUrl(newUrl).withProvenance(in.req)
     }
     // Optionally Filter the URLs based on the given filter function
     val filteredRequests = filterFunc match {
-      case Some(f: ((Uri, Uri) => Boolean)) => newRequests.filter(r => f(req.uri, r.uri))
+      case Some(f: ((Uri, Uri) => Boolean)) => newRequests.filter(r => f(in.req.uri, r.uri))
       case None => newRequests
     }
-    Map(name -> FrontierChannelInput(jobConf.jobId, filteredRequests.toSeq))
+    Map(name -> FrontierChannelInput(in.jobConf.jobId, filteredRequests.toSeq))
   }
 
   def getUrls(htmlString: String, baseUri: String) : List[String] = {

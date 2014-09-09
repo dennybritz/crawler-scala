@@ -56,11 +56,13 @@ class HostWorker(service: ActorRef) extends Actor with HttpFetcher with ActorLog
 
   def processResponse(res: WrappedHttpResponse, req: WrappedHttpRequest, 
     jobConf: JobConfiguration) : Unit = {
-    val finalContext = jobConf.processors.foldLeft(Map.empty[String, ProcessorOutput]) { (ctx, proc) =>
-      ctx ++ proc.process(res, req, jobConf, ctx)
+    // TODO: Get job stats + JobConfig    
+    val initialProcessorInput = new ResponseProcessorInput(res, req, jobConf, Map.empty, Map.empty)
+    val finalPinuput = jobConf.processors.foldLeft(initialProcessorInput) { (pin, proc) =>
+      pin.copy(context = pin.context ++ proc.process(pin))
     }
-    log.debug("final context: {}", finalContext.toString)
-    outputChannels.process(finalContext)
+    log.debug("final context: {}", finalPinuput.context.toString)
+    outputChannels.process(finalPinuput.context)
   }
 
 }

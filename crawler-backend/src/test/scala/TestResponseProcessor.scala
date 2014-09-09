@@ -10,9 +10,8 @@ case class TestProcessorOutput(timestamp: Long) extends ProcessorOutput
 class TestResponseProcessor(target: ActorRef)(implicit val system: ActorSystem) 
   extends ResponseProcessor {
   def name = "TestProcessor"
-  def process(res: WrappedHttpResponse, req: WrappedHttpRequest, 
-    jobConf: JobConfiguration, context: Map[String, ProcessorOutput]) = {
-    target ! req.uri.toString
+  def process(in: ResponseProcessorInput) = {
+    target ! in.req.uri.toString
     Map(name -> TestProcessorOutput(System.nanoTime))
   }
 }
@@ -20,22 +19,18 @@ class TestResponseProcessor(target: ActorRef)(implicit val system: ActorSystem)
 class RemoteTestResponseProcessor(remoteTarget: String)
   extends ResponseProcessor {
   def name = "RemoteTestProcessor"
-  def process(res: WrappedHttpResponse, req: WrappedHttpRequest, 
-    jobConf: JobConfiguration, context: Map[String, ProcessorOutput])  = {
+  def process(in: ResponseProcessorInput) = {
     // Start a new actor system and send a message to the remote target
     implicit val system = ActorSystem("remoteProcessor")
     val selection = system.actorSelection(remoteTarget)
-    selection ! req.uri.toString
+    selection ! in.req.uri.toString
     Map(name -> TestProcessorOutput(System.nanoTime))
   }
 }
 
 class NullProcessor extends ResponseProcessor {
   def name = "NullProcessor"
-  def process(res: WrappedHttpResponse, 
-    req: WrappedHttpRequest, 
-    jobConf: JobConfiguration, 
-    context: Map[String, ProcessorOutput]) = {
+  def process(in: ResponseProcessorInput) = {
     Map(name -> TestProcessorOutput(System.nanoTime))
   }
 }

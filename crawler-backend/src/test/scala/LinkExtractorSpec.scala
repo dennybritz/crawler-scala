@@ -16,7 +16,7 @@ class LinkExtractorSpec extends FunSpec {
       val req = WrappedHttpRequest.getUrl("http://localhost")
       val res = WrappedHttpResponse.empty()
       val processor = new LinkExtractor("testExtractor", None)
-      val result = processor.process(res, req, jobConf, Map.empty)
+      val result = processor.process(ResponseProcessorInput(res, req, jobConf))
       assert(result("testExtractor").isInstanceOf[FrontierChannelInput])
       assert(result("testExtractor").asInstanceOf[FrontierChannelInput]
         .newRequests.map(_.uri.toString) === Seq.empty)
@@ -27,7 +27,7 @@ class LinkExtractorSpec extends FunSpec {
       val req = WrappedHttpRequest.getUrl("http://localhost")
       val res = WrappedHttpResponse.withContent(html)
       val processor = new LinkExtractor("testExtractor", None)
-      val result = processor.process(res, req, jobConf, Map.empty)
+      val result = processor.process(ResponseProcessorInput(res, req, jobConf))
       assert(result("testExtractor").isInstanceOf[FrontierChannelInput])
       assert(result("testExtractor").asInstanceOf[FrontierChannelInput]
         .newRequests.map(_.uri.toString) === Seq("http://google.com"))
@@ -38,7 +38,7 @@ class LinkExtractorSpec extends FunSpec {
       val req = WrappedHttpRequest.getUrl("http://localhost")
       val res = WrappedHttpResponse.withContent(html)
       val processor = new LinkExtractor("testExtractor", None)
-      val result = processor.process(res, req, jobConf, Map.empty)
+      val result = processor.process(ResponseProcessorInput(res, req, jobConf))
       assert(result("testExtractor").isInstanceOf[FrontierChannelInput])
       assert(result("testExtractor").asInstanceOf[FrontierChannelInput]
         .newRequests.map(_.uri.toString).toSeq == Seq("http://localhost/hello"))
@@ -49,7 +49,7 @@ class LinkExtractorSpec extends FunSpec {
       val req = WrappedHttpRequest.getUrl("http://localhost")
       val res = WrappedHttpResponse.withContent(data)
       val processor = new LinkExtractor("testExtractor", None)
-      val result = processor.process(res, req, jobConf, Map.empty)
+      val result = processor.process(ResponseProcessorInput(res, req, jobConf))
       assert(result("testExtractor").isInstanceOf[FrontierChannelInput])
       assert(result("testExtractor").asInstanceOf[FrontierChannelInput]
         .newRequests.map(_.uri.toString).toSeq == Seq.empty)
@@ -64,7 +64,7 @@ class LinkExtractorSpec extends FunSpec {
       val res = WrappedHttpResponse.withContent(html)
       val processor = new LinkExtractor("testExtractor", Some({(src: Uri, req: Uri) =>  
         req.toString.contains("hello")}))
-      val result = processor.process(res, req, jobConf, Map.empty)
+      val result = processor.process(ResponseProcessorInput(res, req, jobConf))
       assert(result("testExtractor").isInstanceOf[FrontierChannelInput])
       assert(result("testExtractor").asInstanceOf[FrontierChannelInput]
         .newRequests.map(_.uri.toString).toSeq == Seq("http://localhost/hello"))

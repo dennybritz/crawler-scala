@@ -8,9 +8,8 @@ import scala.collection.JavaConversions._
 class RabbitMQProducer(val name: String, connectionString: String, queue: String)
   extends ResponseProcessor {
 
-  def process(res: WrappedHttpResponse, req: WrappedHttpRequest, jobConf: JobConfiguration, 
-    context: Map[String, ProcessorOutput]) : Map[String, ProcessorOutput] = {
-    Map(name -> RabbitMQChannelInput(connectionString, queue, getMessages(res)))
+  def process(in: ResponseProcessorInput) : Map[String, ProcessorOutput] = {
+    Map(name -> RabbitMQChannelInput(connectionString, queue, getMessages(in.res)))
   }
 
   def getMessages(res: WrappedHttpResponse) : List[String] = {
