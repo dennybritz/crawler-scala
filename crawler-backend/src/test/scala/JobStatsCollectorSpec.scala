@@ -8,20 +8,6 @@ class JobStatsCollectorSpec extends AkkaSingleNodeSpec("JobStatsCollectorSpec") 
 
   describe("JobStatsCollector") {
 
-    it("should count events correctly") {
-      val actor = TestActorRef(JobStatsCollector.props(localRedis))
-      actor ! ClearJobEventCounts("testJob1")
-      actor ! JobEvent("testJob1", "request")
-      actor ! JobEvent("testJob1", "request")
-      actor ! JobEvent("testJob1", "request")
-      actor ! JobEvent("testJob2", "request")
-      actor ! JobEvent("testJob1", "response")
-      actor ! GetJobEventCount("testJob1", "request")
-      expectMsg(JobStats("testJob1", Map("stats:testJob1:request" -> 3)))
-      actor ! GetJobEventCount("testJob1", "response")
-      expectMsg(JobStats("testJob1", Map("stats:testJob1:response" -> 1)))
-      actor.stop()
-    }
 
     it("should collect statistics for multiple events correctly") {
       val actor = TestActorRef(JobStatsCollector.props(localRedis))
@@ -33,7 +19,11 @@ class JobStatsCollectorSpec extends AkkaSingleNodeSpec("JobStatsCollectorSpec") 
       actor ! JobEvent("testJob1", "response")
       actor ! JobEvent("testJob1", "response")
       actor ! GetJobEventCounts("testJob1")
-      expectMsg(JobStats("testJob1", Map("stats:testJob1:request" -> 3, "stats:testJob1:response" -> 2)))
+      expectMsg(JobStats("testJob1", Map("testJob1:request" -> 3, "testJob1:response" -> 2)))
+      actor ! JobEvent("testJob1", "request")
+      actor ! JobEvent("testJob1", "response")
+      actor ! GetJobEventCounts("testJob1")
+      expectMsg(JobStats("testJob1", Map("testJob1:request" -> 4, "testJob1:response" -> 3)))
       actor.stop()
     }
 
@@ -43,8 +33,8 @@ class JobStatsCollectorSpec extends AkkaSingleNodeSpec("JobStatsCollectorSpec") 
       actor ! ClearJobEventCounts("testJob2")
       system.eventStream.publish(JobEvent("testJob1", "request"))
       system.eventStream.publish(JobEvent("testJob1", "request"))
-      actor ! GetJobEventCount("testJob1", "request")
-      expectMsg(JobStats("testJob1", Map("stats:testJob1:request" -> 2)))
+      actor ! GetJobEventCounts("testJob1")
+      expectMsg(JobStats("testJob1", Map("testJob1:request" -> 2)))
       actor.stop()
     }
 

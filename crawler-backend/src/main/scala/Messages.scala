@@ -17,7 +17,6 @@ case class RegisterJob(job: JobConfiguration, clear: Boolean = false)
 case class GetJob(jobId: String)
 
 case class JobEvent(jobId : String, event: Any)
-case class GetJobEventCount(jobId: String, event: Any)
 case class GetJobEventCounts(jobId: String)
 case class ClearJobEventCounts(jobId: String)
 case class JobStats(jobId: String, eventCounts: Map[String, Int])

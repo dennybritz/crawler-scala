@@ -7,6 +7,12 @@ import com.redis.serialization.Parse
 
 object JobStatsCollector {
   def props(localRedis: RedisClientPool) = Props(classOf[JobStatsCollector], localRedis)
+  object Keys {
+    def numRequests(jobId: String) = s"stats:${jobId}:requests"
+    def numRequests(jobId: String, host: String) = s"stats:${jobId}:${host}:requests"
+    def numResponses(jobId: String) = s"stats:${jobId}:responses"
+    def numResponses(jobId: String, host: String) = s"stats:${jobId}:${host}:responses"
+  }
 }
 
 /* 
@@ -16,9 +22,9 @@ object JobStatsCollector {
 */
 class JobStatsCollector(localRedis: RedisClientPool) extends Actor with ActorLogging {
 
-  val events = MutableMap[(String, String), Int]().withDefaultValue(0)
+  import JobStatsCollector.Keys
 
-  def key(jobId: String, eventName: String) = s"stats:${jobId}:${eventName}"
+  // def key(jobId: String, eventName: String) = s"stats:${jobId}:${eventName}"
   def eventKeys(jobId: String) = s"stats:${jobId}:events"
 
   override def preStart(){
@@ -30,9 +36,7 @@ class JobStatsCollector(localRedis: RedisClientPool) extends Actor with ActorLog
   def receive = {
     case e @ JobEvent(jobId, event) =>
       log.info(e.toString)
-      increaseEventCounts(jobId, processJobEvent(e))
-    case GetJobEventCount(jobId, event) =>
-      sender ! JobStats(jobId, getEventCounts(jobId, List(event.toString)))
+      increaseEventCounts(jobId, processJobEvent(e, jobId))
     case GetJobEventCounts(jobId) =>
       // Return all events counts for this job but strip off the jobId from the result
       sender ! JobStats(jobId, getAllEventCounts(jobId))
@@ -44,7 +48,7 @@ class JobStatsCollector(localRedis: RedisClientPool) extends Actor with ActorLog
     localRedis.withClient { client =>
       client.smembers(eventKeys(jobId)).foreach { keys =>
         keys.flatten.foreach { eventName =>
-          client.del(key(jobId, eventName))
+          client.del(jobId, eventName)
         }
       }
       client.del(eventKeys(jobId))
@@ -62,10 +66,9 @@ class JobStatsCollector(localRedis: RedisClientPool) extends Actor with ActorLog
   def getEventCounts(jobId: String, eventNames: List[String]) : Map[String,Int] = {
     localRedis.withClient { client =>
       if (eventNames.isEmpty) return Map.empty 
-      val keys = eventNames.map(e => key(jobId, e))
       import Parse.Implicits.parseInt
-      client.mget[Int](keys.head, keys.tail: _*).map { values =>
-        keys.zip(values.flatten).toMap
+      client.mget[Int](eventNames.head, eventNames.tail: _*).map { values =>
+        eventNames.zip(values.flatten).toMap
       }.getOrElse(Map.empty)
     }
   }
@@ -74,20 +77,20 @@ class JobStatsCollector(localRedis: RedisClientPool) extends Actor with ActorLog
     localRedis.withClient { client =>
       client.sadd(eventKeys(jobId), events.head, events.tail: _*)
       events.foreach { e => 
-        log.debug(key(jobId, e))
-        client.incr(key(jobId, e))
+        log.debug(e)
+        client.incr(e)
       }
     }
   }
 
-  def processJobEvent(e: JobEvent) : List[String] = {
+  def processJobEvent(e: JobEvent, jobId: String) : List[String] = {
     e.event match {
       case req : WrappedHttpRequest =>
-        List("requests", s"${req.host}:requests")
+        List(Keys.numRequests(jobId), Keys.numRequests(jobId, req.host))
       case FetchResponse(res, req, jobId) =>
-        List("responses", s"${req.host}:responses")
+        List(Keys.numResponses(jobId), Keys.numResponses(jobId, req.host))
       case str : String => 
-        List(str)
+        List(jobId + ":" + str)
       case other => 
         log.warning("unhandled JobEvent type: {}", other)
         List.empty
