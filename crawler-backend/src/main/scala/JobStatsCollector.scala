@@ -35,7 +35,6 @@ class JobStatsCollector(localRedis: RedisClientPool) extends Actor with ActorLog
 
   def receive = {
     case e @ JobEvent(jobId, event) =>
-      log.info(e.toString)
       increaseEventCounts(jobId, processJobEvent(e, jobId))
     case GetJobEventCounts(jobId) =>
       // Return all events counts for this job but strip off the jobId from the result
@@ -77,7 +76,6 @@ class JobStatsCollector(localRedis: RedisClientPool) extends Actor with ActorLog
     localRedis.withClient { client =>
       client.sadd(eventKeys(jobId), events.head, events.tail: _*)
       events.foreach { e => 
-        log.debug(e)
         client.incr(e)
       }
     }

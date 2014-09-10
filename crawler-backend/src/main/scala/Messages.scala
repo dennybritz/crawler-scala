@@ -12,8 +12,8 @@ case class RouteFetchRequest(req: AddToFrontier)
 
 case class AddProcessor(proc: ResponseProcessor, host: String)
 
-case class RunJob(job: JobConfiguration, clear: Boolean = false)
-case class RegisterJob(job: JobConfiguration, clear: Boolean = false)
+case class RunJob(job: JobConfiguration, clear: Boolean = true)
+case class RegisterJob(job: JobConfiguration, clear: Boolean = true)
 case class GetJob(jobId: String)
 
 case class JobEvent(jobId : String, event: Any)

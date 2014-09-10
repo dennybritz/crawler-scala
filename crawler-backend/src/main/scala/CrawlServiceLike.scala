@@ -57,7 +57,7 @@ trait CrawlServiceLike extends JobManagerBehavior { this: Actor with ActorLoggin
         jobStatsCollector ! ClearJobEventCounts(job.jobId)
       }
       jobCache.put(job.jobId, job)
-      startFrontier(job.jobId)
+      startFrontier(job.jobId, clearOldJob)
     case RunJob(job, clearOldJob) =>
       // Store the job configuration locally and send it to all workers for caching
       log.debug("broadcasting new job=\"{}\"", job.jobId)
@@ -90,10 +90,10 @@ trait CrawlServiceLike extends JobManagerBehavior { this: Actor with ActorLoggin
   }
 
   /* Starts a new frontier worker for a given job */
-  def startFrontier(jobId: String) : Unit = {
+  def startFrontier(jobId: String, clear: Boolean) : Unit = {
     val newFrontierActor = context.actorOf(frontierProps(jobId), s"frontier-${jobId}")
     context.watch(newFrontierActor)
-    newFrontierActor ! ClearFrontier
+    if (clear) newFrontierActor ! ClearFrontier
     newFrontierActor ! StartFrontier(1.seconds, self)
     frontiers.put(jobId, newFrontierActor)
   }

@@ -65,7 +65,12 @@ class Frontier(jobId: String, localRedis: RedisClientPool, prefix : String = "")
 
   /* Stops periodic checking of the frontier */
   def stopFrontier() {
-    jobToken.foreach(_.cancel())
+    // TODO: This is somewhat ugly. We should refactor this actor into a FSM
+    val _token = jobToken
+    _token.foreach { token =>
+      token.cancel()
+      jobToken = None
+    }
   }
 
   /* Removes all elements from the frontier for the given job */
@@ -73,6 +78,13 @@ class Frontier(jobId: String, localRedis: RedisClientPool, prefix : String = "")
     localRedis.withClient { client =>
       client.del(frontierKey)
       client.del(urlCacheKey)
+      // Delete all request objects
+      client.keys(requestObjectKey("")+"*").foreach { keys =>
+        keys.flatten match {
+          case Nil => // Do nothing
+          case list => client.del(list.head, list.tail: _*) 
+        }
+      }
     }
   }
 

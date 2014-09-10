@@ -8,6 +8,6 @@ object JobConfiguration {
 
 case class JobConfiguration(
   jobId: String, 
-  seeds: List[WrappedHttpRequest], 
-  processors: List[ResponseProcessor], 
-  settings: Config) extends Serializable
+  seeds: List[WrappedHttpRequest] = List.empty, 
+  processors: List[ResponseProcessor] = List.empty, 
+  settings: Config = ConfigFactory.empty) extends Serializable

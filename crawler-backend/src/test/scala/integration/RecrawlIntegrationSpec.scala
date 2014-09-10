@@ -4,7 +4,7 @@ import org.blikk.crawler._
 import org.blikk.crawler.processors._
 import scala.concurrent.duration._
 
-class RecrawlIntegrationSpec extends IntegrationSuite("SimpleCrawlIntegrationSpec") {
+class RecrawlIntegrationSpec extends IntegrationSuite("RecrawlIntegrationSpec") {
 
   describe("A distributed crawler") {
     

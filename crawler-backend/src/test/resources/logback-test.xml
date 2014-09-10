@@ -20,6 +20,8 @@
  <root level="debug">
     <appender-ref ref="STDOUT" />
     <appender-ref ref="FILE" />
-  </root>
+ </root>
+
+ <logger name="com.redis.RedisClient" level="INFO" />
 
 </configuration>

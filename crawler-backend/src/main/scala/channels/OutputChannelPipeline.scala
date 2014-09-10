@@ -11,7 +11,7 @@ class OutputputChannelPipeline(serviceActor: ActorRef)
 
   val rabbitMQChannel = new RabbitMQChannel() 
   val frontierOutputChannel = new FrontierOutputChannel(serviceActor) 
-  val jobOutputChannel = new JobOutputChannel()
+  val jobOutputChannel = new JobOutputChannel(serviceActor)
 
   def process(in: ResponseProcessorInput) : Unit = {
     in.context.values.foreach {
