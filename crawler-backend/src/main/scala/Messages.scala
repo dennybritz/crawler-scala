@@ -22,6 +22,7 @@ case class ClearJobEventCounts(jobId: String)
 case class JobStats(jobId: String, eventCounts: Map[String, Int])
 case class GetGlobalJobStats(jobId: String)
 case class StopJob(jobId: String)
+case class DestroyJob(jobId: String)
 
 case class StartFrontier(delay: FiniteDuration, target: ActorRef)
 case object StopFrontier
@@ -31,4 +32,6 @@ case class AddToFrontier(req: WrappedHttpRequest,
   scheduledTime : Option[Long] = None,
   ignoreDeduplication : Boolean = false)
 
-// Some Job Events
+case class ApiRequest(payload: Any)
+case class ApiResponse(payload: Any)
+case class ApiError(reason: String)

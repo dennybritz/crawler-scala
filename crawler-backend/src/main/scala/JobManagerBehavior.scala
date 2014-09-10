@@ -39,11 +39,16 @@ trait JobManagerBehavior { this: Actor with ActorLogging with CrawlServiceLike =
     case msg @ Broadcast(StopJob(jobId: String)) =>
       serviceRouter ! msg
     case StopJob(jobId: String) =>
-      log.info("terminating job=\"{}\"",jobId)
+      log.info("stopping job=\"{}\"",jobId)
       // TODO: This results in requests still being routed, but the worker won't find the jobConf
       // The worker will then drop the request. It's inefficient because it results in excess messages
       jobCache.remove(jobId)
       frontiers.get(jobId).foreach(_ ! StopFrontier)
+    case DestroyJob(jobId: String) =>
+      log.info("destroying job=\"{}\"",jobId)
+      frontiers.get(jobId).foreach(_ ! ClearFrontier)
+      frontiers.get(jobId).foreach(context.stop)
+      jobStatsCollector ! ClearJobEventCounts(jobId)
   }
 
 }

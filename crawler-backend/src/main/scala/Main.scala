@@ -11,11 +11,11 @@ object Main extends App with Logging {
     case _ => 2551
   }
 
-  log.debug(s"Starting crawl-service on port=${actorSystemPort}.")
+  log.debug(s"Starting crawler on port=${actorSystemPort}.")
 
   val config = ConfigFactory.parseString("akka.remote.netty.tcp.port=" + actorSystemPort).
     withFallback(ConfigFactory.load())
-  val system = ActorSystem("blikk-crawl-service", config)
+  val system = ActorSystem("blikk-crawler", config)
 
   // Find the seed nodes
   // TODO: Right now this is only done locally
