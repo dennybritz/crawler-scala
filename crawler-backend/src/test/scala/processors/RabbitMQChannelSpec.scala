@@ -31,8 +31,6 @@ class RabbitMQChannelSpec extends FunSpec with BeforeAndAfter
       c.pipe(result("testRabbitMQProducer").asInstanceOf[RabbitMQChannelInput], 
         JobConfiguration.empty("test"), Map.empty)
 
-      // TODO: Make sure the value actually ends up in the queue
-      // (I checked it manually)
       withLocalRabbit { channel =>
         channel.queueDeclare(queueName, true, false, false, null)
         val msg = channel.basicGet(queueName, true)
