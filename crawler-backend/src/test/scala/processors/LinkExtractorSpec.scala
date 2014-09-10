@@ -19,7 +19,7 @@ class LinkExtractorSpec extends FunSpec {
       val result = processor.process(ResponseProcessorInput(res, req, jobConf))
       assert(result("testExtractor").isInstanceOf[FrontierChannelInput])
       assert(result("testExtractor").asInstanceOf[FrontierChannelInput]
-        .newRequests.map(_.uri.toString) === Seq.empty)
+        .newRequests.map(_.req.uri.toString) === Seq.empty)
     }
 
     it("should work with absolute links") {
@@ -30,7 +30,7 @@ class LinkExtractorSpec extends FunSpec {
       val result = processor.process(ResponseProcessorInput(res, req, jobConf))
       assert(result("testExtractor").isInstanceOf[FrontierChannelInput])
       assert(result("testExtractor").asInstanceOf[FrontierChannelInput]
-        .newRequests.map(_.uri.toString) === Seq("http://google.com"))
+        .newRequests.map(_.req.uri.toString) === Seq("http://google.com"))
     }
 
     it("should work with relative links") {
@@ -41,7 +41,7 @@ class LinkExtractorSpec extends FunSpec {
       val result = processor.process(ResponseProcessorInput(res, req, jobConf))
       assert(result("testExtractor").isInstanceOf[FrontierChannelInput])
       assert(result("testExtractor").asInstanceOf[FrontierChannelInput]
-        .newRequests.map(_.uri.toString).toSeq == Seq("http://localhost/hello"))
+        .newRequests.map(_.req.uri.toString).toSeq == Seq("http://localhost/hello"))
     }
 
     it("should ignore non-HTML responses") {
@@ -52,7 +52,7 @@ class LinkExtractorSpec extends FunSpec {
       val result = processor.process(ResponseProcessorInput(res, req, jobConf))
       assert(result("testExtractor").isInstanceOf[FrontierChannelInput])
       assert(result("testExtractor").asInstanceOf[FrontierChannelInput]
-        .newRequests.map(_.uri.toString).toSeq == Seq.empty)
+        .newRequests.map(_.req.uri.toString).toSeq == Seq.empty)
     }
 
     it("should work with a filter function") {
@@ -67,7 +67,7 @@ class LinkExtractorSpec extends FunSpec {
       val result = processor.process(ResponseProcessorInput(res, req, jobConf))
       assert(result("testExtractor").isInstanceOf[FrontierChannelInput])
       assert(result("testExtractor").asInstanceOf[FrontierChannelInput]
-        .newRequests.map(_.uri.toString).toSeq == Seq("http://localhost/hello"))
+        .newRequests.map(_.req.uri.toString).toSeq == Seq("http://localhost/hello"))
     }
 
     

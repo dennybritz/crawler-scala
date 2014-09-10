@@ -2,6 +2,7 @@ package org.blikk.crawler.processors
 
 import org.blikk.crawler._
 import org.blikk.crawler.channels.FrontierChannelInput
+import org.blikk.crawler.channels.FrontierChannelInput.AddToFrontierRequest
 import spray.http._
 import spray.http.StatusCodes._
 
@@ -14,7 +15,7 @@ class StatusCodeProcessor(val name: String)  extends ResponseProcessor with Logg
       case code : Redirection => 
         val newRequests = in.res.headers.map {
           case HttpHeaders.Location(url) => 
-             WrappedHttpRequest.getUrl(url.toString).withProvenance(in.req)
+            AddToFrontierRequest(WrappedHttpRequest.getUrl(url.toString).withProvenance(in.req))
         }
         Some(FrontierChannelInput(newRequests))
       case code : ServerError =>

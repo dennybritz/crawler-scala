@@ -37,9 +37,9 @@ class Frontier(jobId: String, localRedis: RedisClientPool)
 
   /* Additional actor behavior */
   def receive = {
-    case AddToFrontier(req, _) =>
+    case AddToFrontier(req, _, scheduledTime, ignoreDeduplication) =>
       log.debug("adding to frontier for job=\"{}\": {}", jobId, req.uuid)
-      addToFrontier(req)
+      addToFrontier(req, scheduledTime, ignoreDeduplication)
     case StartFrontier(delay, target) =>
       log.info("starting frontier for job=\"{}\"", jobId)
       startFrontier(delay, target)
@@ -75,10 +75,11 @@ class Frontier(jobId: String, localRedis: RedisClientPool)
   }
 
   /* Add a new request to the frontier */
-  def addToFrontier(req: WrappedHttpRequest) : Unit = {
+  def addToFrontier(req: WrappedHttpRequest, scheduledTime: Option[Long],
+    ignoreDeduplication: Boolean = false) : Unit = {
     localRedis.withClient { client =>
       /* Eliminate duplicate URLs */
-      if(client.sadd(urlCacheKey,req.uri.toString) == Some(0l)) {
+      if(client.sadd(urlCacheKey,req.uri.toString) == Some(0l) && !ignoreDeduplication) {
         log.debug("Ignoring url=\"{}\". Fetched previously.", req.uri.toString)
         return
       }
@@ -86,7 +87,7 @@ class Frontier(jobId: String, localRedis: RedisClientPool)
       val kryoOutput = new Output(os)
       val serializedObj = kryo.writeObject(kryoOutput, req)
       kryoOutput.close()
-      val requestScore = req.scheduledTime.getOrElse(System.currentTimeMillis)
+      val requestScore = scheduledTime.getOrElse(System.currentTimeMillis)
       client.set(requestObjectKey(req.uuid), os.toByteArray())
       client.zadd(frontierKey, requestScore, req.uuid)
     }

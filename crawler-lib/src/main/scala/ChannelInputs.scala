@@ -8,8 +8,14 @@ case class RabbitMQChannelInput(
   queue: String,
   messages: List[String]) extends ProcessorOutput
 
+object FrontierChannelInput {
+  case class AddToFrontierRequest(req: WrappedHttpRequest, 
+    scheduledTime: Option[Long] = None, 
+    ignoreDeduplication: Boolean = false)
+}
+
 case class FrontierChannelInput(
-  newRequests: Seq[WrappedHttpRequest]
+  newRequests: Seq[FrontierChannelInput.AddToFrontierRequest]
 ) extends ProcessorOutput
 
 object JobChannelInput {

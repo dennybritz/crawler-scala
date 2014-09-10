@@ -60,9 +60,9 @@ trait CrawlServiceLike extends JobManagerBehavior { this: Actor with ActorLoggin
       serviceRouter ! Broadcast(RegisterJob(job, clearOldJob))
       // Send out the initial requests to appropriate workers
       job.seeds.foreach { seedRequest =>
-        routeFetchRequestGlobally(FetchRequest(seedRequest, job.jobId))
+        routeFetchRequestGlobally(AddToFrontier(seedRequest, job.jobId))
       }
-    case msg @ AddToFrontier(req, jobId) => 
+    case msg @ AddToFrontier(req, jobId, _, _) => 
       frontiers.get(jobId) match {
         case Some(frontier) => frontier ! msg
         case None => log.warning("""no frontier running for job="{}" """, jobId)
@@ -72,9 +72,8 @@ trait CrawlServiceLike extends JobManagerBehavior { this: Actor with ActorLoggin
   def defaultBehavior : Receive = crawlServiceBehavior orElse jobManagerBehavior
 
   /* Routes a fetch request using consistent hasing to the right cluster node */
-  def routeFetchRequestGlobally(fetchRequest: FetchRequest) : Unit = {
-    serviceRouter ! ConsistentHashableEnvelope(
-      AddToFrontier(fetchRequest.req, fetchRequest.jobId), fetchRequest.req.host)
+  def routeFetchRequestGlobally(req: AddToFrontier) : Unit = {
+    serviceRouter ! ConsistentHashableEnvelope(req, req.req.host)
   }
 
   /* 

@@ -33,7 +33,7 @@ class StatusCodeProcessorSpec extends FunSpec {
       assert(result.contains("statusCodeProcessor"))
       val fci = result("statusCodeProcessor").asInstanceOf[FrontierChannelInput]
       assert(fci.newRequests.size == 1)
-      assert(fci.newRequests.head.uri.toString === "http://localhost")
+      assert(fci.newRequests.head.req.uri.toString === "http://localhost")
     }
 
     it("Should do nothing for 4xx responses") {

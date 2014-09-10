@@ -2,6 +2,7 @@ package org.blikk.crawler.processors
 
 import org.blikk.crawler._
 import org.blikk.crawler.channels.FrontierChannelInput
+import org.blikk.crawler.channels.FrontierChannelInput.AddToFrontierRequest
 import spray.http._
 import org.jsoup._
 import scala.collection.JavaConversions._
@@ -24,7 +25,8 @@ class LinkExtractor(val name: String, filterFunc: Option[(Uri, Uri) => Boolean] 
       case Some(f: ((Uri, Uri) => Boolean)) => newRequests.filter(r => f(in.req.uri, r.uri))
       case None => newRequests
     }
-    Map(name -> FrontierChannelInput(filteredRequests.toSeq))
+    val result = FrontierChannelInput(filteredRequests.toSeq.map( req => AddToFrontierRequest(req)))
+    Map(name -> result)
   }
 
   def getUrls(htmlString: String, baseUri: String) : List[String] = {

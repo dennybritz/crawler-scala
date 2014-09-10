@@ -8,7 +8,7 @@ case class InitializeFetcher(host: String)
 
 case class FetchRequest(req: WrappedHttpRequest, jobId: String)
 case class FetchResponse(res: WrappedHttpResponse, req: WrappedHttpRequest, jobId: String)
-case class RouteFetchRequest(fetchReq: FetchRequest)
+case class RouteFetchRequest(req: AddToFrontier)
 
 case class AddProcessor(proc: ResponseProcessor, host: String)
 
@@ -26,6 +26,9 @@ case class TerminateJob(jobId: String)
 case class StartFrontier(delay: FiniteDuration, target: ActorRef)
 case object StopFrontier
 case object ClearFrontier
-case class AddToFrontier(req: WrappedHttpRequest, jobId: String)
+case class AddToFrontier(req: WrappedHttpRequest, 
+  jobId: String, 
+  scheduledTime : Option[Long] = None,
+  ignoreDeduplication : Boolean = false)
 
 // Some Job Events
