@@ -2,7 +2,7 @@ package org.blikk.test
 
 import akka.actor.{ActorRef, ActorSystem}
 import org.blikk.crawler.channels.{FrontierOutputChannel, FrontierChannelInput}
-import org.blikk.crawler.{WrappedHttpRequest, RouteFetchRequest, FetchRequest}
+import org.blikk.crawler._
 
 // Sends the message to the target instead of a predefined path for testing
 class TestFOC(target: ActorRef)(implicit system: ActorSystem) extends FrontierOutputChannel {
@@ -18,9 +18,9 @@ class FrontierOutputChannelSpec extends AkkaSingleNodeSpec("FrontierOutputChanne
         WrappedHttpRequest.getUrl("http://google.com"), 
         WrappedHttpRequest.getUrl("http://cnn.com"),
         WrappedHttpRequest.getUrl("http://localhost:9090"))
-      val input = new FrontierChannelInput("testJob", newRequests)
+      val input = new FrontierChannelInput(newRequests)
       val foc = new TestFOC(self)
-      foc.pipe(input)
+      foc.pipe(input, JobConfiguration.empty("testJob"), Map.empty)
 
       newRequests.foreach { req =>
          expectMsg(RouteFetchRequest(FetchRequest(req, "testJob")))

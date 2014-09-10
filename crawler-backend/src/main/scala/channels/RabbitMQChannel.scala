@@ -1,6 +1,6 @@
 package org.blikk.crawler.channels
 
-import org.blikk.crawler.{Logging, JobConfiguration}
+import org.blikk.crawler.{Logging, JobConfiguration, Resource}
 import com.typesafe.config._
 import scala.collection.JavaConversions._
 import com.rabbitmq.client._
@@ -15,8 +15,8 @@ class RabbitMQChannel extends OutputChannel[RabbitMQChannelInput] with Logging {
     val conn = factory.newConnection()
     val channel = conn.createChannel()
 
-    using(conn) { conn =>
-      using(channel) { channel =>
+    Resource.using(conn) { conn =>
+      Resource.using(channel) { channel =>
         insertData(input.queue, input.messages, channel)
       }
     }
