@@ -9,8 +9,8 @@ class JobOutputChannel(serviceActor: ActorRef)(implicit system: ActorSystem)
 
   def pipe(input: JobChannelInput, jobConf: JobConfiguration, jobStats: Map[String, Int]) : Unit = {
     input.action match {
-      case JobChannelInput.Actions.Terminate => 
-        serviceActor ! Broadcast(TerminateJob(jobConf.jobId))
+      case JobChannelInput.Actions.Stop => 
+        serviceActor ! Broadcast(StopJob(jobConf.jobId))
       case x =>
         log.warn("Unhandled job action: {}", x)
     }

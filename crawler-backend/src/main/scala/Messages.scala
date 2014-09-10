@@ -21,7 +21,7 @@ case class GetJobEventCounts(jobId: String)
 case class ClearJobEventCounts(jobId: String)
 case class JobStats(jobId: String, eventCounts: Map[String, Int])
 case class GetGlobalJobStats(jobId: String)
-case class TerminateJob(jobId: String)
+case class StopJob(jobId: String)
 
 case class StartFrontier(delay: FiniteDuration, target: ActorRef)
 case object StopFrontier

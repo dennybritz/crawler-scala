@@ -68,7 +68,7 @@ class CrawlServiceSpec extends AkkaSingleNodeSpec("CrawlServiceSpec") {
         service.receive(new FetchRequest(WrappedHttpRequest.getUrl("http://localhost:9090/1"), "testJob"))
         service.receive(new FetchRequest(WrappedHttpRequest.getUrl("http://localhost:9090/2"), "testJob"))
         receiveN(2).toSet == Set("http://localhost:9090/1", "http://localhost:9090/2")
-        service.receive(Broadcast(TerminateJob("testJob")))
+        service.receive(Broadcast(StopJob("testJob")))
         service.receive(new FetchRequest(WrappedHttpRequest.getUrl("http://localhost:9090/3"), "testJob"))
         expectNoMsg()
         service.stop()

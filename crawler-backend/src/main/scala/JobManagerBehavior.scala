@@ -36,9 +36,9 @@ trait JobManagerBehavior { this: Actor with ActorLogging with CrawlServiceLike =
       globalStatsFuture pipeTo _sender
     case msg @ GetJobEventCounts(jobId: String) =>
       jobStatsCollector.tell(msg, sender())
-    case msg @ Broadcast(TerminateJob(jobId: String)) =>
+    case msg @ Broadcast(StopJob(jobId: String)) =>
       serviceRouter ! msg
-    case TerminateJob(jobId: String) =>
+    case StopJob(jobId: String) =>
       log.info("terminating job=\"{}\"",jobId)
       // TODO: This results in requests still being routed, but the worker won't find the jobConf
       // The worker will then drop the request. It's inefficient because it results in excess messages

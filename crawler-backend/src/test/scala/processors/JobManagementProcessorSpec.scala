@@ -21,7 +21,7 @@ class JobManagementProcessorSpec extends FunSpec {
       val result = processor.process(ResponseProcessorInput(res, req, jobConf))
       assert(result("testExtractor").isInstanceOf[JobChannelInput])
       assert(result("testExtractor").asInstanceOf[JobChannelInput].action 
-        === JobChannelInput.Actions.Terminate)
+        === JobChannelInput.Actions.Stop)
     }
 
   }

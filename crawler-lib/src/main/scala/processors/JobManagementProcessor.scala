@@ -8,7 +8,7 @@ import scala.collection.JavaConversions._
 
 object JobManagementProcessor {
   def terminateWhen(name: String)(func: (ResponseProcessorInput => Boolean)) = {
-    new JobManagementProcessor(name, Actions.Terminate)(func)
+    new JobManagementProcessor(name, Actions.Stop)(func)
   }
 }
 
