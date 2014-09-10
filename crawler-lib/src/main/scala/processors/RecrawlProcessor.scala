@@ -19,7 +19,7 @@ class RecrawlProcessor(val name: String)(func: (ResponseProcessorInput => Option
     func(in) match {
       case Some(recrawlDelay) => 
         val scheduledTime = System.currentTimeMillis + recrawlDelay
-        val newReq = AddToFrontierRequest(in.req, Some(recrawlDelay), true)
+        val newReq = AddToFrontierRequest(in.req, Some(scheduledTime), true)
         Map(name -> FrontierChannelInput(List(newReq)))
       case None => Map.empty
     }

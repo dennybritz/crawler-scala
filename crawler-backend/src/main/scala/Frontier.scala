@@ -40,7 +40,7 @@ class Frontier(jobId: String, localRedis: RedisClientPool, prefix : String = "")
   /* Additional actor behavior */
   def receive = {
     case AddToFrontier(req, _, scheduledTime, ignoreDeduplication) =>
-      log.debug("adding to frontier for job=\"{}\": {}", jobId, req.uuid)
+      log.debug("adding to frontier for job=\"{}\": {} (scheduled: {})", jobId, req.uuid, scheduledTime)
       addToFrontier(req, scheduledTime, ignoreDeduplication)
     case StartFrontier(delay, target) =>
       log.info("starting frontier for job=\"{}\"", jobId)

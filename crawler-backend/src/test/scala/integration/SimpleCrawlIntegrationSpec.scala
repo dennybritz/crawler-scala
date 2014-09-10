@@ -7,6 +7,7 @@ import scala.concurrent.duration._
 class SimpleCrawlIntegrationSpec extends IntegrationSuite("SimpleCrawlIntegrationSpec") {
 
   describe("A distributed crawler") {
+    
     it("should be able to crawl links from the same domain"){
       val processors = List(
         new LinkExtractor("link-extractor"),

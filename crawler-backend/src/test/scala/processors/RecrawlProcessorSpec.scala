@@ -6,7 +6,7 @@ import org.blikk.crawler.processors.RecrawlProcessor
 import org.blikk.crawler.channels.FrontierChannelInput
 import org.blikk.crawler.channels.FrontierChannelInput.AddToFrontierRequest
 
-class RecrawlProcessorSpec extends FunSpec {
+class RecrawlProcessorSpec extends FunSpec with Matchers {
 
   val jobConf = JobConfiguration.empty("testJob")
 
@@ -15,11 +15,12 @@ class RecrawlProcessorSpec extends FunSpec {
     it("should work") {
       val req = WrappedHttpRequest.getUrl("http://localhost:9090")
       val res = WrappedHttpResponse.empty()
-      val processor =  RecrawlProcessor.withDelay("testExtractor"){ in => Some(1000) }
+      val delay = 1000
+      val processor =  RecrawlProcessor.withDelay("testExtractor"){ in => Some(delay) }
       val result = processor.process(ResponseProcessorInput(res, req, jobConf))
       assert(result("testExtractor").isInstanceOf[FrontierChannelInput])
-      assert(result("testExtractor").asInstanceOf[FrontierChannelInput]
-        .newRequests.head === AddToFrontierRequest(req, Some(1000), true))
+      val output = result("testExtractor").asInstanceOf[FrontierChannelInput]
+      assert(output.newRequests.head.scheduledTime.get === ((System.currentTimeMillis + delay) +- 50))
     }
 
   }
