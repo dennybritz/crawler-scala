@@ -22,7 +22,7 @@ class HostWorker(service: ActorRef, statsCollector: ActorRef) extends Actor with
   /* Keeps track of all the processors a response goes through */
   val processors = scala.collection.mutable.ArrayBuffer.empty[ResponseProcessor]
   /* Handles the output */
-  val outputChannels = new OutputputChannelPipeline()
+  val outputChannels = new OutputputChannelPipeline(service)
 
   val workerBehavior : Receive = {
     case FetchRequest(req: WrappedHttpRequest, jobId) =>

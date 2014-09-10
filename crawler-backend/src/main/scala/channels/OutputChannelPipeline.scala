@@ -1,15 +1,16 @@
 package org.blikk.crawler.channels
 
-import akka.actor.ActorSystem
+import akka.actor.{ActorSystem, ActorRef}
 import org.blikk.crawler._
 import org.blikk.crawler.processors._
 import com.typesafe.config._
 import scala.collection.JavaConverters._
 
-class OutputputChannelPipeline (implicit system: ActorSystem) extends Logging {
+class OutputputChannelPipeline(serviceActor: ActorRef)
+  (implicit system: ActorSystem) extends Logging {
 
   val rabbitMQChannel = new RabbitMQChannel() 
-  val frontierOutputChannel = new FrontierOutputChannel() 
+  val frontierOutputChannel = new FrontierOutputChannel(serviceActor) 
   val jobOutputChannel = new JobOutputChannel()
 
   def process(in: ResponseProcessorInput) : Unit = {

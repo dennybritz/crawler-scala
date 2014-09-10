@@ -1,33 +1,10 @@
 package org.blikk.test
 
-import com.redis.RedisClientPool
 import akka.routing.{Broadcast, AddRoutee, ActorRefRoutee, Routee, ConsistentHashingGroup}
 import akka.routing.ConsistentHashingRouter.ConsistentHashableEnvelope
 import akka.actor._
 import akka.testkit._
 import org.blikk.crawler._
-
-
-object TestCrawlService {
-  def props(implicit localRedis: RedisClientPool) = Props(classOf[TestCrawlService], localRedis)
-}
-
-class TestCrawlService(val localRedis: RedisClientPool) extends CrawlServiceLike with Actor with ActorLogging {
-  // For test purpose we simply send all messages to this actor
-  // In product this is a consistent hashing router
-  val _serviceRouter = context.actorOf(ConsistentHashingGroup(
-    List(self.path.toStringWithoutAddress)).props(), 
-    "serviceRouter")
-  override val serviceRouter = _serviceRouter
-  def extraBehavior : Receive = {
-    case msg : AddRoutee =>
-      _serviceRouter ! msg
-  }
-
-  def receive = extraBehavior orElse defaultBehavior
-  val jobStatsCollector = context.actorOf(JobStatsCollector.props(localRedis), "jobStatsCollector")
-
-}
 
 class CrawlServiceSpec extends AkkaSingleNodeSpec("CrawlServiceSpec") {
 

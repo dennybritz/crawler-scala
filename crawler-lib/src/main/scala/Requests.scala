@@ -19,7 +19,7 @@ object WrappedHttpRequest {
 
 case class WrappedHttpRequest(req: HttpRequest, 
   timestamp : Long,
-  provenance: Seq[WrappedHttpRequest] = Seq.empty,
+  provenance: List[WrappedHttpRequest] = List.empty,
   uuid : String = UUID.randomUUID.toString()) extends Request {
   def this(req: HttpRequest) = this(req, System.currentTimeMillis)
   def host = req.uri.authority.host.toString

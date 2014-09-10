@@ -12,10 +12,11 @@ import scala.concurrent.duration._
 
 
 object CrawlService {
-  def props(localRedis: RedisClientPool) = Props(classOf[CrawlService], localRedis)
+  def props(localRedis: RedisClientPool, redisPrefix: String = "") 
+    = Props(classOf[CrawlService], localRedis, redisPrefix)
 }
 
-class CrawlService(val localRedis: RedisClientPool) 
+class CrawlService(val localRedis: RedisClientPool, val redisPrefix: String) 
   extends CrawlServiceLike with Actor with ActorLogging {
 
   /* Consistent-hashing router that forwards requests to the appropriate crawl service node */

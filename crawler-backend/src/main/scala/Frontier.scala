@@ -12,18 +12,20 @@ import java.io.ByteArrayInputStream
 import scala.collection.mutable.{Map => MutableMap, Set => MutableSet}
 
 object Frontier {
-  def props(jobId: String, localRedis: RedisClientPool) = Props(classOf[Frontier], jobId, localRedis)
+  def props(jobId: String, localRedis: RedisClientPool, prefix: String = "") = {
+    Props(classOf[Frontier], jobId, localRedis, prefix)
+  }
 }
 
-class Frontier(jobId: String, localRedis: RedisClientPool) 
+class Frontier(jobId: String, localRedis: RedisClientPool, prefix : String = "") 
   extends Actor with ActorLogging {
 
   import context.dispatcher
   import Parse.Implicits.parseByteArray
 
-  val frontierKey = s"local:${jobId}:frontier"
-  def requestObjectKey(uuid: String) = s"local:${jobId}:requestsObjects:${uuid}"
-  val urlCacheKey = s"local:${jobId}:urlCache"
+  val frontierKey = s"${prefix}local:${jobId}:frontier"
+  def requestObjectKey(uuid: String) = s"${prefix}local:${jobId}:requestsObjects:${uuid}"
+  val urlCacheKey = s"${prefix}local:${jobId}:urlCache"
 
   val kryo = new Kryo()
   // TODO: Provide faster custom serialization

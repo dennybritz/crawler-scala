@@ -21,6 +21,10 @@ trait CrawlServiceLike extends JobManagerBehavior { this: Actor with ActorLoggin
   /* Local redis instance used for caching */
   implicit def localRedis: RedisClientPool
 
+  /* Used to run multiple separate services with one redis instance (and for testing) */
+  def redisPrefix : String
+  def frontierProps(jobId: String) = Frontier.props(jobId, localRedis, redisPrefix)
+
   /* The balancing router distributed work across all workers */
   lazy val workerPool = context.actorOf(
     BalancingPool(NumWorkers).props(HostWorker.props(self, jobStatsCollector)), "balancingPool")
@@ -87,7 +91,7 @@ trait CrawlServiceLike extends JobManagerBehavior { this: Actor with ActorLoggin
 
   /* Starts a new frontier worker for a given job */
   def startFrontier(jobId: String) : Unit = {
-    val newFrontierActor = context.actorOf(Frontier.props(jobId, localRedis), s"frontier-${jobId}")
+    val newFrontierActor = context.actorOf(frontierProps(jobId), s"frontier-${jobId}")
     context.watch(newFrontierActor)
     newFrontierActor ! ClearFrontier
     newFrontierActor ! StartFrontier(1.seconds, self)

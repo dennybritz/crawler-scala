@@ -34,7 +34,8 @@ object BlikkBuild extends Build {
       "net.debasishg" %% "redisclient" % "2.13",
       "com.esotericsoftware.kryo" % "kryo" % "2.24.0"
     ),
-    parallelExecution in Test := false
+    parallelExecution in Test := false,
+    fork in Test := true
   )
 
   val crawlerLibSettings = Seq(
