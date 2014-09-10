@@ -4,7 +4,7 @@ import org.blikk.crawler._
 import org.blikk.crawler.processors._
 import scala.concurrent.duration._
 
-class MiltiJobIntegrationSpec extends IntegrationSuite("MiltiJobIntegrationSpec") {
+class MultiJobIntegrationSpec extends IntegrationSuite("MultiJobIntegrationSpec") {
 
   describe("A distributed crawler") {
     
@@ -12,12 +12,12 @@ class MiltiJobIntegrationSpec extends IntegrationSuite("MiltiJobIntegrationSpec"
       
       val processors1 = List(new LinkExtractor("link-extractor"),
         new TestResponseProcessor(probes(1).ref)(systems(1)))
-      val jobConf1 = new JobConfiguration("MiltiJobIntegrationSpecJob1",
+      val jobConf1 = new JobConfiguration("MultiJobIntegrationSpecJob1",
         List(WrappedHttpRequest.getUrl("http://localhost:9090/links/1")), processors1)
 
       val processors2 = List(new LinkExtractor("link-extractor"),
         new TestResponseProcessor(probes(2).ref)(systems(2)))
-      val jobConf2 = new JobConfiguration("MiltiJobIntegrationSpecJob2",
+      val jobConf2 = new JobConfiguration("MultiJobIntegrationSpecJob2",
         List(WrappedHttpRequest.getUrl("http://localhost:9090/links/500"), 
           WrappedHttpRequest.getUrl("http://localhost:9090/links/600")), processors2)
 

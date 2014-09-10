@@ -1,6 +1,7 @@
 package org.blikk.test
 
 import akka.actor.{Actor, ActorSystem, ActorLogging, Props, ActorRef}
+import akka.contrib.throttle.Throttler
 import akka.testkit.{ TestActors, TestKit, ImplicitSender, TestActorRef }
 import org.scalatest.{FunSpecLike, BeforeAndAfter, BeforeAndAfterAll}
 import org.blikk.crawler._
@@ -11,6 +12,7 @@ import akka.util.Timeout
 
 class TestHttpFetcher extends Actor with ActorLogging with HttpFetcher {
   implicit val askTimeout = Timeout(5 seconds)
+  val throttleRate = Throttler.Rate(5, 1.seconds)
   def receive = {
     case _ => // Ignore
   } 
