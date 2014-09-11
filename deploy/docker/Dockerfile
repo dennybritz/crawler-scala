@@ -7,9 +7,15 @@ EXPOSE 8080
 # Mount some volumes
 # TODO: Nothing needed yet
 
+# Install EPEL repo
+RUN yum -y install wget
+RUN wget http://dl.fedoraproject.org/pub/epel/beta/7/x86_64/epel-release-7-1.noarch.rpm
+RUN rpm -ivh epel-release-7-1.noarch.rpm
+RUN yum -y update
+
 # Install packages
 RUN yum -y groupinstall "Development Tools"
-RUN yum -y install wget java java-devel
+RUN yum -y install java java-devel
 RUN wget http://dl.bintray.com/sbt/rpm/sbt-0.13.5.rpm; rpm -i sbt-0.13.5.rpm;
 
 # Copy over the keys
