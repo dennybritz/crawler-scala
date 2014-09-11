@@ -16,6 +16,14 @@ object Main extends App with Logging {
   val redisPrefix = config.getString("blikk.redis.prefix")
   val localRedis = new RedisClientPool(redisHost, redisPort)
 
+  localRedis.withClient { client =>
+    client.set("blikk-crawler:test", "hello")
+    client.get("blikk-crawler:test") match {
+      case Some("hello") => // OK
+      case _ => log.error("redis not working correctly. set/get key test was not successful.") 
+    }
+  }
+
   // Find the seed nodes
   // TODO: Right now this is only done locally
   val seedFinder = new LocalSeedFinder(config)

@@ -22,3 +22,6 @@ log
 # Keys
 *.pem
 *.pem.pub
+
+# Deployment
+.dockercfg

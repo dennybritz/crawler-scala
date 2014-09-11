@@ -31,16 +31,14 @@ RUN git clone git@github.com:dennybritz/blikk-crawler.git /blikk-crawler
 # Set application environment variables
 ENV BLIKK_CRAWLER_HOME /blikk-crawler
 
-# Build the application
-# Need to break the cache for git pull
-ADD http://www.random.org/strings/?num=10&len=8&digits=on&upperalpha=on&loweralpha=on&unique=on&format=plain&rnd=new uuid
+# Compile
+# Note: We compile twice to allow Docker caching
 WORKDIR /blikk-crawler
-RUN git pull
 RUN sbt compile
-RUN sbt stage
 
 # Set Java options 
 # TODO
 
-# Run the application
-CMD crawler-backend/target/start
+# Add the run script
+ADD ./run.sh /run.sh
+ENTRYPOINT ["/run.sh"]
