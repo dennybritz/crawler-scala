@@ -21,3 +21,4 @@ log
 
 # Keys
 *.pem
+*.pem.pub
