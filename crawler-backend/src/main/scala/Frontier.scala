@@ -40,7 +40,7 @@ class Frontier(jobId: String, localRedis: RedisClientPool, prefix : String = "")
   /* Additional actor behavior */
   def receive = {
     case AddToFrontier(req, _, scheduledTime, ignoreDeduplication) =>
-      log.debug("adding to frontier for job=\"{}\": {} (scheduled: {})", jobId, req.uuid, scheduledTime)
+      log.info("adding to frontier for job=\"{}\": {} (scheduled: {})", jobId, req.uuid, scheduledTime)
       addToFrontier(req, scheduledTime, ignoreDeduplication)
     case StartFrontier(delay, target) =>
       log.info("starting frontier for job=\"{}\"", jobId)
@@ -57,7 +57,7 @@ class Frontier(jobId: String, localRedis: RedisClientPool, prefix : String = "")
   def startFrontier(delay: FiniteDuration, target: ActorRef) : Unit = {
     val cancelToken = context.system.scheduler.schedule(delay, delay) { 
       val requests = checkFrontier() 
-      log.debug("dequeued numRequests={}", requests.size)
+      log.info("dequeued numRequests={}", requests.size)
       requests.foreach { r => target ! FetchRequest(r, jobId) }
     }
     jobToken = Some(cancelToken)
@@ -94,7 +94,7 @@ class Frontier(jobId: String, localRedis: RedisClientPool, prefix : String = "")
     localRedis.withClient { client =>
       /* Eliminate duplicate URLs */
       if(client.sadd(urlCacheKey,req.uri.toString) == Some(0l) && !ignoreDeduplication) {
-        log.debug("Ignoring url=\"{}\". Fetched previously.", req.uri.toString)
+        log.info("Ignoring url=\"{}\". Fetched previously.", req.uri.toString)
         return
       }
       val os = new ByteArrayOutputStream()

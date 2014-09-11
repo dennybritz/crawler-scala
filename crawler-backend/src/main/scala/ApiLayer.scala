@@ -5,6 +5,10 @@ import akka.actor._
 import akka.util.Timeout
 import scala.concurrent.duration._
 
+object ApiLayer {
+  def props(crawlService: ActorRef) = Props(classOf[ApiLayer], crawlService)
+}
+
 class ApiLayer(crawlService: ActorRef) extends Actor with ActorLogging {
 
   implicit val askTimeout = Timeout(5.seconds)

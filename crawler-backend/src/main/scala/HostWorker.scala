@@ -29,16 +29,13 @@ class HostWorker(service: ActorRef, statsCollector: ActorRef, val throttleRate: 
 
   val workerBehavior : Receive = {
     case FetchRequest(req: WrappedHttpRequest, jobId) =>
-      log.debug("requesting url=\"{}\"", req.req.uri)
+      log.info("requesting url=\"{}\" ({})", req.req.uri, req.uuid)
       context.system.eventStream.publish(JobEvent(jobId, req))
       dispatchHttpRequest(req, jobId, self)
     case msg @ FetchResponse(res, req, jobId) =>
-      log.debug("processing response for url=\"{}\"", req.req.uri)
+      log.info("processing response for url=\"{}\" ({})", req.req.uri, req.uuid)
       context.system.eventStream.publish(JobEvent(jobId, msg))
       processResponse(jobId, res, req)
-    case AddProcessor(proc, _) =>
-      log.debug("adding processor={}", proc.name)
-      processors += proc
   }
 
   def receive = workerBehavior

@@ -3,25 +3,27 @@ package org.blikk.crawler
 import com.typesafe.config.ConfigFactory
 import akka.actor.{ActorSystem, Props}
 import akka.cluster.Cluster
+import com.redis.RedisClientPool
 
 object Main extends App with Logging {
 
-  val actorSystemPort = args match {
-    case Array(x) => x
-    case _ => 2551
-  }
-
-  log.debug(s"Starting crawler on port=${actorSystemPort}.")
-
-  val config = ConfigFactory.parseString("akka.remote.netty.tcp.port=" + actorSystemPort).
-    withFallback(ConfigFactory.load())
+  val config = ConfigFactory.load()
   val system = ActorSystem("blikk-crawler", config)
+
+  // Initialize a redis client pool
+  val redisHost = config.getString("blikk.redis.host")
+  val redisPort = config.getInt("blikk.redis.port")
+  val redisPrefix = config.getString("blikk.redis.prefix")
+  val localRedis = new RedisClientPool(redisHost, redisPort)
 
   // Find the seed nodes
   // TODO: Right now this is only done locally
-  Cluster.get(system).joinSeedNodes((new LocalSeedFinder()).findSeeds())
-  // Start a service actor
-  system.actorOf(Props[CrawlService], name = "crawlService")
+  val seedFinder = new LocalSeedFinder(config)
+  Cluster.get(system).joinSeedNodes(seedFinder.findSeeds())
+  // Start the crawl service and API actors
+  val crawlService = system.actorOf(CrawlService.props(localRedis, redisPrefix), "crawl-service")
+  val api = system.actorOf(ApiLayer.props(crawlService), "api")
+  log.info("crawler ready :)")
   system.awaitTermination()
 
 }

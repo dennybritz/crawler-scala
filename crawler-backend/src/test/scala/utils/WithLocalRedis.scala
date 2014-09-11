@@ -3,6 +3,9 @@ package org.blikk.test
 import com.redis.RedisClientPool
 
 trait LocalRedis {
-  lazy val _localRedis = new RedisClientPool("localhost", 6379)
-  implicit def localRedis = _localRedis
+
+  val redisHost = TestUtils.testConfig.getString("blikk.redis.host")
+  val redisPort = TestUtils.testConfig.getInt("blikk.redis.port")
+
+  implicit lazy val localRedis = new RedisClientPool(redisHost, redisPort)
 }

@@ -3,9 +3,8 @@ package org.blikk.test
 import akka.actor.ActorSystem
 import org.scalatest.{FunSpecLike, BeforeAndAfter, BeforeAndAfterAll}
 import akka.testkit.{TestKit, ImplicitSender, TestActorRef}
-import com.typesafe.config.ConfigFactory
 
-class AkkaSingleNodeSpec(name: String) extends TestKit(ActorSystem(name, ConfigFactory.load("application.test"))) 
+class AkkaSingleNodeSpec(name: String) extends TestKit(ActorSystem(name, TestUtils.testConfig)) 
   with ImplicitSender with FunSpecLike with BeforeAndAfter with BeforeAndAfterAll with LocalRedis {
 
   override def beforeAll() {

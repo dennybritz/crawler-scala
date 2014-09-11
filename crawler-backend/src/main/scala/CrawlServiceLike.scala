@@ -60,7 +60,7 @@ trait CrawlServiceLike extends JobManagerBehavior { this: Actor with ActorLoggin
       startFrontier(job.jobId, clearOldJob)
     case RunJob(job, clearOldJob) =>
       // Store the job configuration locally and send it to all workers for caching
-      log.debug("broadcasting new job=\"{}\"", job.jobId)
+      log.info("broadcasting new job=\"{}\"", job.jobId)
       serviceRouter ! Broadcast(RegisterJob(job, clearOldJob))
       // Send out the initial requests to appropriate workers
       job.seeds.foreach { seedRequest =>

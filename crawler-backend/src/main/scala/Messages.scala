@@ -10,8 +10,6 @@ case class FetchRequest(req: WrappedHttpRequest, jobId: String)
 case class FetchResponse(res: WrappedHttpResponse, req: WrappedHttpRequest, jobId: String)
 case class RouteFetchRequest(req: AddToFrontier)
 
-case class AddProcessor(proc: ResponseProcessor, host: String)
-
 case class RunJob(job: JobConfiguration, clear: Boolean = true)
 case class RegisterJob(job: JobConfiguration, clear: Boolean = true)
 case class GetJob(jobId: String)
