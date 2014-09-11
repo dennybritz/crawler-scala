@@ -1,0 +1,28 @@
+<configuration>
+
+  <timestamp key="bySecond" datePattern="yyyyMMdd'T'HHmmss"/>
+
+  <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+    <encoder>
+      <pattern>%date{ISO8601} %highlight(%-5level) %gray([%logger{36}]) %cyan([%X{akkaSource}]) %cyan([%X{sourceThread}]) - %msg%n</pattern>
+    </encoder>
+  </appender>
+.t
+
+  <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+    <file>${BLIKK_CRAWLER_HOME}/log/current.log</file>
+    <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+      <fileNamePattern>${BLIKK_CRAWLER_HOME}/log/blikk-crawler-%d{yyyy-MM-dd}.log</fileNamePattern>
+    </rollingPolicy>
+    <encoder>
+      <pattern>%date{ISO8601} %-5level [%logger{36}][%X{akkaSource}][%X{sourceThread}] - %msg%n</pattern>
+    </encoder>
+  </appender>
+
+
+ <root level="INFO">
+    <appender-ref ref="STDOUT" />
+    <appender-ref ref="FILE" />
+ </root>
+
+</configuration>

@@ -1,6 +1,7 @@
 *.class
 *.log
 
+
 # sbt specific
 .cache/
 .history/
@@ -17,3 +18,6 @@ log
 .scala_dependencies
 .worksheet
 *.sublime-workspace
+
+# Keys
+*.pem
