@@ -2,13 +2,15 @@ import sbt._
 import Keys._
 import com.typesafe.sbt.SbtMultiJvm
 import com.typesafe.sbt.SbtMultiJvm.MultiJvmKeys.MultiJvm
+import com.typesafe.sbt.SbtStartScript
 
 object BlikkBuild extends Build {
 
   lazy val root = Project(id = "blikk", base = file(".")) aggregate(crawlerBackend, crawlerLib)
 
   lazy val crawlerBackend = Project(id = "blikk-crawler-backend", base = file("./crawler-backend"),
-    settings = Project.defaultSettings ++ crawlerSettings ++ multiJvmSettings) dependsOn(crawlerLib) configs (MultiJvm) 
+    settings = Project.defaultSettings ++ crawlerSettings ++ multiJvmSettings ++ 
+    SbtStartScript.startScriptForClassesSettings) dependsOn(crawlerLib) configs (MultiJvm) 
 
   lazy val crawlerLib = Project(id="blikk-crawler-lib", base=file("./crawler-lib"), 
     settings = Project.defaultSettings ++ crawlerLibSettings)
