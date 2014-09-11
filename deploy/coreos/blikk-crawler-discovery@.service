@@ -1,0 +1,12 @@
+[Unit]
+Description=blikk-crawler-discovery@%i
+BindsTo=blikk-crawler@%i.service
+
+[Service]
+User=core
+EnvironmentFile=/etc/environment
+ExecStart=/bin/sh -c "while true; do etcdctl set /announce/services/blikk-crawler-%i ${COREOS_PUBLIC_IPV4}:%i --ttl 60; sleep 45; done"
+ExecStop=/usr/bin/etcdctl rm /announce/services/blikk-crawler-%i
+
+[X-Fleet]
+MachineOf=blikk-crawler@%i.service

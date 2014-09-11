@@ -1,0 +1,19 @@
+[Unit]
+Description=blikk-crawler
+After=docker.service
+Requires=blikk-crawler-discovery@%i.service
+Requires=redis@%i.service
+
+[Service]
+User=core
+TimeoutStartSec=0
+KillMode=none
+EnvironmentFile=/etc/environment
+ExecStartPre=-/usr/bin/docker kill blikk-crawler-%i
+ExecStartPre=-/usr/bin/docker rm blikk-crawler-%i
+ExecStartPre=-/usr/bin/docker pull dennybritz/blikk-crawler
+ExecStart=/usr/bin/docker run --rm --name blikk-crawler-%i -p ${COREOS_PUBLIC_IPV4}:%i:8080 --link redis-%i:redis dennybritz/blikk-crawler /blikk-crawler/crawler-backend/target/start
+ExecStop=/usr/bin/docker stop blikk-crawler-%i
+
+[X-Fleet]
+# TOOD. For now we can schedule on the same host.
