@@ -13,8 +13,8 @@ EnvironmentFile=/etc/environment
 ExecStartPre=-/usr/bin/docker kill blikk-crawler-%i
 ExecStartPre=-/usr/bin/docker rm blikk-crawler-%i
 ExecStartPre=-/usr/bin/docker pull dennybritz/blikk-crawler
-ExecStartPre=/bin/sh -c "etcdctl ls /announce/services/ | xargs -L1 etcdctl get > /home/core/blikk_crawler_seeds.txt"
-ExecStart=/usr/bin/docker run --rm --name blikk-crawler-%i -p ${COREOS_PUBLIC_IPV4}:%i:8080 --link redis-%i:redis -v /home/core/blikk_crawler_seeds.txt:/blikk-crawler/seeds.txt -e "BLIKK_SEEDS_FILE=/blikk-crawler/seeds.txt" dennybritz/blikk-crawler /blikk-crawler/crawler-backend/target/start
+ExecStartPre=/bin/sh -c "mkdir -p /home/core/blikk-crawler-config; etcdctl ls /announce/services/ | xargs -L1 etcdctl get > /home/core/blikk-crawler-config/seeds.txt"
+ExecStart=/usr/bin/docker run --rm --name blikk-crawler-%i -p ${COREOS_PUBLIC_IPV4}:%i:8080 --link redis-%i:redis -v /home/core/blikk-crawler-config:/blikk-crawler/config:ro -e "BLIKK_SEEDS_FILE=/blikk-crawler/config/seeds.txt" dennybritz/blikk-crawler /blikk-crawler/crawler-backend/target/start
 ExecStop=/usr/bin/docker stop blikk-crawler-%i
 
 [X-Fleet]

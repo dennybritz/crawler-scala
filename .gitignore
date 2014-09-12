@@ -26,5 +26,6 @@ log
 # Deployment
 .dockercfg
 
-# Project-specific
+# Project-specific local files
+config/
 seeds.txt
