@@ -1,9 +1,6 @@
 FROM centos:centos7
 MAINTAINER Denny Britz <denny@blikk.co>
 
-# Expose the API port
-EXPOSE 8080
-
 # Mount some volumes
 # TODO: Nothing needed yet
 

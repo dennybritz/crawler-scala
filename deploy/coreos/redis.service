@@ -1,0 +1,15 @@
+[Unit]
+Description=redis
+
+[Service]
+User=core
+TimeoutStartSec=0
+KillMode=none
+EnvironmentFile=/etc/environment
+ExecStartPre=-/usr/bin/docker kill redis
+ExecStartPre=-/usr/bin/docker rm redis
+ExecStartPre=-/usr/bin/docker pull dockerfile/redis
+ExecStart=/usr/bin/docker run --rm --name redis -p 6379:6379 dockerfile/redis
+ExecStop=/usr/bin/docker stop redis
+
+[X-Fleet]
