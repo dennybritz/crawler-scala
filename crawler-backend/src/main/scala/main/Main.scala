@@ -6,6 +6,7 @@ import akka.actor.{ActorSystem, Props, Address, AddressFromURIString}
 import akka.cluster.Cluster
 import com.redis.RedisClientPool
 import scala.util.{Try, Success, Failure}
+import java.net.InetAddress
 
 object Main extends App with Logging {
 
@@ -38,7 +39,7 @@ object Main extends App with Logging {
     case None => 
       log.info("No seed file found, using default seeds.")
       val defaultPort = config.getInt("blikk.api.port")
-      List(AddressFromURIString.parse(s"akka.tcp://${systemName}@127.0.0.1:${defaultPort}"))
+      List(AddressFromURIString.parse(s"akka.tcp://${systemName}@${InetAddress.getLocalHost.getHostAddress}:${defaultPort}"))
   }
 
   log.info(s"Joining cluster with seeds: ${seeds}")

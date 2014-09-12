@@ -27,20 +27,21 @@ Given taht, a new CoreOS cluster could be setup as follows:
     fleetctl list-unit-files
     
     # Load the units onto a server
-    fleetctl load blikk-crawler@8081.service blikk-crawler-discovery@8081.service redis@8081.service
+    fleetctl load blikk-crawler@10000.service blikk-crawler-discovery@10000.service redis@10000.service
     
     # Start the units
-    fleetctl start blikk-crawler@8081.service
+    fleetctl start redis@10000.service
+    fleetctl start blikk-crawler@10000.service
     fleetctl list-units
-    fleetctl journal blikk-crawler@8081.service
+    fleetctl journal -f blikk-crawler@10000.service
 
     # When done, stop the units
-    fleetctl stop blikk-crawler@8081.service
+    fleetctl stop blikk-crawler@10000.service
     fleetctl list-units
 
     # Destroy the units
-    fleetctl destroy blikk-crawler@8081.service blikk-crawler-discovery@8081.service redis@8081.service
-    fleetctl unload blikk-crawler@8081.service blikk-crawler-discovery@8081.service redis@8081.service
+    fleetctl destroy blikk-crawler@10000.service blikk-crawler-discovery@10000.service redis@10000.service
+    fleetctl unload blikk-crawler@10000.service blikk-crawler-discovery@10000.service redis@10000.service
 
     # Destroy the templates
     fleetctl destroy blikk-crawler@.service blikk-crawler-discovery@.service redis@.service
