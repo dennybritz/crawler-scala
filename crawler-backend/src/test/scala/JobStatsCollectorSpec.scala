@@ -10,7 +10,7 @@ class JobStatsCollectorSpec extends AkkaSingleNodeSpec("JobStatsCollectorSpec") 
 
 
     it("should collect statistics for multiple events correctly") {
-      val actor = TestActorRef(JobStatsCollector.props(localRedis))
+      val actor = TestActorRef(JobStatsCollector.props(localRedis, "blikk-test"))
       actor ! ClearJobEventCounts("testJob1")
       actor ! ClearJobEventCounts("testJob2")
       actor ! JobEvent("testJob1", "request")
@@ -28,7 +28,7 @@ class JobStatsCollectorSpec extends AkkaSingleNodeSpec("JobStatsCollectorSpec") 
     }
 
     it("should collect statistics from the event stream") {
-      val actor = TestActorRef(JobStatsCollector.props(localRedis))
+      val actor = TestActorRef(JobStatsCollector.props(localRedis, "blikk-test"))
       actor ! ClearJobEventCounts("testJob1")
       actor ! ClearJobEventCounts("testJob2")
       system.eventStream.publish(JobEvent("testJob1", "request"))

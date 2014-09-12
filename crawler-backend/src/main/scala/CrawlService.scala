@@ -27,7 +27,7 @@ class CrawlService(val localRedis: RedisClientPool, val redisPrefix: String)
     name="serviceRouter")
 
   def serviceRouter = _serviceRouter
-  val jobStatsCollector = context.actorOf(JobStatsCollector.props(localRedis), "jobStatsCollector")
+  val jobStatsCollector = context.actorOf(JobStatsCollector.props(localRedis, redisPrefix), "jobStatsCollector")
 
   override def preStart() : Unit = {
     log.info(s"starting at ${self.path}")

@@ -19,7 +19,7 @@ class TestCrawlService(val localRedis: RedisClientPool, val redisPrefix: String)
     "serviceRouter")
   override val serviceRouter = _serviceRouter
 
-  val jobStatsCollector = context.actorOf(JobStatsCollector.props(localRedis), "jobStatsCollector")
+  val jobStatsCollector = context.actorOf(JobStatsCollector.props(localRedis, "blikk-test"), "jobStatsCollector")
 
   def extraBehavior : Receive = {
     case msg : AddRoutee =>

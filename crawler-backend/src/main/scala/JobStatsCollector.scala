@@ -6,12 +6,18 @@ import scala.collection.mutable.{Map => MutableMap}
 import com.redis.serialization.Parse
 
 object JobStatsCollector {
-  def props(localRedis: RedisClientPool) = Props(classOf[JobStatsCollector], localRedis)
+  def props(localRedis: RedisClientPool, redisPrefix: String) = 
+    Props(classOf[JobStatsCollector], localRedis, redisPrefix)
+
   object Keys {
-    def numRequests(jobId: String) = s"stats:${jobId}:requests"
-    def numRequests(jobId: String, host: String) = s"stats:${jobId}:${host}:requests"
-    def numResponses(jobId: String) = s"stats:${jobId}:responses"
-    def numResponses(jobId: String, host: String) = s"stats:${jobId}:${host}:responses"
+    def numRequests(jobId: String, redisPrefix: String) = 
+      s"${redisPrefix}stats:${jobId}:requests"
+    def numRequests(jobId: String, host: String, redisPrefix: String) = 
+      s"${redisPrefix}stats:${jobId}:${host}:requests"
+    def numResponses(jobId: String, redisPrefix: String) = 
+      s"${redisPrefix}stats:${jobId}:responses"
+    def numResponses(jobId: String, host: String, redisPrefix: String) = 
+      s"${redisPrefix}stats:${jobId}:${host}:responses"
   }
 }
 
@@ -20,7 +26,8 @@ object JobStatsCollector {
   Note: This runs locally on each node and only collects local job statistics.
   To obtain global job statistics across all nodes one must aggregate all local statistics. 
 */
-class JobStatsCollector(localRedis: RedisClientPool) extends Actor with ActorLogging {
+class JobStatsCollector(localRedis: RedisClientPool, redisPrefix: String = "") 
+  extends Actor with ActorLogging {
 
   import JobStatsCollector.Keys
 
@@ -67,7 +74,7 @@ class JobStatsCollector(localRedis: RedisClientPool) extends Actor with ActorLog
       if (eventNames.isEmpty) return Map.empty 
       import Parse.Implicits.parseInt
       client.mget[Int](eventNames.head, eventNames.tail: _*).map { values =>
-        eventNames.zip(values.flatten).toMap
+        eventNames.map(stripPrefix).zip(values.flatten).toMap
       }.getOrElse(Map.empty)
     }
   }
@@ -84,15 +91,22 @@ class JobStatsCollector(localRedis: RedisClientPool) extends Actor with ActorLog
   def processJobEvent(e: JobEvent, jobId: String) : List[String] = {
     e.event match {
       case req : WrappedHttpRequest =>
-        List(Keys.numRequests(jobId), Keys.numRequests(jobId, req.host))
+        List(Keys.numRequests(jobId, redisPrefix), Keys.numRequests(jobId, req.host, redisPrefix))
       case FetchResponse(res, req, jobId) =>
-        List(Keys.numResponses(jobId), Keys.numResponses(jobId, req.host))
+        List(Keys.numResponses(jobId, redisPrefix), Keys.numResponses(jobId, req.host, redisPrefix))
       case str : String => 
         List(jobId + ":" + str)
       case other => 
         log.warning("unhandled JobEvent type: {}", other)
         List.empty
     }
+  }
+
+  def stripPrefix(key: String) : String = {
+    if (key.startsWith(redisPrefix))
+      key.replaceFirst(redisPrefix, "")
+    else
+      key
   }
 
 
