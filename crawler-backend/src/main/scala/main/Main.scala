@@ -1,14 +1,17 @@
 package org.blikk.crawler
 
+import scala.io.Source
 import com.typesafe.config.ConfigFactory
-import akka.actor.{ActorSystem, Props}
+import akka.actor.{ActorSystem, Props, Address, AddressFromURIString}
 import akka.cluster.Cluster
 import com.redis.RedisClientPool
+import scala.util.Try
 
 object Main extends App with Logging {
 
   val config = ConfigFactory.load()
-  val system = ActorSystem("blikk-crawler", config)
+  val systemName = config.getString("blikk.actor-system-name")
+  val system = ActorSystem(systemName, config)
 
   // Initialize a redis client pool
   val redisHost = config.getString("blikk.redis.host")
@@ -24,10 +27,20 @@ object Main extends App with Logging {
     }
   }
 
-  // Find the seed nodes
-  // TODO: Right now this is only done locally
-  val seedFinder = new LocalSeedFinder(config)
-  Cluster.get(system).joinSeedNodes(seedFinder.findSeeds())
+  // Find the seeds to join the cluster
+  val seeds = Try(config.getString("blikk.cluster.seedFile")).toOption match {
+    case Some(seedFile) =>
+      Source.fromFile(seedFile).getLines.map { address =>
+        AddressFromURIString.parse(s"akka.tcp://${systemName}@${address}")
+      }.toList
+    case None => 
+      log.info("No seed file found, using default seeds.")
+      val defaultPort = config.getInt("blikk.api.port")
+      List(AddressFromURIString.parse(s"akka.tcp://${systemName}@127.0.0.1:${defaultPort}"))
+  }
+
+  log.info(s"Joining cluster with seeds: ${seeds}")
+  Cluster.get(system).joinSeedNodes(seeds.toSeq)
   // Start the crawl service and API actors
   val crawlService = system.actorOf(CrawlService.props(localRedis, redisPrefix), "crawl-service")
   val api = system.actorOf(ApiLayer.props(crawlService), "api")
