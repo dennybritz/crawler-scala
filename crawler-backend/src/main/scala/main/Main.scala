@@ -5,7 +5,7 @@ import com.typesafe.config.ConfigFactory
 import akka.actor.{ActorSystem, Props, Address, AddressFromURIString}
 import akka.cluster.Cluster
 import com.redis.RedisClientPool
-import scala.util.Try
+import scala.util.{Try, Success, Failure}
 
 object Main extends App with Logging {
 
@@ -19,12 +19,14 @@ object Main extends App with Logging {
   val redisPrefix = config.getString("blikk.redis.prefix")
   val localRedis = new RedisClientPool(redisHost, redisPort)
 
-  localRedis.withClient { client =>
+  // Make sure redis is running
+  Try(localRedis.withClient { client =>
     client.set("blikk-crawler:test", "hello")
-    client.get("blikk-crawler:test") match {
-      case Some("hello") => // OK
-      case _ => log.error("redis not working correctly. set/get key test was not successful.") 
-    }
+  }) match {
+    case Failure(err) => 
+      log.error("Redis is not running?", err)
+      System.exit(1)
+    case _ => // OK
   }
 
   // Find the seeds to join the cluster
