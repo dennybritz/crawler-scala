@@ -46,7 +46,7 @@ class StandardCrawlSpec extends CrawlClusterSpec {
       Cluster(system).subscribe(self, initialStateMode = InitialStateAsEvents, classOf[MemberUp])
       Cluster(system) join node(node1).address
       val localRedis = new RedisClientPool("localhost", 6379)
-      system.actorOf(CrawlService.props(localRedis), name = s"crawlService")
+      system.actorOf(CrawlService.props(localRedis, myself.toString), name = s"crawlService")
       roles.foreach { r => expectMsgClass(classOf[MemberUp]) }
       Cluster(system).unsubscribe(self)
       testConductor.enter("cluster-up")
@@ -55,9 +55,20 @@ class StandardCrawlSpec extends CrawlClusterSpec {
       runOn(node1) {
         val service = system.actorSelection("akka://" + system.name + "/user/crawlService")
         service ! RunJob(jobConf)
-        receiveN(3, 10.seconds).toSet == Set("http://localhost:9090/1", "http://localhost:9090/2", "http://localhost:9090/3")
+        receiveN(3, 10.seconds).toSet == Set("http://localhost:9090/links/1", "http://localhost:9090/links/2", "http://localhost:9090/links/3")
       }
       testConductor.enter("job-run-1")
+
+      expectNoMsg()
+
+      // Try the same thing on node 2
+      runOn(node2) {
+        val service = system.actorSelection("akka://" + system.name + "/user/crawlService")
+        service ! RunJob(jobConf)
+        receiveN(3, 10.seconds).toSet == Set("http://localhost:9090/links/1", "http://localhost:9090/links/2", 
+          "http://localhost:9090/links/3")
+      }
+      testConductor.enter("job-run-2")
 
       expectNoMsg()
 

@@ -57,7 +57,7 @@ class HostWorker(service: ActorRef, statsCollector: ActorRef, val throttleRate: 
         log.debug("final context: {}", result.context.toString)
         outputChannels.process(result)
       case Failure(err) =>
-        log.error(err.toString)
+        log.error("Error getting job data: {}", err)
     }
   }
 

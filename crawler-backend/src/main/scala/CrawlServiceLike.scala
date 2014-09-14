@@ -48,23 +48,25 @@ trait CrawlServiceLike extends JobManagerBehavior { this: Actor with ActorLoggin
     case GetJob(jobId) =>
       val jobConf = Try(jobCache(jobId)) match {
         case Success(x) => x
-        case Failure(err) => Status.Failure(err) 
+        case Failure(err) => 
+          log.warning("job not found: {}", jobId)
+          Status.Failure(err) 
       }
       sender ! jobConf
     case RegisterJob(job, clearOldJob) =>
       log.info("registering job=\"{}\"", job.jobId)
+      jobCache.put(job.jobId, job)
       if(clearOldJob) {
         jobStatsCollector ! ClearJobEventCounts(job.jobId)
       }
-      jobCache.put(job.jobId, job)
-      startFrontier(job.jobId, clearOldJob)
+      startFrontier(job.jobId,clearOldJob) 
     case RunJob(job, clearOldJob) =>
       // Store the job configuration locally and send it to all workers for caching
       log.info("broadcasting new job=\"{}\"", job.jobId)
       serviceRouter ! Broadcast(RegisterJob(job, clearOldJob))
       // Send out the initial requests to appropriate workers
       job.seeds.foreach { seedRequest =>
-        routeFetchRequestGlobally(AddToFrontier(seedRequest, job.jobId))
+        self ! RouteFetchRequest(AddToFrontier(seedRequest, job.jobId))
       }
     case msg @ AddToFrontier(req, jobId, _, _) => 
       frontiers.get(jobId) match {
@@ -91,11 +93,13 @@ trait CrawlServiceLike extends JobManagerBehavior { this: Actor with ActorLoggin
 
   /* Starts a new frontier worker for a given job */
   def startFrontier(jobId: String, clear: Boolean) : Unit = {
-    val newFrontierActor = context.actorOf(frontierProps(jobId), s"frontier-${jobId}")
-    context.watch(newFrontierActor)
-    if (clear) newFrontierActor ! ClearFrontier
-    newFrontierActor ! StartFrontier(1.seconds, self)
-    frontiers.put(jobId, newFrontierActor)
+    val frontierActor = frontiers.get(jobId).getOrElse {
+      context.actorOf(frontierProps(jobId), s"frontier-${jobId}")
+    }
+    context.watch(frontierActor)
+    if (clear) frontierActor ! ClearFrontier
+    frontierActor ! StartFrontier(1.seconds, self)
+    frontiers.put(jobId, frontierActor)
   }
 
 }

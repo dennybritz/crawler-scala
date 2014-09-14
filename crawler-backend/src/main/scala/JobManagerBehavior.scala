@@ -49,6 +49,7 @@ trait JobManagerBehavior { this: Actor with ActorLogging with CrawlServiceLike =
       frontiers.get(jobId).foreach(_ ! ClearFrontier)
       frontiers.get(jobId).foreach(context.stop)
       jobStatsCollector ! ClearJobEventCounts(jobId)
+      sender ! "ok"
   }
 
 }

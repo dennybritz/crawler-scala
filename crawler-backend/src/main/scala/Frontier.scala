@@ -55,6 +55,7 @@ class Frontier(jobId: String, localRedis: RedisClientPool, prefix : String = "")
 
   /* Schedules periodic checking of the frontier queue */
   def startFrontier(delay: FiniteDuration, target: ActorRef) : Unit = {
+    stopFrontier()
     val cancelToken = context.system.scheduler.schedule(delay, delay) { 
       val requests = checkFrontier() 
       log.info("dequeued numRequests={}", requests.size)
