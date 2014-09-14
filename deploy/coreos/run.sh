@@ -15,8 +15,7 @@ fleetctl submit blikk-crawler@.service blikk-crawler-discovery@.service
 fleetctl list-unit-files
 
 # Load the units onto a server
-fleetctl load blikk-crawler@10000.service blikk-crawler-discovery@10000.service
-fleetctl start blikk-crawler@10000.service
+fleetctl start blikk-crawler@10000.service blikk-crawler-discovery@10000.service
 fleetctl list-units
 fleetctl journal -f blikk-crawler@10000.service
 
