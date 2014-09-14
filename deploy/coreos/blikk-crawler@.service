@@ -14,9 +14,22 @@ EnvironmentFile=/etc/environment
 ExecStartPre=-/usr/bin/docker kill blikk-crawler-%i
 ExecStartPre=-/usr/bin/docker rm blikk-crawler-%i
 ExecStartPre=-/usr/bin/docker pull dennybritz/blikk-crawler
-ExecStartPre=/bin/sh -c "mkdir -p /home/core/blikk-crawler-config; etcdctl ls /announce/services/ | xargs -L1 etcdctl get > /home/core/blikk-crawler-config/seeds.txt"
-ExecStart=/usr/bin/docker run --rm --name blikk-crawler-%i --net=host -v /home/core/blikk-crawler-config:/blikk-crawler/config:ro -e "BLIKK_SEEDS_FILE=/blikk-crawler/config/seeds.txt" -e "BLIKK_REDIS_PREFIX=blikk-crawler-%i" -e "BLIKK_REDIS_HOST=${COREOS_PRIVATE_IPV4}" -e "BLIKK_API_PORT=%i" -e "BLIKK_API_HOST=${COREOS_PRIVATE_IPV4}" dennybritz/blikk-crawler /blikk-crawler/crawler-backend/target/start
+
+ExecStartPre=/bin/sh -c " \
+  mkdir -p /home/core/blikk-crawler-config; \
+  etcdctl ls /announce/services/ | xargs -L1 etcdctl get > /home/core/blikk-crawler-config/seeds.txt"
+
+ExecStart=/usr/bin/docker run --rm --name blikk-crawler-%i --net=host \
+  -v /home/core/blikk-crawler-config:/blikk-crawler/config:ro \
+  -e "BLIKK_SEEDS_FILE=/blikk-crawler/config/seeds.txt" \
+  -e "BLIKK_REDIS_HOST=${COREOS_PRIVATE_IPV4}" \
+  -e "BLIKK_API_PORT=%i" \
+  -e "BLIKK_API_HOST=${COREOS_PRIVATE_IPV4}" \
+  dennybritz/blikk-crawler \
+  /blikk-crawler/crawler-backend/target/start
+
 ExecStop=/usr/bin/docker stop blikk-crawler-%i
 
 [X-Fleet]
-# TOOD. For now we can schedule on the same host.
+MachineOf=redis.service
+Conflict=blikk-crawler@%i.service
