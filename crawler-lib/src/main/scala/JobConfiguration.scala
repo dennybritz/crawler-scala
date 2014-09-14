@@ -7,7 +7,7 @@ object JobConfiguration {
 }
 
 case class JobConfiguration(
-  jobId: String, 
-  seeds: List[WrappedHttpRequest] = List.empty, 
+  jobId: String,
+  seeds: List[WrappedHttpRequest] = List.empty,
   processors: List[ResponseProcessor] = List.empty, 
   settings: Config = ConfigFactory.empty) extends Serializable

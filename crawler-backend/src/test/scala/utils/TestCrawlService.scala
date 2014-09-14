@@ -5,6 +5,7 @@ import akka.actor._
 import akka.routing._
 import akka.testkit._
 import com.redis.RedisClientPool
+import scala.concurrent.duration._
 
 object TestCrawlService {
   def props(implicit localRedis: RedisClientPool, redisPrefix: String = "") 
@@ -14,16 +15,18 @@ object TestCrawlService {
 class TestCrawlService(val localRedis: RedisClientPool, val redisPrefix: String) 
   extends CrawlServiceLike with Actor with ActorLogging {
   
-  val _serviceRouter = context.actorOf(ConsistentHashingGroup(
+  lazy val serviceRouter = context.actorOf(ConsistentHashingGroup(
     List(self.path.toStringWithoutAddress)).props(), 
     "serviceRouter")
-  override val serviceRouter = _serviceRouter
+  lazy val peerScatterGatherRouter = context.actorOf(ScatterGatherFirstCompletedGroup(
+    Nil, 5.seconds).props(), "peerScatterGatherRouter")
 
   val jobStatsCollector = context.actorOf(JobStatsCollector.props(localRedis, "blikk-test"), "jobStatsCollector")
 
   def extraBehavior : Receive = {
     case msg : AddRoutee =>
-      _serviceRouter ! msg
+      serviceRouter ! msg
+      peerScatterGatherRouter ! msg
   }
 
   def receive = extraBehavior orElse defaultBehavior

@@ -40,7 +40,7 @@ class Frontier(jobId: String, localRedis: RedisClientPool, prefix : String = "")
   /* Additional actor behavior */
   def receive = {
     case AddToFrontier(req, _, scheduledTime, ignoreDeduplication) =>
-      log.info("adding to frontier for job=\"{}\": {} (scheduled: {})", jobId, req.uuid, scheduledTime)
+      log.info("adding to frontier for job=\"{}\": {} (scheduled: {})", jobId, req.uri.toString, scheduledTime)
       addToFrontier(req, scheduledTime, ignoreDeduplication)
     case StartFrontier(delay, target) =>
       log.info("starting frontier for job=\"{}\"", jobId)
@@ -94,6 +94,7 @@ class Frontier(jobId: String, localRedis: RedisClientPool, prefix : String = "")
     ignoreDeduplication: Boolean = false) : Unit = {
     localRedis.withClient { client =>
       /* Eliminate duplicate URLs */
+      log.info(urlCacheKey)
       if(client.sadd(urlCacheKey,req.uri.toString) == Some(0l) && !ignoreDeduplication) {
         log.info("Ignoring url=\"{}\". Fetched previously.", req.uri.toString)
         return
