@@ -16,62 +16,62 @@ class CrawlServiceSpec extends AkkaSingleNodeSpec("CrawlServiceSpec") {
     describe("Registering an existing job") {
         
         it("should work") {
-          val service = TestActorRef(TestCrawlService.props, "crawlService1")
-          service.receive(RegisterJob(jobConf, true))
-          service.receive(GetJob("testJob"), self)
+          val service = system.actorOf(TestCrawlService.props, "crawlService1")
+          service ! (RegisterJob(jobConf, true))
+          service ! GetJob("testJob")
           expectMsg(jobConf)
-          service.stop()
+          system.stop(service)
         }
     }
 
     describe("Routing a request") {
       
       it("should work when the worker does not exist yet") {
-        val service = TestActorRef(TestCrawlService.props, "crawlService2")
-        service.receive(RegisterJob(jobConf, true))
-        service.receive(new FetchRequest(WrappedHttpRequest.getUrl("http://localhost:9090"), "testJob"))
+        val service = system.actorOf(TestCrawlService.props, "crawlService2")
+        service ! (RegisterJob(jobConf, true))
+        service ! (new FetchRequest(WrappedHttpRequest.getUrl("http://localhost:9090"), "testJob"))
         expectMsg("http://localhost:9090")
-        service.stop()
+        system.stop(service)
       }
 
       it("should work with multiple requests to the same host") {
-        val service = TestActorRef(TestCrawlService.props, "crawlService3")
-        service.receive(RegisterJob(jobConf, true))
-        service.receive(new FetchRequest(WrappedHttpRequest.getUrl("http://localhost:9090/1"), "testJob"))
-        service.receive(new FetchRequest(WrappedHttpRequest.getUrl("http://localhost:9090/2"), "testJob"))
-        service.receive(new FetchRequest(WrappedHttpRequest.getUrl("http://localhost:9090/3"), "testJob"))
+        val service = system.actorOf(TestCrawlService.props, "crawlService3")
+        service ! (RegisterJob(jobConf, true))
+        service ! (new FetchRequest(WrappedHttpRequest.getUrl("http://localhost:9090/1"), "testJob"))
+        service ! (new FetchRequest(WrappedHttpRequest.getUrl("http://localhost:9090/2"), "testJob"))
+        service ! (new FetchRequest(WrappedHttpRequest.getUrl("http://localhost:9090/3"), "testJob"))
         receiveN(3).toSet == Set("http://localhost:9090/1", "http://localhost:9090/2", "http://localhost:9090/3")
-        service.stop()
+        system.stop(service)
       }
     }
 
     describe("Running a new job with multiple requests") {
 
       it("should work") {
-        val service = TestActorRef(TestCrawlService.props, "crawlService4")
+        val service = system.actorOf(TestCrawlService.props, "crawlService4")
         val confWithSeeds= jobConf.copy(seeds = List(WrappedHttpRequest.getUrl("http://localhost:9090/1"), 
           WrappedHttpRequest.getUrl("http://localhost:9090/2")))
-        service.receive(RunJob(confWithSeeds, true))
+        service ! (RunJob(confWithSeeds, true))
         receiveN(2).toSet == Set("http://localhost:9090/1", "http://localhost:9090/2")
-        service.receive(new FetchRequest(WrappedHttpRequest.getUrl("http://localhost:9090/3"), "testJob"))
-        service.receive(new FetchRequest(WrappedHttpRequest.getUrl("http://localhost:9090/4"), "testJob"))
+        service ! (new FetchRequest(WrappedHttpRequest.getUrl("http://localhost:9090/3"), "testJob"))
+        service ! (new FetchRequest(WrappedHttpRequest.getUrl("http://localhost:9090/4"), "testJob"))
         receiveN(2).toSet == Set("http://localhost:9090/3", "http://localhost:9090/4")
         expectNoMsg()
-        service.stop()
+        system.stop(service)
       }
     }
 
     describe("Terminating a job") {
       it("should work") {
-        val service = TestActorRef(TestCrawlService.props, "crawlService8")
-        service.receive(RegisterJob(jobConf, true))
-        service.receive(new FetchRequest(WrappedHttpRequest.getUrl("http://localhost:9090/1"), "testJob"))
-        service.receive(new FetchRequest(WrappedHttpRequest.getUrl("http://localhost:9090/2"), "testJob"))
+        val service = system.actorOf(TestCrawlService.props, "crawlService8")
+        service ! (RegisterJob(jobConf, true))
+        service ! (new FetchRequest(WrappedHttpRequest.getUrl("http://localhost:9090/1"), "testJob"))
+        service ! (new FetchRequest(WrappedHttpRequest.getUrl("http://localhost:9090/2"), "testJob"))
         receiveN(2).toSet == Set("http://localhost:9090/1", "http://localhost:9090/2")
-        service.receive(Broadcast(StopJob("testJob")))
-        service.receive(new FetchRequest(WrappedHttpRequest.getUrl("http://localhost:9090/3"), "testJob"))
+        service ! (Broadcast(StopJob("testJob")))
+        service ! (new FetchRequest(WrappedHttpRequest.getUrl("http://localhost:9090/3"), "testJob"))
         expectNoMsg()
-        service.stop()
+        system.stop(service)
       }
     }
 

@@ -55,7 +55,6 @@ trait CrawlServiceLike extends JobManagerBehavior { this: Actor with ActorLoggin
         case Some(jobConf) => sender ! jobConf
         case None => askPeersforJob(jobId) pipeTo sender
       }
-      
     case RegisterJob(job, clearOldJob) =>
       log.info("registering job=\"{}\"", job.jobId)
       jobCache.put(job.jobId, job)
