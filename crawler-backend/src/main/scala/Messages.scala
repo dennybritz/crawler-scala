@@ -8,17 +8,16 @@ case class InitializeFetcher(host: String)
 
 case class FetchRequest(req: WrappedHttpRequest, jobId: String)
 case class FetchResponse(res: WrappedHttpResponse, req: WrappedHttpRequest, jobId: String)
-case class RouteFetchRequest(req: AddToFrontier)
+case class RouteFetchRequest(req: FetchRequest)
 
 case class RunJob(job: JobConfiguration, clear: Boolean = true)
 case class RegisterJob(job: JobConfiguration, clear: Boolean = true)
-case class GetJob(jobId: String)
+case class GetJob(jobId: String, askPeers: Boolean = true)
 
 case class JobEvent(jobId : String, event: Any)
 case class GetJobEventCounts(jobId: String)
 case class ClearJobEventCounts(jobId: String)
 case class JobStats(jobId: String, eventCounts: Map[String, Int])
-case class GetGlobalJobStats(jobId: String)
 case class StopJob(jobId: String)
 case class DestroyJob(jobId: String)
 

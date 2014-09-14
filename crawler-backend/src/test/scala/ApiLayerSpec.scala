@@ -41,8 +41,8 @@ class ApiLayerSpec extends AkkaSingleNodeSpec("ApiLayerSpec") {
     it("should be able to get job statistics"){
       val probe = TestProbe()
       val api = TestActorRef(apiProps(probe.ref))
-      api ! ApiRequest(GetGlobalJobStats("testJob"))
-      probe.expectMsg(GetGlobalJobStats("testJob"))
+      api ! ApiRequest(GetJobEventCounts("testJob"))
+      probe.expectMsg(GetJobEventCounts("testJob"))
       probe.reply(Map("someStats" -> "yay"))
       expectMsg(ApiResponse(Map("someStats" -> "yay")))
       api.stop()

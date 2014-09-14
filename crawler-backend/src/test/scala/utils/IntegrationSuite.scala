@@ -36,7 +36,7 @@ class IntegrationSuite(val name: String) extends FunSpec with BeforeAndAfter wit
   def addNode(name: String) : Unit = {
     val newSystem = ActorSystem(name, ConfigFactory.load("application.test"))
     val newService = newSystem.actorOf(
-      TestCrawlService.props(localRedis, s"${name}:"), s"crawlService-${name}")
+      TestCrawlService.props(localRedis), s"crawlService-${name}")
     val newProbe = new TestProbe(newSystem)
     newProbe.watch(newService)
     services.foreach { existingService =>

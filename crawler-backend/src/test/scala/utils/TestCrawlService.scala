@@ -8,11 +8,11 @@ import com.redis.RedisClientPool
 import scala.concurrent.duration._
 
 object TestCrawlService {
-  def props(implicit localRedis: RedisClientPool, redisPrefix: String = "") 
-    = Props(classOf[TestCrawlService], localRedis, redisPrefix)
+  def props(implicit localRedis: RedisClientPool) 
+    = Props(classOf[TestCrawlService], localRedis)
 }
 
-class TestCrawlService(val localRedis: RedisClientPool, val redisPrefix: String) 
+class TestCrawlService(val localRedis: RedisClientPool) 
   extends CrawlServiceLike with Actor with ActorLogging {
   
   lazy val serviceRouter = context.actorOf(ConsistentHashingGroup(
@@ -21,7 +21,7 @@ class TestCrawlService(val localRedis: RedisClientPool, val redisPrefix: String)
   lazy val peerScatterGatherRouter = context.actorOf(ScatterGatherFirstCompletedGroup(
     Nil, 5.seconds).props(), "peerScatterGatherRouter")
 
-  val jobStatsCollector = context.actorOf(JobStatsCollector.props(localRedis, "blikk-test"), "jobStatsCollector")
+  val jobStatsCollector = context.actorOf(JobStatsCollector.props(localRedis), "jobStatsCollector")
 
   def extraBehavior : Receive = {
     case msg : AddRoutee =>
@@ -31,5 +31,4 @@ class TestCrawlService(val localRedis: RedisClientPool, val redisPrefix: String)
 
   def receive = extraBehavior orElse defaultBehavior
  
-
 }

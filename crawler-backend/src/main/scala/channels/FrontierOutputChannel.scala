@@ -13,8 +13,7 @@ class FrontierOutputChannel(serviceActor: ActorRef)(implicit system: ActorSystem
     // Send each request to the local service master
     input.newRequests.foreach { req =>
       log.info(s"Adding URL to frontier: ${req.req.uri.toString}")
-      serviceActor ! RouteFetchRequest(
-        AddToFrontier(req.req, jobConf.jobId, req.scheduledTime, req.ignoreDeduplication))
+      serviceActor ! AddToFrontier(req.req, jobConf.jobId, req.scheduledTime, req.ignoreDeduplication)
     }
 
   }

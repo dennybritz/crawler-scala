@@ -14,26 +14,6 @@ trait JobManagerBehavior { this: Actor with ActorLogging with CrawlServiceLike =
   import context.dispatcher
 
   def jobManagerBehavior : Receive = {
-     case GetGlobalJobStats(jobId) =>
-      // Request local stats from each routee
-      val _sender = sender()
-      val jobStatsFuture = for {
-        routees <- (serviceRouter ? GetRoutees).mapTo[Routees].map(_.routees)
-        routeeRefs = routees.map {
-          case r : ActorSelectionRoutee => r.selection
-          case r : ActorRefRoutee => context.actorSelection(r.ref.path)
-        }
-        jobStatFutures = routeeRefs.map(r => (r ? GetJobEventCounts(jobId)).mapTo[JobStats])
-        jobStats <- Future.sequence(jobStatFutures).mapTo[Seq[JobStats]]
-      } yield jobStats
-      // Aggregate all the local satistics
-      val globalStatsFuture = jobStatsFuture.map { statsList =>
-        val mergedCounts = statsList.map(_.eventCounts).reduce(_ ++ _).groupBy(_._1)
-          .mapValues(_.map(_._2).sum)
-        JobStats(jobId, mergedCounts)
-      }
-      // Send the result
-      globalStatsFuture pipeTo _sender
     case msg @ GetJobEventCounts(jobId: String) =>
       jobStatsCollector.tell(msg, sender())
     case msg @ Broadcast(StopJob(jobId: String)) =>

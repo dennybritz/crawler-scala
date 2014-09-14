@@ -17,7 +17,6 @@ object Main extends App with Logging {
   // Initialize a redis client pool
   val redisHost = config.getString("blikk.redis.host")
   val redisPort = config.getInt("blikk.redis.port")
-  val redisPrefix = config.getString("blikk.redis.prefix")
   val localRedis = new RedisClientPool(redisHost, redisPort)
 
   // Make sure redis is running
@@ -45,7 +44,7 @@ object Main extends App with Logging {
   log.info(s"Joining cluster with seeds: ${seeds}")
   Cluster.get(system).joinSeedNodes(seeds.toSeq)
   // Start the crawl service and API actors
-  val crawlService = system.actorOf(CrawlService.props(localRedis, redisPrefix), "crawl-service")
+  val crawlService = system.actorOf(CrawlService.props(localRedis), "crawl-service")
   val api = system.actorOf(ApiLayer.props(crawlService), "api")
   log.info("crawler ready :)")
   system.awaitTermination()

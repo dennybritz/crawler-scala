@@ -12,11 +12,11 @@ import scala.concurrent.duration._
 
 
 object CrawlService {
-  def props(localRedis: RedisClientPool, redisPrefix: String = "") 
-    = Props(classOf[CrawlService], localRedis, redisPrefix)
+  def props(localRedis: RedisClientPool) 
+    = Props(classOf[CrawlService], localRedis)
 }
 
-class CrawlService(val localRedis: RedisClientPool, val redisPrefix: String) 
+class CrawlService(val localRedis: RedisClientPool) 
   extends CrawlServiceLike with Actor with ActorLogging {
 
   /* Consistent-hashing router that forwards requests to the appropriate crawl service node */
@@ -33,7 +33,7 @@ class CrawlService(val localRedis: RedisClientPool, val redisPrefix: String)
       allowLocalRoutees = true, useRole = None)).props(), "peerScatterGatherRouter")
 
 
-  val jobStatsCollector = context.actorOf(JobStatsCollector.props(localRedis, redisPrefix), "jobStatsCollector")
+  val jobStatsCollector = context.actorOf(JobStatsCollector.props(localRedis), "jobStatsCollector")
 
   override def preStart() : Unit = {
     log.info(s"starting at ${self.path}")

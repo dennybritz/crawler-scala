@@ -19,7 +19,7 @@ class FrontierOutputChannelSpec extends AkkaSingleNodeSpec("FrontierOutputChanne
       foc.pipe(input, JobConfiguration.empty("testJob"), Map.empty)
 
       newRequests.foreach { req =>
-         expectMsg(RouteFetchRequest(AddToFrontier(req, "testJob")))
+         expectMsg(AddToFrontier(req, "testJob"))
       }
     }
 

@@ -24,7 +24,7 @@ class ApiLayer(crawlService: ActorRef) extends Actor with ActorLogging {
     case ApiRequest(msg: DestroyJob) =>
       crawlService ! msg
       sender ! ApiResponse("ok")
-    case ApiRequest(msg: GetGlobalJobStats) =>
+    case ApiRequest(msg: GetJobEventCounts) =>
       (crawlService ? msg).map( result => ApiResponse(result)) pipeTo sender
     case ApiRequest(msg) =>
       log.warning("unhandled message type: {}", msg)

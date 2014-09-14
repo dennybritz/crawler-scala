@@ -49,7 +49,7 @@ class Frontier(jobId: String, localRedis: RedisClientPool, prefix : String = "")
       log.info("stopping frontier for job=\"{}\"", jobId)
       stopFrontier()
     case ClearFrontier =>
-      log.info("clearning frontier for job=\"{}\"", jobId)
+      log.info("clearing frontier for job=\"{}\"", jobId)
       clearFrontier()
   }
 
@@ -59,7 +59,7 @@ class Frontier(jobId: String, localRedis: RedisClientPool, prefix : String = "")
     val cancelToken = context.system.scheduler.schedule(delay, delay) { 
       val requests = checkFrontier() 
       log.info("dequeued numRequests={}", requests.size)
-      requests.foreach { r => target ! FetchRequest(r, jobId) }
+      requests.foreach { r => target ! RouteFetchRequest(FetchRequest(r, jobId)) }
     }
     jobToken = Some(cancelToken)
   }
@@ -112,22 +112,20 @@ class Frontier(jobId: String, localRedis: RedisClientPool, prefix : String = "")
   /* Get all outstanding requests from the frontier */
   def checkFrontier() : Seq[WrappedHttpRequest] = {
     localRedis.withClient { client =>
-      val maxScore = System.currentTimeMillis
-      // Get all UUIDs from the queue
-      val result = client.zrangebyscore[String](frontierKey, 0, true, maxScore, true, None) match { 
-        case Some(Nil) => Seq.empty
-        case Some(uuids) => 
-          getRequestObjects(uuids.map(requestObjectKey))
-        case None => Seq.empty
+      client.pipeline { p =>
+        val maxScore = System.currentTimeMillis
+        // Get all UUIDs from the queue
+        p.zrangebyscore[String](frontierKey, 0, true, maxScore, true, None)
+        p.zremrangebyscore(frontierKey, 0, maxScore)
+      }.get.apply(0).asInstanceOf[Option[List[String]]] match { 
+        case Some(uuids) => getRequestObjects(uuids.map(requestObjectKey))
+        case _ => Seq.empty
       }
-      // Remove the elements we just pulled from redis
-      // TODO: Perhaps we should remove this after the request has been processed.
-      client.zremrangebyscore(frontierKey, 0, maxScore)
-      return result
     }
   }
 
   def getRequestObjects(keys: Seq[String]) : Seq[WrappedHttpRequest] = {
+    if (keys.isEmpty) return List.empty
     localRedis.withClient { client =>
       client.mget[Array[Byte]](keys.head, keys.tail: _*).map { byteObjects =>
         byteObjects.flatten.map { buffer =>

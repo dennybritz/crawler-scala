@@ -19,8 +19,9 @@ class FrontierSpec extends AkkaSingleNodeSpec("FrontierBehaviorSpec") with Local
       val req2 = WrappedHttpRequest.getUrl("localhost:9090/2")
       frontier.receive(AddToFrontier(req1, "testJob"))
       frontier.receive(AddToFrontier(req2, "testJob"))
-      receiveN(2).toSet == Set(FetchRequest(WrappedHttpRequest.getUrl("localhost:9090/1"), "testJob"),
-        FetchRequest(WrappedHttpRequest.getUrl("localhost:9090/2"), "testJob"))
+      receiveN(2).toSet == Set(
+        RouteFetchRequest(FetchRequest(WrappedHttpRequest.getUrl("localhost:9090/1"), "testJob")),
+        RouteFetchRequest(FetchRequest(WrappedHttpRequest.getUrl("localhost:9090/2"), "testJob")))
       frontier.stop()
     }
 
@@ -33,9 +34,9 @@ class FrontierSpec extends AkkaSingleNodeSpec("FrontierBehaviorSpec") with Local
       val req2 = WrappedHttpRequest.getUrl("localhost:9090/2")
       frontier.receive(AddToFrontier(req1, "testJob"))
       frontier.receive(AddToFrontier(req2, "testJob", Option(scheduledTime)))
-      expectMsg(FetchRequest(req1, "testJob"))
+      expectMsg(RouteFetchRequest(FetchRequest(req1, "testJob")))
       expectNoMsg(1.seconds)
-      expectMsg(5.seconds, FetchRequest(req2, "testJob"))
+      expectMsg(5.seconds, RouteFetchRequest(FetchRequest(req2, "testJob")))
       frontier.stop()
     }
 
@@ -47,11 +48,14 @@ class FrontierSpec extends AkkaSingleNodeSpec("FrontierBehaviorSpec") with Local
       val req2 = WrappedHttpRequest.getUrl("localhost:9090/2")
       frontier.receive(AddToFrontier(req1, "testJob"))
       frontier.receive(AddToFrontier(req2, "testJob"))
-      receiveN(2).toSet == Set(FetchRequest(req1, "testJob"),FetchRequest(req2, "testJob"))
+      receiveN(2).toSet == Set(
+        RouteFetchRequest(FetchRequest(req1, "testJob")),
+        RouteFetchRequest(FetchRequest(req2, "testJob")))
       frontier.receive(AddToFrontier(req1, "testJob"))
       expectNoMsg()
       frontier.receive(AddToFrontier(req1, "testJob", None, true))
-      receiveN(1).toSet == Set(FetchRequest(req1, "testJob"))
+      receiveN(1).toSet == Set(
+        RouteFetchRequest(FetchRequest(req1, "testJob")))
       frontier.stop()
     }
 
