@@ -38,7 +38,8 @@ object BlikkBuild extends Build {
       "com.esotericsoftware.kryo" % "kryo" % "2.24.0"
     ),
     parallelExecution in Test := false,
-    fork in Test := true
+    fork in Test := true,
+    baseDirectory in run := file(".")
   )
 
   val crawlerLibSettings = Seq(
