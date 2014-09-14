@@ -37,8 +37,10 @@ object Main extends App with Logging {
       }.toList
     case None => 
       log.info("No seed file found, using default seeds.")
+      val defaultHost = Try(config.getString("blikk.api.host")).toOption
+        .getOrElse(InetAddress.getLocalHost.getHostAddress.toString)
       val defaultPort = config.getInt("blikk.api.port")
-      List(AddressFromURIString.parse(s"akka.tcp://${systemName}@${InetAddress.getLocalHost.getHostAddress}:${defaultPort}"))
+      List(AddressFromURIString.parse(s"akka.tcp://${systemName}@${defaultHost}:${defaultPort}"))
   }
 
   log.info(s"Joining cluster with seeds: ${seeds}")
