@@ -10,43 +10,16 @@ class ApiLayerSpec extends AkkaSingleNodeSpec("ApiLayerSpec") {
 
   describe("ApiLayer") {
 
-    it("should be able to run jobs"){
+    it("should be able to route fetch requests"){
       val probe = TestProbe()
       val api = TestActorRef(apiProps(probe.ref))
-      val jobConf = JobConfiguration.empty("testJob")
-      api ! ApiRequest(RunJob(jobConf))
-      probe.expectMsg(RunJob(jobConf))
-      expectMsg(ApiResponse("ok"))
+      val httpRequest = WrappedHttpRequest.getUrl("localhost")
+      api ! ApiRequest(FetchRequest(httpRequest, "testJob"))
+      probe.expectMsg(AddToFrontier(FetchRequest(httpRequest, "testJob")))
+      expectMsg(ApiResponse.OK)
       api.stop()
     }
 
-    it("should be able to stop jobs"){
-      val probe = TestProbe()
-      val api = TestActorRef(apiProps(probe.ref))
-      api ! ApiRequest(StopJob("testJob"))
-      probe.expectMsg(StopJob("testJob"))
-      expectMsg(ApiResponse("ok"))
-      api.stop()
-    }
-
-    it("should be able to destroy jobs"){
-      val probe = TestProbe()
-      val api = TestActorRef(apiProps(probe.ref))
-      api ! ApiRequest(DestroyJob("testJob"))
-      probe.expectMsg(DestroyJob("testJob"))
-      expectMsg(ApiResponse("ok"))
-      api.stop()
-    }
-
-    it("should be able to get job statistics"){
-      val probe = TestProbe()
-      val api = TestActorRef(apiProps(probe.ref))
-      api ! ApiRequest(GetJobEventCounts("testJob"))
-      probe.expectMsg(GetJobEventCounts("testJob"))
-      probe.reply(Map("someStats" -> "yay"))
-      expectMsg(ApiResponse(Map("someStats" -> "yay")))
-      api.stop()
-    }
 
     it("should return an error for unhandled messages"){
       val probe = TestProbe()

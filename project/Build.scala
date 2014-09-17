@@ -35,8 +35,9 @@ object BlikkBuild extends Build {
       "com.rabbitmq" % "amqp-client" % "3.3.5",
       "org.jsoup" % "jsoup" % "1.7.3",
       "net.debasishg" %% "redisclient" % "2.13",
-      "com.esotericsoftware.kryo" % "kryo" % "2.24.0"
-    ),
+      "com.esotericsoftware.kryo" % "kryo" % "2.24.0",
+      "com.typesafe.akka" % "akka-stream-experimental_2.11" % "0.7"
+    ) ++ commonLibraryDependencies,
     parallelExecution in Test := false,
     fork in Test := true,
     baseDirectory in run := file(".")
@@ -46,17 +47,22 @@ object BlikkBuild extends Build {
     name := "blikk-crawler-lib",
     version := "0.1",
     scalaVersion := "2.11.2",
-     libraryDependencies ++= Seq(
-      "com.typesafe.akka" %% "akka-actor" % "2.3.5",
-      "io.spray" %% "spray-http" % "1.3.1",
-      "io.spray" %% "spray-can" % "1.3.1",
-      "ch.qos.logback" % "logback-classic" % "1.1.2",
-      "org.scalatest" %% "scalatest" % "2.2.1" % "test",
-      "org.scalautils" %% "scalautils" % "2.1.5",
-      "org.jsoup" % "jsoup" % "1.7.3",
-      "com.esotericsoftware.kryo" % "kryo" % "2.24.0"
-    ),
+    libraryDependencies ++= commonLibraryDependencies,
     parallelExecution in Test := false
+  )
+
+  val commonLibraryDependencies = Seq(
+    "ch.qos.logback" % "logback-classic" % "1.1.2",
+    "com.esotericsoftware.kryo" % "kryo" % "2.24.0",
+    "com.rabbitmq" % "amqp-client" % "3.3.5",
+    "com.typesafe.akka" % "akka-stream-experimental_2.11" % "0.7",
+    "com.typesafe.akka" %% "akka-actor" % "2.3.5",
+    "io.spray" %% "spray-can" % "1.3.1",
+    "io.spray" %% "spray-http" % "1.3.1",
+    "org.jsoup" % "jsoup" % "1.7.3",
+    "org.scalatest" %% "scalatest" % "2.2.1" % "test",
+    "org.scalautils" %% "scalautils" % "2.1.5",
+    "org.apache.commons" % "commons-lang3" % "3.3.2"
   )
 
   val multiJvmSettings = Seq(

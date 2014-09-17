@@ -6,29 +6,34 @@ import akka.routing._
 import akka.testkit._
 import com.redis.RedisClientPool
 import scala.concurrent.duration._
+import com.rabbitmq.client.{Connection => RabbitMQConnection}
 
 object TestCrawlService {
-  def props(implicit localRedis: RedisClientPool) 
-    = Props(classOf[TestCrawlService], localRedis)
+  case class SetTarget(target: ActorRef)
+  def props(implicit redis: RedisClientPool, rabbitMQ: RabbitMQConnection)
+    = Props(classOf[TestCrawlService], redis, rabbitMQ)
 }
 
-class TestCrawlService(val localRedis: RedisClientPool) 
+class TestCrawlService(val redis: RedisClientPool, val rabbitMQ: RabbitMQConnection) 
   extends CrawlServiceLike with Actor with ActorLogging {
-  
+    
+  var target : ActorRef = self
+
   lazy val serviceRouter = context.actorOf(ConsistentHashingGroup(
     List(self.path.toStringWithoutAddress)).props(), 
     "serviceRouter")
   lazy val peerScatterGatherRouter = context.actorOf(ScatterGatherFirstCompletedGroup(
     Nil, 5.seconds).props(), "peerScatterGatherRouter")
 
-  val jobStatsCollector = context.actorOf(JobStatsCollector.props(localRedis), "jobStatsCollector")
-
   def extraBehavior : Receive = {
+    case TestCrawlService.SetTarget(ref) =>
+      target = ref
     case msg : AddRoutee =>
       serviceRouter ! msg
       peerScatterGatherRouter ! msg
   }
 
   def receive = extraBehavior orElse defaultBehavior
+
  
 }

@@ -6,12 +6,14 @@ import java.util.UUID
 trait Request extends Serializable
 
 // We use spray.io for HTTP requests
+
 object WrappedHttpRequest {
   
   implicit def sprayConversion(req: HttpRequest) : WrappedHttpRequest = 
     new WrappedHttpRequest(req)
-  implicit def sprayConversion(req: WrappedHttpRequest) : spray.http.HttpRequest = 
-    req.req
+  
+  implicit def sprayConversion(req: WrappedHttpRequest) : 
+    spray.http.HttpRequest = req.req
   
   def getUrl(url: String) = 
     new WrappedHttpRequest(new HttpRequest(HttpMethods.GET, Uri(url)))

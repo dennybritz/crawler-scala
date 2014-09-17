@@ -12,13 +12,13 @@ class FrontierSpec extends AkkaSingleNodeSpec("FrontierBehaviorSpec") with Local
   describe("The Frontier") {
 
     it("should work with immediate requests") {
-      val frontier = TestActorRef(Frontier.props("testJob", localRedis))
+      val frontier = TestActorRef(Frontier.props(localRedis))
       frontier.receive(ClearFrontier)
       frontier.receive(StartFrontier(500.millis, self))
       val req1 = WrappedHttpRequest.getUrl("localhost:9090/1")
       val req2 = WrappedHttpRequest.getUrl("localhost:9090/2")
-      frontier.receive(AddToFrontier(req1, "testJob"))
-      frontier.receive(AddToFrontier(req2, "testJob"))
+      frontier.receive(AddToFrontier(FetchRequest(req1, "testJob")))
+      frontier.receive(AddToFrontier(FetchRequest(req2, "testJob")))
       receiveN(2).toSet == Set(
         RouteFetchRequest(FetchRequest(WrappedHttpRequest.getUrl("localhost:9090/1"), "testJob")),
         RouteFetchRequest(FetchRequest(WrappedHttpRequest.getUrl("localhost:9090/2"), "testJob")))
@@ -26,14 +26,14 @@ class FrontierSpec extends AkkaSingleNodeSpec("FrontierBehaviorSpec") with Local
     }
 
     it("should work with scheduled requests") {
-      val frontier = TestActorRef(Frontier.props("testJob", localRedis))
+      val frontier = TestActorRef(Frontier.props(localRedis))
       frontier.receive(ClearFrontier)
       frontier.receive(StartFrontier(500.millis, self))
       val req1 = WrappedHttpRequest.getUrl("localhost:9090/1")
       val scheduledTime = System.currentTimeMillis + 3*1000 // + 4 seconds
       val req2 = WrappedHttpRequest.getUrl("localhost:9090/2")
-      frontier.receive(AddToFrontier(req1, "testJob"))
-      frontier.receive(AddToFrontier(req2, "testJob", Option(scheduledTime)))
+      frontier.receive(AddToFrontier(FetchRequest(req1, "testJob")))
+      frontier.receive(AddToFrontier(FetchRequest(req2, "testJob"), Option(scheduledTime)))
       expectMsg(RouteFetchRequest(FetchRequest(req1, "testJob")))
       expectNoMsg(1.seconds)
       expectMsg(5.seconds, RouteFetchRequest(FetchRequest(req2, "testJob")))
@@ -41,19 +41,19 @@ class FrontierSpec extends AkkaSingleNodeSpec("FrontierBehaviorSpec") with Local
     }
 
     it("should work with requests that ignore deduplication (for recrawling)") {
-      val frontier = TestActorRef(Frontier.props("testJob", localRedis))
+      val frontier = TestActorRef(Frontier.props(localRedis))
       frontier.receive(ClearFrontier)
       frontier.receive(StartFrontier(500.millis, self))
       val req1 = WrappedHttpRequest.getUrl("localhost:9090/1")
       val req2 = WrappedHttpRequest.getUrl("localhost:9090/2")
-      frontier.receive(AddToFrontier(req1, "testJob"))
-      frontier.receive(AddToFrontier(req2, "testJob"))
+      frontier.receive(AddToFrontier(FetchRequest(req1, "testJob")))
+      frontier.receive(AddToFrontier(FetchRequest(req2, "testJob")))
       receiveN(2).toSet == Set(
         RouteFetchRequest(FetchRequest(req1, "testJob")),
         RouteFetchRequest(FetchRequest(req2, "testJob")))
-      frontier.receive(AddToFrontier(req1, "testJob"))
+      frontier.receive(AddToFrontier(FetchRequest(req1, "testJob")))
       expectNoMsg()
-      frontier.receive(AddToFrontier(req1, "testJob", None, true))
+      frontier.receive(AddToFrontier(FetchRequest(req1, "testJob"), None, true))
       receiveN(1).toSet == Set(
         RouteFetchRequest(FetchRequest(req1, "testJob")))
       frontier.stop()

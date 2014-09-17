@@ -1,5 +1,6 @@
 package org.blikk.crawler
 
+import com.rabbitmq.client.{Connection => RabbitMQConnection}
 import com.redis.RedisClientPool
 import akka.actor.{Actor, ActorLogging, ActorRef, Props, Status}
 import akka.cluster.Cluster
@@ -7,33 +8,34 @@ import akka.cluster.ClusterEvent._
 import akka.cluster.routing._
 import akka.routing.ConsistentHashingRouter.ConsistentHashableEnvelope
 import akka.routing._
-import scala.collection.mutable.{Map => MutableMap}
 import scala.concurrent.duration._
 
 
 object CrawlService {
-  def props(localRedis: RedisClientPool) 
-    = Props(classOf[CrawlService], localRedis)
+  def props(redis: RedisClientPool, rabbitMQ: RabbitMQConnection) 
+    = Props(classOf[CrawlService], redis, rabbitMQ)
 }
 
-class CrawlService(val localRedis: RedisClientPool) 
+class CrawlService(implicit val redis: RedisClientPool, 
+  implicit val rabbitMQ: RabbitMQConnection) 
   extends CrawlServiceLike with Actor with ActorLogging {
 
-  /* Consistent-hashing router that forwards requests to the appropriate crawl service node */
-  val _serviceRouter : ActorRef = context.actorOf(ClusterRouterGroup(
+  val serviceRouter : ActorRef = context.actorOf(ClusterRouterGroup(
     ConsistentHashingGroup(Nil), ClusterRouterGroupSettings(
-      totalInstances = 100, routeesPaths = List("/user/crawlService"), 
-      allowLocalRoutees = true, useRole = None)).props(),
-    name="serviceRouter")
-  def serviceRouter = _serviceRouter
+      totalInstances = 100, 
+      routeesPaths = List("/user/crawlService"), 
+      allowLocalRoutees = true, 
+      useRole = None)).props(),
+    "serviceRouter")
 
   val peerScatterGatherRouter = context.actorOf(ClusterRouterGroup(
-    ScatterGatherFirstCompletedGroup(Nil, 5.seconds), ClusterRouterGroupSettings(
-      totalInstances = 100, routeesPaths = List("/user/crawlService"), 
-      allowLocalRoutees = true, useRole = None)).props(), "peerScatterGatherRouter")
-
-
-  val jobStatsCollector = context.actorOf(JobStatsCollector.props(localRedis), "jobStatsCollector")
+    ScatterGatherFirstCompletedGroup(Nil, 5.seconds), 
+    ClusterRouterGroupSettings(
+      totalInstances = 100, 
+      routeesPaths = List("/user/crawlService"), 
+      allowLocalRoutees = true, 
+      useRole = None)).props(), 
+    "peerScatterGatherRouter")
 
   override def preStart() : Unit = {
     log.info(s"starting at ${self.path}")

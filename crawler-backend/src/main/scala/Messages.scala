@@ -1,34 +1,17 @@
 package org.blikk.crawler
 
 import akka.actor.ActorRef
-import scala.util.Try
-import scala.concurrent.duration.FiniteDuration
+import scala.concurrent.duration._
 
-case class InitializeFetcher(host: String)
-
-case class FetchRequest(req: WrappedHttpRequest, jobId: String)
-case class FetchResponse(res: WrappedHttpResponse, req: WrappedHttpRequest, jobId: String)
+/* Routes a Fetch Request to the apporpriate cluster nodes */
 case class RouteFetchRequest(req: FetchRequest)
 
-case class RunJob(job: JobConfiguration, clear: Boolean = true)
-case class RegisterJob(job: JobConfiguration, clear: Boolean = true)
-case class GetJob(jobId: String, askPeers: Boolean = true)
-
-case class JobEvent(jobId : String, event: Any)
-case class GetJobEventCounts(jobId: String)
-case class ClearJobEventCounts(jobId: String)
-case class JobStats(jobId: String, eventCounts: Map[String, Int])
-case class StopJob(jobId: String)
-case class DestroyJob(jobId: String)
-
-case class StartFrontier(delay: FiniteDuration, target: ActorRef)
-case object StopFrontier
-case object ClearFrontier
-case class AddToFrontier(req: WrappedHttpRequest, 
-  jobId: String, 
+/* Commands for the frontier. These are not available on the client */
+trait FrontierCommand
+case class StartFrontier(delay: FiniteDuration, target: ActorRef) extends FrontierCommand
+case object StopFrontier extends FrontierCommand
+case object ClearFrontier extends FrontierCommand
+case class AddToFrontier(
+  req: FetchRequest,
   scheduledTime : Option[Long] = None,
-  ignoreDeduplication : Boolean = false)
-
-case class ApiRequest(payload: Any)
-case class ApiResponse(payload: Any)
-case class ApiError(reason: String)
+  ignoreDeduplication : Boolean = false) extends FrontierCommand
