@@ -19,6 +19,13 @@ trait LocalRabbitMQ {
     }
   }
 
+  def purgeQueue(queueName: String) : Unit = {
+    withLocalRabbit { channel =>
+      scala.util.Try(channel.queueDeclarePassive(queueName))
+      channel.queuePurge(queueName)
+    } 
+  }
+
   def publishMsg(msg: Array[Byte], exchangeName: String, routingKey: String = "") = {
     // Very inefficient, but it's for testing only!
     withLocalRabbit { channel =>

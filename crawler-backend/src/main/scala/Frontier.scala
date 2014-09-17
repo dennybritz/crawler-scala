@@ -12,38 +12,37 @@ object Frontier {
   def props(rabbitConn: RabbitConnection, target: ActorRef) = {
     Props(classOf[Frontier], rabbitConn, target)
   }
+  val FrontierExchange = RabbitExchangeDefinition("blikk-frontier-exchange", "topic", true)
+  val FrontierQueue = RabbitQueueDefinition("blikk-frontier-queue", true, false, false, Map.empty)
+  val FrontierScheduledQueue = RabbitQueueDefinition("blikk-frontier-queue-scheduled", true,
+    false, false, Map("x-dead-letter-exchange" -> FrontierExchange.name))
 }
 
 class Frontier(rabbitConn: RabbitConnection, target: ActorRef) 
   extends Actor with ActorLogging {
 
+  import Frontier._
   import context.dispatcher
-
-  val frontierExchange = RabbitExchangeDefinition("blikk-frontier-exchange", "topic", true)
-  val frontierQueue = RabbitQueueDefinition("blikk-frontier-queue", true, false, false, Map.empty)
-  val frontierScheduledQueue = RabbitQueueDefinition("blikk-frontier-queue-scheduled", true,
-    false, false, Map("x-dead-letter-exchange" -> frontierExchange.name))
 
   val rabbitChannel = rabbitConn.createChannel()
   val rabbitRoutingKey = "*"
 
-
   override def preStart() {
     // Declare the necessary queues and exchanges
-    log.info("""declaring RabbitMQ exchange "{}"" and queues "{}", "{}" """, frontierExchange, 
-      frontierQueue, frontierScheduledQueue)
-    rabbitChannel.exchangeDeclare(frontierExchange.name, frontierExchange.exchangeType, 
-      frontierExchange.durable)
-    rabbitChannel.queueDeclare(frontierQueue.name, frontierQueue.durable, 
-      frontierQueue.exclusive, frontierQueue.autoDelete, frontierQueue.options)
-    rabbitChannel.queueDeclare(frontierScheduledQueue.name, frontierScheduledQueue.durable, 
-      frontierScheduledQueue.exclusive, frontierScheduledQueue.autoDelete, 
-      frontierScheduledQueue.options)
+    log.info("""declaring RabbitMQ exchange "{}"" and queues "{}", "{}" """, FrontierExchange, 
+      FrontierQueue, FrontierScheduledQueue)
+    rabbitChannel.exchangeDeclare(FrontierExchange.name, FrontierExchange.exchangeType, 
+      FrontierExchange.durable)
+    rabbitChannel.queueDeclare(FrontierQueue.name, FrontierQueue.durable, 
+      FrontierQueue.exclusive, FrontierQueue.autoDelete, FrontierQueue.options)
+    rabbitChannel.queueDeclare(FrontierScheduledQueue.name, FrontierScheduledQueue.durable, 
+      FrontierScheduledQueue.exclusive, FrontierScheduledQueue.autoDelete, 
+      FrontierScheduledQueue.options)
 
     implicit val materializer = FlowMaterializer(akka.stream.MaterializerSettings(context.system))
     val publisherActor = context.actorOf(
       RabbitPublisher.props(rabbitConn.createChannel(), 
-      frontierQueue, frontierExchange, "*"))
+      FrontierQueue, FrontierExchange, "*"))
     val publisher = ActorPublisher[Array[Byte]](publisherActor)
     FlowFrom(publisher).map { element =>
       SerializationUtils.deserialize[FetchRequest](element)
@@ -65,8 +64,9 @@ class Frontier(rabbitConn: RabbitConnection, target: ActorRef)
   /* Removes all elements from the frontier. Use with care! */
   def clearFrontier() : Unit = {
     Resource.using(rabbitConn.createChannel()) { channel =>
-      rabbitChannel.queuePurge(frontierQueue.name)
-      rabbitChannel.queuePurge(frontierScheduledQueue.name)
+      log.info("clearing frontier")
+      rabbitChannel.queuePurge(FrontierQueue.name)
+      rabbitChannel.queuePurge(FrontierScheduledQueue.name)
     }
   }
 
@@ -77,9 +77,9 @@ class Frontier(rabbitConn: RabbitConnection, target: ActorRef)
     scheduledTime.map(_ - System.currentTimeMillis) match {
       case Some(delay) if delay > 0 =>
         val properties = new AMQP.BasicProperties.Builder().expiration(delay.toString).build()
-        rabbitChannel.basicPublish("", frontierScheduledQueue.name, properties, serializedMsg)
+        rabbitChannel.basicPublish("", FrontierScheduledQueue.name, properties, serializedMsg)
       case _ =>
-        rabbitChannel.basicPublish(frontierExchange.name, fetchReq.req.host, null, serializedMsg)
+        rabbitChannel.basicPublish(FrontierExchange.name, fetchReq.req.host, null, serializedMsg)
     }
   }
 
