@@ -24,9 +24,9 @@ class IntegrationSuite(val name: String) extends FunSpec with BeforeAndAfter wit
   var addresses = ArrayBuffer[String]()
 
   override def beforeAll(){
-    addNode(name, "localhost", 8080)
-    addNode(name, "localhost", 8081)
-    addNode(name, "localhost", 8082)
+    addNode(name, "localhost", 13371)
+    addNode(name, "localhost", 13372)
+    addNode(name, "localhost", 13373)
      TestHttpServer.start("localhost", 9090)(httpSystem)
     services(0) ! ClearFrontier
   }
