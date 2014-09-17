@@ -1,7 +1,6 @@
 package org.blikk.test
 
 import akka.actor.{Actor, ActorLogging, ActorRef, Props}
-import com.redis.RedisClientPool
 import org.blikk.crawler._
 import scala.concurrent.duration._
 import akka.testkit.TestActorRef

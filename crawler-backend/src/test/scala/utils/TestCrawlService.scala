@@ -4,7 +4,6 @@ import org.blikk.crawler._
 import akka.actor._
 import akka.routing._
 import akka.testkit._
-import com.redis.RedisClientPool
 import scala.concurrent.duration._
 import com.rabbitmq.client.{Connection => RabbitMQConnection}
 
