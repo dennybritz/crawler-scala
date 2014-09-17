@@ -40,6 +40,8 @@ class CrawlService(implicit val rabbitMQ: RabbitMQConnection)
     Cluster(context.system)
       .subscribe(self, initialStateMode = InitialStateAsEvents,
       classOf[MemberEvent])
+    // Initialize a channel
+    rabbitMQChannel.get()
   }
 
   val clusterBehavior : Receive = {

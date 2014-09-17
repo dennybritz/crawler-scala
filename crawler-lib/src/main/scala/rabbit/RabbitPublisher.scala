@@ -4,15 +4,16 @@ import akka.actor._
 import akka.stream.actor._
 import com.rabbitmq.client._
 import org.blikk.crawler._
+import scala.collection.JavaConversions._
 
 object RabbitPublisher {
-  def props(channel: Channel,  queueName: String, 
-    exchangeName: String, routingKey: String) = 
-    Props(classOf[RabbitPublisher], channel, queueName, exchangeName, routingKey)
+  def props(channel: Channel, queue: RabbitQueueDefinition, 
+    exchange: RabbitExchangeDefinition, routingKey: String) = 
+    Props(classOf[RabbitPublisher], channel, queue, exchange, routingKey)
 }
 
-class RabbitPublisher(channel: Channel, queueName: String, 
-    exchangeName: String, routingKey: String) extends Actor with ActorLogging 
+class RabbitPublisher(channel: Channel, queue: RabbitQueueDefinition, 
+    exchange: RabbitExchangeDefinition, routingKey: String) extends Actor with ActorLogging 
   with ActorPublisher[Array[Byte]] {
 
   var assignedQueue : String = ""
@@ -22,10 +23,10 @@ class RabbitPublisher(channel: Channel, queueName: String,
   override def preStart(){
     log.info("susbcribing consumer to RabbitMQ queue...")
     // non-durable, non-exclusive, non-autodelete queue
-    // channel.exchangeDeclare(exchangeName, "direct", false)
-    assignedQueue = channel.queueDeclare(queueName, false, false, false, null).getQueue
-    channel.queueBind(assignedQueue, exchangeName, routingKey)
-    log.info("bound queue {} to exchange {}", assignedQueue, exchangeName)
+    assignedQueue = channel.queueDeclare(queue.name, queue.durable, 
+      queue.exclusive, queue.autoDelete, queue.options).getQueue
+    channel.queueBind(assignedQueue, exchange.name, routingKey)
+    log.info("bound queue {} to exchange {}", assignedQueue, exchange.name)
     // No autoack
     consumerTag = channel.basicConsume(assignedQueue, false, consumer)
     log.info("susbcribed to queue {}", assignedQueue)
@@ -37,7 +38,7 @@ class RabbitPublisher(channel: Channel, queueName: String,
       log.info("cancelling rabbitMQ consumption for {}", consumerTag)
       channel.basicCancel(consumerTag)
       log.info("unbinding rabbitMQ queue {}", assignedQueue)
-      channel.queueUnbind(queueName, exchangeName, routingKey)
+      channel.queueUnbind(queue.name, exchange.name, routingKey)
       channel.close()
     }
   }

@@ -11,25 +11,29 @@ class RabbitPublisherSpec extends AkkaSingleNodeSpec("RabbitPublisherSpec")
   with LocalRabbitMQ  {
 
     val log = akka.event.Logging.getLogger(system, this)
-    val exchangeName = "blikk-test-exchange"
-    val queueName = ""
-    val routingKey = "testKey"
+    val exchange = RabbitExchangeDefinition(s"${this.name}-exchange", "direct", false)
+    val queue = RabbitQueueDefinition(s"${this.name}-queue", false)
+    val routingKey = "*"
 
     import system.dispatcher
+
+    before { withLocalRabbit { channel =>
+      channel.exchangeDeclare(exchange.name, exchange.exchangeType, exchange.durable)
+    }}
 
     describe("The RabbitPublisher") {
       it("should work") {
         withLocalRabbit { channel =>
           // Get a flow
-          val actor = system.actorOf(RabbitPublisher.props(channel, queueName, 
-            exchangeName, routingKey))
+          val actor = system.actorOf(RabbitPublisher.props(channel, 
+            queue, exchange, routingKey))
           implicit val m = FlowMaterializer(MaterializerSettings(system))
           val flow = Flow(ActorPublisher[Any](actor))
           flow.map { x => 
             new String(x.asInstanceOf[Array[Byte]]) 
           }.foreach(self ! _)
-          publishMsg("message1".getBytes, exchangeName, routingKey)
-          publishMsg("message2".getBytes, exchangeName, routingKey)
+          publishMsg("message1".getBytes, exchange.name, routingKey)
+          publishMsg("message2".getBytes, exchange.name, routingKey)
           // Start consuming the queue
           assert(receiveN(2).toSet == Set("message1", "message2"))
           expectNoMsg()

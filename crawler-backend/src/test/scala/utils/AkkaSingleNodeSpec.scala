@@ -4,7 +4,7 @@ import akka.actor.ActorSystem
 import org.scalatest.{FunSpecLike, BeforeAndAfter, BeforeAndAfterAll}
 import akka.testkit.{TestKit, ImplicitSender, TestActorRef}
 
-class AkkaSingleNodeSpec(name: String) extends TestKit(ActorSystem(name, TestUtils.testConfig)) 
+class AkkaSingleNodeSpec(val name: String) extends TestKit(ActorSystem(name, TestUtils.testConfig)) 
   with ImplicitSender with FunSpecLike with BeforeAndAfter with BeforeAndAfterAll  {
 
   override def beforeAll() {

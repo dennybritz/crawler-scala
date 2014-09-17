@@ -24,7 +24,8 @@ trait CrawlServiceLike { this: Actor with ActorLogging =>
   lazy val rabbitMQChannel = new ThreadLocal[RabbitMQChannel] {
     override def initialValue = { 
       val channel = rabbitMQ.createChannel()
-      channel.exchangeDeclare("blikk-data", "direct", false)
+      channel.exchangeDeclare(RabbitData.DataExchange.name, 
+        RabbitData.DataExchange.exchangeType, RabbitData.DataExchange.durable)
       channel
     }
   }
@@ -80,7 +81,7 @@ trait CrawlServiceLike { this: Actor with ActorLogging =>
     val serializedItem = SerializationUtils.serialize(item)
     val channel = rabbitMQChannel.get()
     log.info("writing numBytes={} to RabbitMQ", serializedItem.size)
-    channel.basicPublish("blikk-data", fetchReq.jobId, null, serializedItem)
+    channel.basicPublish(RabbitData.DataExchange.name, fetchReq.jobId, null, serializedItem)
   }
 
 }

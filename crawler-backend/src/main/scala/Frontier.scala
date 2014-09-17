@@ -19,27 +19,31 @@ class Frontier(rabbitConn: RabbitConnection, target: ActorRef)
 
   import context.dispatcher
 
-  val rabbitExchangeName = "blikk-frontier-exchange"
-  val rabbitSchedulerQueue = "blikk-frontier-queue-scheduled"
-  val rabbitQueueName = "blikk-frontier-queue"
+  val frontierExchange = RabbitExchangeDefinition("blikk-frontier-exchange", "topic", true)
+  val frontierQueue = RabbitQueueDefinition("blikk-frontier-queue", true, false, false, Map.empty)
+  val frontierScheduledQueue = RabbitQueueDefinition("blikk-frontier-queue-scheduled", true,
+    false, false, Map("x-dead-letter-exchange" -> frontierExchange.name))
+
   val rabbitChannel = rabbitConn.createChannel()
   val rabbitRoutingKey = "*"
-  val urlCacheKey = s"blikk:frontier:urlCache"
 
 
   override def preStart() {
     // Declare the necessary queues and exchanges
-    log.info("""declaring RabbitMQ exchange "{}"" and queues "{}", "{}" """, rabbitExchangeName, 
-      rabbitQueueName, rabbitSchedulerQueue)
-    rabbitChannel.exchangeDeclare(rabbitExchangeName, "topic", false)
-    rabbitChannel.queueDeclare(rabbitQueueName, false, false, false, null)
-    rabbitChannel.queueDeclare(rabbitSchedulerQueue, false, false, false, 
-      Map("x-dead-letter-exchange" -> rabbitExchangeName))
+    log.info("""declaring RabbitMQ exchange "{}"" and queues "{}", "{}" """, frontierExchange, 
+      frontierQueue, frontierScheduledQueue)
+    rabbitChannel.exchangeDeclare(frontierExchange.name, frontierExchange.exchangeType, 
+      frontierExchange.durable)
+    rabbitChannel.queueDeclare(frontierQueue.name, frontierQueue.durable, 
+      frontierQueue.exclusive, frontierQueue.autoDelete, frontierQueue.options)
+    rabbitChannel.queueDeclare(frontierScheduledQueue.name, frontierScheduledQueue.durable, 
+      frontierScheduledQueue.exclusive, frontierScheduledQueue.autoDelete, 
+      frontierScheduledQueue.options)
 
     implicit val materializer = FlowMaterializer(akka.stream.MaterializerSettings(context.system))
     val publisherActor = context.actorOf(
-      RabbitPublisher.props(rabbitConn.createChannel(), rabbitQueueName, 
-      rabbitExchangeName, "*"))
+      RabbitPublisher.props(rabbitConn.createChannel(), 
+      frontierQueue, frontierExchange, "*"))
     val publisher = ActorPublisher[Array[Byte]](publisherActor)
     FlowFrom(publisher).map { element =>
       SerializationUtils.deserialize[FetchRequest](element)
@@ -61,7 +65,8 @@ class Frontier(rabbitConn: RabbitConnection, target: ActorRef)
   /* Removes all elements from the frontier. Use with care! */
   def clearFrontier() : Unit = {
     Resource.using(rabbitConn.createChannel()) { channel =>
-      rabbitChannel.queuePurge(rabbitQueueName)
+      rabbitChannel.queuePurge(frontierQueue.name)
+      rabbitChannel.queuePurge(frontierScheduledQueue.name)
     }
   }
 
@@ -72,9 +77,9 @@ class Frontier(rabbitConn: RabbitConnection, target: ActorRef)
     scheduledTime.map(_ - System.currentTimeMillis) match {
       case Some(delay) if delay > 0 =>
         val properties = new AMQP.BasicProperties.Builder().expiration(delay.toString).build()
-        rabbitChannel.basicPublish("", rabbitSchedulerQueue, properties, serializedMsg)
+        rabbitChannel.basicPublish("", frontierScheduledQueue.name, properties, serializedMsg)
       case _ =>
-        rabbitChannel.basicPublish(rabbitExchangeName, fetchReq.req.host, null, serializedMsg)
+        rabbitChannel.basicPublish(frontierExchange.name, fetchReq.req.host, null, serializedMsg)
     }
   }
 

@@ -20,8 +20,8 @@ trait LocalRabbitMQ {
   }
 
   def publishMsg(msg: Array[Byte], exchangeName: String, routingKey: String = "") = {
+    // Very inefficient, but it's for testing only!
     withLocalRabbit { channel =>
-      channel.exchangeDeclare(exchangeName, "direct", false)
       channel.basicPublish(exchangeName, routingKey, null, msg)
     }
   }
