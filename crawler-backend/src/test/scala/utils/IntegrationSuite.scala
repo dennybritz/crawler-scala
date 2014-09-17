@@ -8,35 +8,38 @@ import akka.testkit._
 import com.typesafe.config.ConfigFactory
 import org.blikk.crawler._
 import org.blikk.crawler.client._
-import org.scalatest.{FunSpec, BeforeAndAfter, BeforeAndAfterAll}
+import org.scalatest.{FunSpec, BeforeAndAfter, BeforeAndAfterAll, Matchers}
 import scala.collection.mutable.ArrayBuffer
 
 class IntegrationSuite(val name: String) extends FunSpec with BeforeAndAfter with BeforeAndAfterAll 
-  with LocalRedis with LocalRabbitMQ {
+  with Matchers with LocalRabbitMQ {
 
   lazy val log = akka.event.Logging.getLogger(systems(0), this)
 
+  val httpSystem = ActorSystem("httpServer")
   var systems = ArrayBuffer[ActorSystem]()
   var services = ArrayBuffer[ActorRef]()
   var apis = ArrayBuffer[ActorRef]()
   var probes = ArrayBuffer[TestProbe]()
   var addresses = ArrayBuffer[String]()
 
-  before {
-    TestHttpServer.start("localhost", 9090)(ActorSystem("httpServer"))
+  override def beforeAll(){
+    TestHttpServer.start("localhost", 9090)(httpSystem)
     addNode(name, "localhost", 8080)
     addNode(name, "localhost", 8081)
     addNode(name, "localhost", 8082)
     services(0) ! ClearFrontier
   }
 
-  after {
-    // Stop the crawl service on each system
+  override def afterAll(){
     systems.zipWithIndex.foreach { case (system, num) =>
       system.stop(services(num))
       system.shutdown()
       system.awaitTermination()
     }
+    httpSystem.shutdown()
+    httpSystem.awaitTermination()
+    //Thread.sleep(5000)
   }
 
   // Add a new node
@@ -49,7 +52,7 @@ class IntegrationSuite(val name: String) extends FunSpec with BeforeAndAfter wit
     cluster.joinSeedNodes(List(AddressFromURIString.parse(
       addresses.headOption.getOrElse(newAddress))))
     val newService = newSystem.actorOf(
-      CrawlService.props(localRedis, factory.newConnection()), s"crawlService")
+      CrawlService.props(factory.newConnection()), s"crawlService")
     services += newService
     val newApi = newSystem.actorOf(ApiLayer.props(newService), "api")
     apis += newApi
@@ -58,8 +61,12 @@ class IntegrationSuite(val name: String) extends FunSpec with BeforeAndAfter wit
   }
 
   // Runs the program
-  lazy val streamContext = {
-    val client = new CrawlerClient(addresses(0) + "/user/api", name)(systems(0))
+  def createStreamContext() = {
+    val config = ConfigFactory.parseString(s"""
+      akka.actor.provider = akka.remote.RemoteActorRefProvider
+      """).withFallback(buildConfig("localhost", 0))
+    val system = ActorSystem(name, config)
+    val client = new CrawlerClient(addresses(0) + "/user/api", name)(system)
     client.createContext[CrawlItem]()
   }
 

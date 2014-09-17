@@ -1,7 +1,6 @@
 package org.blikk.crawler
 
 import com.rabbitmq.client.{Connection => RabbitMQConnection}
-import com.redis.RedisClientPool
 import akka.actor.{Actor, ActorLogging, ActorRef, Props, Status}
 import akka.cluster.Cluster
 import akka.cluster.ClusterEvent._
@@ -12,12 +11,11 @@ import scala.concurrent.duration._
 
 
 object CrawlService {
-  def props(redis: RedisClientPool, rabbitMQ: RabbitMQConnection) 
-    = Props(classOf[CrawlService], redis, rabbitMQ)
+  def props(rabbitMQ: RabbitMQConnection) 
+    = Props(classOf[CrawlService], rabbitMQ)
 }
 
-class CrawlService(implicit val redis: RedisClientPool, 
-  implicit val rabbitMQ: RabbitMQConnection) 
+class CrawlService(implicit val rabbitMQ: RabbitMQConnection) 
   extends CrawlServiceLike with Actor with ActorLogging {
 
   val serviceRouter : ActorRef = context.actorOf(ClusterRouterGroup(

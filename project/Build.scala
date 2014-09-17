@@ -1,7 +1,5 @@
 import sbt._
 import Keys._
-import com.typesafe.sbt.SbtMultiJvm
-import com.typesafe.sbt.SbtMultiJvm.MultiJvmKeys.MultiJvm
 import com.typesafe.sbt.SbtStartScript
 
 object BlikkBuild extends Build {
@@ -9,8 +7,8 @@ object BlikkBuild extends Build {
   lazy val root = Project(id = "blikk", base = file(".")) aggregate(crawlerBackend, crawlerLib)
 
   lazy val crawlerBackend = Project(id = "blikk-crawler-backend", base = file("./crawler-backend"),
-    settings = Project.defaultSettings ++ crawlerSettings ++ multiJvmSettings ++ 
-    SbtStartScript.startScriptForClassesSettings) dependsOn(crawlerLib) configs (MultiJvm) 
+    settings = Project.defaultSettings ++ crawlerSettings ++ 
+    SbtStartScript.startScriptForClassesSettings) dependsOn(crawlerLib)
 
   lazy val crawlerLib = Project(id="blikk-crawler-lib", base=file("./crawler-lib"), 
     settings = Project.defaultSettings ++ crawlerLibSettings)
@@ -19,24 +17,13 @@ object BlikkBuild extends Build {
     name := "blikk-crawler-backend",
     version := "0.1",
     scalaVersion := "2.11.2",
+    resolvers += "Akka Repo Snapshots" at "http://repo.akka.io/snapshots",
     libraryDependencies ++= Seq(
-      "com.typesafe.akka" %% "akka-actor" % "2.3.5",
       "com.typesafe.akka" %% "akka-cluster" % "2.3.5",
       "com.typesafe.akka" %% "akka-testkit" % "2.3.5",
-      "com.typesafe.akka" %% "akka-slf4j" % "2.3.5",
       "com.typesafe.akka" %% "akka-contrib" % "2.3.5",
       "com.typesafe.akka" %% "akka-multi-node-testkit" % "2.3.6",
-      "ch.qos.logback" % "logback-classic" % "1.1.2",
-      "io.spray" %% "spray-http" % "1.3.1",
-      "io.spray" %% "spray-can" % "1.3.1",
-      "io.spray" %% "spray-routing" % "1.3.1",
-      "org.scalatest" %% "scalatest" % "2.2.1" % "test",
-      "org.scalautils" %% "scalautils" % "2.1.5",
-      "com.rabbitmq" % "amqp-client" % "3.3.5",
-      "org.jsoup" % "jsoup" % "1.7.3",
-      "net.debasishg" %% "redisclient" % "2.13",
-      "com.esotericsoftware.kryo" % "kryo" % "2.24.0",
-      "com.typesafe.akka" % "akka-stream-experimental_2.11" % "0.7"
+      "io.spray" %% "spray-routing" % "1.3.1"
     ) ++ commonLibraryDependencies,
     parallelExecution in Test := false,
     fork in Test := true,
@@ -53,36 +40,19 @@ object BlikkBuild extends Build {
 
   val commonLibraryDependencies = Seq(
     "ch.qos.logback" % "logback-classic" % "1.1.2",
-    "com.esotericsoftware.kryo" % "kryo" % "2.24.0",
+    "com.google.guava" % "guava" % "18.0",
     "com.rabbitmq" % "amqp-client" % "3.3.5",
+    "com.typesafe.akka" % "akka-http-experimental_2.11" % "0.7",
     "com.typesafe.akka" % "akka-stream-experimental_2.11" % "0.7",
     "com.typesafe.akka" %% "akka-actor" % "2.3.5",
+    "com.typesafe.akka" %% "akka-slf4j" % "2.3.5",
     "io.spray" %% "spray-can" % "1.3.1",
     "io.spray" %% "spray-http" % "1.3.1",
+    "org.apache.commons" % "commons-lang3" % "3.3.2",
     "org.jsoup" % "jsoup" % "1.7.3",
     "org.scalatest" %% "scalatest" % "2.2.1" % "test",
-    "org.scalautils" %% "scalautils" % "2.1.5",
-    "org.apache.commons" % "commons-lang3" % "3.3.2"
+    "org.scalautils" %% "scalautils" % "2.1.5"
   )
 
-  val multiJvmSettings = Seq(
-    // make sure that MultiJvm test are compiled by the default test compilation
-    compile in MultiJvm <<= (compile in MultiJvm) triggeredBy (compile in Test),
-    parallelExecution in Test := false,
-    fork in run := true
-    // make sure that MultiJvm tests are executed by the default test target, 
-    // and combine the results from ordinary test and multi-jvm tests
-    // executeTests in Test <<= (executeTests in Test, executeTests in MultiJvm) map {
-    //   case (testResults, multiNodeResults)  =>
-    //     val overall =
-    //       if (testResults.overall.id < multiNodeResults.overall.id)
-    //         multiNodeResults.overall
-    //       else
-    //         testResults.overall
-    //     Tests.Output(overall,
-    //       testResults.events ++ multiNodeResults.events,
-    //       testResults.summaries ++ multiNodeResults.summaries)
-    // }
-  ) ++ SbtMultiJvm.multiJvmSettings
 
 }

@@ -8,8 +8,8 @@ import akka.testkit._
 import com.typesafe.config.ConfigFactory
 
 
-class AkkaRemoteSpec(name: String) extends FunSpec with BeforeAndAfter with BeforeAndAfterAll 
-  with LocalRedis with LocalRabbitMQ {
+class AkkaRemoteSpec(name: String) extends FunSpec with BeforeAndAfter 
+  with BeforeAndAfterAll with LocalRabbitMQ {
 
   var systems = ArrayBuffer[ActorSystem]()
   var probes = ArrayBuffer[TestProbe]()

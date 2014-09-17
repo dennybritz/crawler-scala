@@ -7,7 +7,6 @@ import akka.pattern.{ask, pipe}
 import akka.routing.ConsistentHashingRouter.ConsistentHashableEnvelope
 import akka.util.Timeout
 import com.rabbitmq.client.{Connection => RabbitMQConnection, Channel => RabbitMQChannel, AMQP}
-import com.redis.RedisClientPool
 import org.apache.commons.lang3.SerializationUtils
 import scala.concurrent.duration._
 import scala.util.{Try, Success, Failure}
@@ -20,9 +19,6 @@ trait CrawlServiceLike { this: Actor with ActorLogging =>
   import context.system
   import context.dispatcher
 
-  /* Local redis instance used for caching */
-  implicit def redis: RedisClientPool
-  
   /* A thread-local RabbitMQ channel */
   implicit def rabbitMQ: RabbitMQConnection
   lazy val rabbitMQChannel = new ThreadLocal[RabbitMQChannel] {
@@ -34,7 +30,7 @@ trait CrawlServiceLike { this: Actor with ActorLogging =>
   }
 
   /* The frontier */
-  def frontierProps = Frontier.props(redis)
+  def frontierProps = Frontier.props(rabbitMQ, self)
   lazy val frontier = {
     val frontierActor = context.actorOf(frontierProps, "frontier")
     frontierActor ! StartFrontier(1.seconds, self)
@@ -85,7 +81,6 @@ trait CrawlServiceLike { this: Actor with ActorLogging =>
     val channel = rabbitMQChannel.get()
     log.info("writing numBytes={} to RabbitMQ", serializedItem.size)
     channel.basicPublish("blikk-data", fetchReq.jobId, null, serializedItem)
-    channel.close()
   }
 
 }

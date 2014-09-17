@@ -3,7 +3,6 @@ package org.blikk.crawler
 import akka.actor.{ActorSystem, Props, Address, AddressFromURIString}
 import akka.cluster.Cluster
 import com.rabbitmq.client.{Connection => RabbitMQConnection, ConnectionFactory => RabbitMQCF}
-import com.redis.RedisClientPool
 import com.typesafe.config.ConfigFactory
 import java.net.InetAddress
 import scala.io.Source
@@ -14,21 +13,6 @@ object Main extends App with Logging {
   val config = ConfigFactory.load()
   val systemName = config.getString("blikk.actor-system-name")
   val system = ActorSystem(systemName, config)
-
-  // Initialize a redis client pool
-  val redisHost = config.getString("blikk.redis.host")
-  val redisPort = config.getInt("blikk.redis.port")
-  val localRedis = new RedisClientPool(redisHost, redisPort)
-
-  // Make sure redis is running
-  Try(localRedis.withClient { client =>
-    client.set("blikk-crawler:test", "hello")
-  }) match {
-    case Failure(err) => 
-      log.error("Redis is not running?", err)
-      System.exit(1)
-    case _ => // OK
-  }
 
   // Connect to RabbitMQ
   val factory = new RabbitMQCF()
@@ -52,7 +36,7 @@ object Main extends App with Logging {
   log.info(s"Joining cluster with seeds: ${seeds}")
   Cluster.get(system).joinSeedNodes(seeds.toSeq)
   // Start the crawl service and API actors
-  val crawlService = system.actorOf(CrawlService.props(localRedis, rabbitConn), "crawl-service")
+  val crawlService = system.actorOf(CrawlService.props(rabbitConn), "crawl-service")
   val api = system.actorOf(ApiLayer.props(crawlService), "api")
   log.info("crawler ready :)")
   system.awaitTermination()

@@ -23,7 +23,7 @@ class RabbitPublisher(channel: Channel, queueName: String,
   override def preStart(){
     log.info("susbcribing consumer to RabbitMQ queue...")
     // non-durable, non-exclusive, non-autodelete queue
-    channel.exchangeDeclare(exchangeName, "direct", false)
+    // channel.exchangeDeclare(exchangeName, "direct", false)
     assignedQueue = channel.queueDeclare(queueName, false, false, false, null).getQueue
     channel.queueBind(assignedQueue, exchangeName, routingKey)
     log.info("bound queue {} to exchange {}", assignedQueue, exchangeName)

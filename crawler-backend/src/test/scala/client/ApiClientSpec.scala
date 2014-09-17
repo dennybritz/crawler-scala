@@ -14,8 +14,8 @@ class ApiClientSpec extends AkkaSingleNodeSpec("ApiClientSpec") {
     it("should be able to get connection information") {
       val actor = system.actorOf(ApiClient.props(endpoint, "testApp"), "apiClient")
       actor ! ConnectionInfoRequest
-      probe.expectMsg(ConnectionInfoRequest)
-      probe.reply(ConnectionInfo("someUri"))
+      probe.expectMsg(ApiRequest(ConnectionInfoRequest))
+      probe.reply(ApiResponse(ConnectionInfo("someUri")))
       expectMsg(ConnectionInfo("someUri"))
     }
   }

@@ -24,16 +24,17 @@ class HttpServerListener extends HttpServiceActor with ActorLogging {
       }
       complete(s"""<html><body>${linkHtml}</body></html>""")
     } ~ 
-    path("status/301") { _ =>
+    path("status" / "301") {
       redirect("/", StatusCodes.PermanentRedirect)
     } ~
-    path("status/404") { _ =>
-      respondWithStatus(StatusCodes.NotFound)
+    path("status" / "404") {
+      respondWithStatus(StatusCodes.NotFound) { complete(StatusCodes.NotFound) }
     } ~
-    path("status/503") { _ =>
-      respondWithStatus(StatusCodes.ServiceUnavailable)
+    path("status" / "503") {
+      complete(StatusCodes.ServiceUnavailable)
     } ~
-    complete("")
+    //respondWithStatus(StatusCodes.NotFound)
+    complete("OK!")
   }
 
 }

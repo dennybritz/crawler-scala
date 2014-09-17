@@ -10,11 +10,11 @@ import com.rabbitmq.client.{Connection => RabbitMQConnection}
 
 object TestCrawlService {
   case class SetTarget(target: ActorRef)
-  def props(implicit redis: RedisClientPool, rabbitMQ: RabbitMQConnection)
-    = Props(classOf[TestCrawlService], redis, rabbitMQ)
+  def props(rabbitMQ: RabbitMQConnection)
+    = Props(classOf[TestCrawlService], rabbitMQ)
 }
 
-class TestCrawlService(val redis: RedisClientPool, val rabbitMQ: RabbitMQConnection) 
+class TestCrawlService(val rabbitMQ: RabbitMQConnection) 
   extends CrawlServiceLike with Actor with ActorLogging {
     
   var target : ActorRef = self
