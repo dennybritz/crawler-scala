@@ -7,7 +7,7 @@ import akka.routing.{AddRoutee, ActorRefRoutee}
 import akka.testkit._
 import com.typesafe.config.ConfigFactory
 import org.blikk.crawler._
-import org.blikk.crawler.client._
+import org.blikk.crawler.app._
 import org.scalatest.{FunSpec, BeforeAndAfter, BeforeAndAfterAll, Matchers}
 import scala.collection.mutable.ArrayBuffer
 
@@ -66,7 +66,7 @@ class IntegrationSuite(val name: String) extends FunSpec with BeforeAndAfter wit
       akka.actor.provider = akka.remote.RemoteActorRefProvider
       """).withFallback(buildConfig("localhost", 0))
     val system = ActorSystem(name, config)
-    val client = new CrawlerClient(addresses(0) + "/user/api", name)(system)
+    val client = new CrawlerApp(addresses(0) + "/user/api", name)(system)
     client.createContext[CrawlItem]()
   }
 

@@ -1,15 +1,13 @@
-package org.blikk.crawler.client
+package org.blikk.crawler
 
 import akka.actor._
 import com.rabbitmq.client._
 import org.blikk.crawler._
-import akka.event.Logging
 
 class RabbitConsumer(channel: Channel, target: ActorRef)
-  (implicit system: ActorSystem) 
-  extends DefaultConsumer(channel) {
+  (implicit system: ActorSystem) extends DefaultConsumer(channel) {
   
-  lazy val log = Logging.getLogger(system, this)
+  lazy val log = akka.event.Logging.getLogger(system, this)
 
   override def handleDelivery(consumerTag: String, envelope: Envelope, 
     properties: AMQP.BasicProperties, body: Array[Byte]) : Unit = {

@@ -5,9 +5,8 @@ import akka.stream.actor._
 import akka.stream.scaladsl2._
 import com.rabbitmq.client.{Connection => RabbitConnection, Channel => RabbitChannel, AMQP}
 import org.apache.commons.lang3.SerializationUtils
-import org.blikk.crawler.client.RabbitPublisher
-import scala.concurrent.duration._
 import scala.collection.JavaConversions._
+import scala.concurrent.duration._
 
 object Frontier {
   def props(rabbitConn: RabbitConnection, target: ActorRef) = {

@@ -1,6 +1,6 @@
 package org.blikk.test
 
-import org.blikk.crawler.client._
+import org.blikk.crawler.app._
 import org.blikk.crawler._
 import akka.actor._
 import akka.testkit._
@@ -8,7 +8,7 @@ import akka.stream.scaladsl2._
 import com.typesafe.config._
 import org.apache.commons.lang3.SerializationUtils
 
-class CrawlerClientSpec extends AkkaRemoteSpec("ApiClientSpec")  {
+class CrawlerAppSpec extends AkkaRemoteSpec("ApiClientSpec")  {
 
   val exchangeName = "blikk-test-exchange"
   val routingKey = "testApp"
@@ -36,7 +36,7 @@ class CrawlerClientSpec extends AkkaRemoteSpec("ApiClientSpec")  {
     it("should work") {
       implicit val mat = FlowMaterializer(akka.stream.MaterializerSettings(systems(1)))(systems(1))
       probes(0).setAutoPilot(apiAutoPilot)
-      val client = new CrawlerClient(
+      val client = new CrawlerApp(
         s"akka.tcp://system1@localhost:9001/system/${probes(0).ref.path.name}", 
         "testApp", exchangeName)(systems(1))
       val stream = client.createContext[String]()

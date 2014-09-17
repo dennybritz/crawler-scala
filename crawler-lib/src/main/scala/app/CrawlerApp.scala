@@ -1,4 +1,4 @@
-package org.blikk.crawler.client
+package org.blikk.crawler.app
 
 import akka.actor._
 import akka.pattern.ask
@@ -11,7 +11,7 @@ import scala.concurrent.Await
 import scala.concurrent.duration._
 import org.apache.commons.lang3.SerializationUtils
 
-class CrawlerClient(apiEndpoint: String, appId: String, 
+class CrawlerApp(apiEndpoint: String, appId: String, 
   val exchangeName: String = "blikk-data")
   (implicit system: ActorSystem)  {
 

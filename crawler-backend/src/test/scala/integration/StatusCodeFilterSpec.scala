@@ -3,7 +3,7 @@ package org.blikk.test.integration
 import org.blikk.test._
 import org.blikk.crawler._
 import scala.concurrent.duration._
-import org.blikk.crawler.client._
+import org.blikk.crawler.app._
 import akka.stream.scaladsl2._
 import akka.stream.scaladsl2.FlowGraphImplicits._
 import org.blikk.crawler.processors._

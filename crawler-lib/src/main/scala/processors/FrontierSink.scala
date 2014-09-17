@@ -2,7 +2,7 @@ package org.blikk.crawler.processors
 
 import akka.stream.scaladsl2._
 import org.blikk.crawler._
-import org.blikk.crawler.client._
+import org.blikk.crawler.app._
 import org.jsoup._
 import scala.collection.JavaConversions._
 import scala.concurrent.Future

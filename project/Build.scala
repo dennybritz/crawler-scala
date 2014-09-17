@@ -13,29 +13,29 @@ object BlikkBuild extends Build {
   lazy val crawlerLib = Project(id="blikk-crawler-lib", base=file("./crawler-lib"), 
     settings = Project.defaultSettings ++ crawlerLibSettings)
 
-  val crawlerSettings = Seq(
-    name := "blikk-crawler-backend",
+  val commonSettings = Seq(
     version := "0.1",
     scalaVersion := "2.11.2",
     resolvers += "Akka Repo Snapshots" at "http://repo.akka.io/snapshots",
+    parallelExecution in Test := false,
+    fork in Test := true,
+    baseDirectory in run := file(".")
+  )
+
+  val crawlerSettings = commonSettings ++ Seq(
+    name := "blikk-crawler-backend",
     libraryDependencies ++= Seq(
       "com.typesafe.akka" %% "akka-cluster" % "2.3.5",
       "com.typesafe.akka" %% "akka-testkit" % "2.3.5",
       "com.typesafe.akka" %% "akka-contrib" % "2.3.5",
       "com.typesafe.akka" %% "akka-multi-node-testkit" % "2.3.6",
       "io.spray" %% "spray-routing" % "1.3.1"
-    ) ++ commonLibraryDependencies,
-    parallelExecution in Test := false,
-    fork in Test := true,
-    baseDirectory in run := file(".")
+    ) ++ commonLibraryDependencies
   )
 
-  val crawlerLibSettings = Seq(
+  val crawlerLibSettings = commonSettings ++ Seq(
     name := "blikk-crawler-lib",
-    version := "0.1",
-    scalaVersion := "2.11.2",
-    libraryDependencies ++= commonLibraryDependencies,
-    parallelExecution in Test := false
+    libraryDependencies ++= commonLibraryDependencies
   )
 
   val commonLibraryDependencies = Seq(

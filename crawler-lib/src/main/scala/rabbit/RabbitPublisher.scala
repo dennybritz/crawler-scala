@@ -1,10 +1,9 @@
-package org.blikk.crawler.client
+package org.blikk.crawler
 
 import akka.actor._
 import akka.stream.actor._
 import com.rabbitmq.client._
 import org.blikk.crawler._
-import akka.event.Logging
 
 object RabbitPublisher {
   def props(channel: Channel,  queueName: String, 

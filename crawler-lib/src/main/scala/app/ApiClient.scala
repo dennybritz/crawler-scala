@@ -1,4 +1,4 @@
-package org.blikk.crawler.client
+package org.blikk.crawler.app
 
 import akka.pattern.{ask, pipe}
 import org.blikk.crawler._

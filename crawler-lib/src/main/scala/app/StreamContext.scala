@@ -1,4 +1,4 @@
-package org.blikk.crawler.client
+package org.blikk.crawler.app
 
 import akka.stream.scaladsl2.{FlowWithSource, FlowMaterializer}
 import akka.actor._
