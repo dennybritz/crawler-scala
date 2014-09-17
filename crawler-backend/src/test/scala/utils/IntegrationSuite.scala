@@ -24,22 +24,22 @@ class IntegrationSuite(val name: String) extends FunSpec with BeforeAndAfter wit
   var addresses = ArrayBuffer[String]()
 
   override def beforeAll(){
-    TestHttpServer.start("localhost", 9090)(httpSystem)
     addNode(name, "localhost", 8080)
     addNode(name, "localhost", 8081)
     addNode(name, "localhost", 8082)
+     TestHttpServer.start("localhost", 9090)(httpSystem)
     services(0) ! ClearFrontier
   }
 
   override def afterAll(){
+    httpSystem.shutdown()
+    httpSystem.awaitTermination()
     systems.zipWithIndex.foreach { case (system, num) =>
       system.stop(services(num))
       system.shutdown()
       system.awaitTermination()
     }
-    httpSystem.shutdown()
-    httpSystem.awaitTermination()
-    //Thread.sleep(5000)
+    Thread.sleep(2500)
   }
 
   // Add a new node
