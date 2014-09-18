@@ -67,7 +67,7 @@ class IntegrationSuite(val name: String) extends FunSpec with BeforeAndAfter wit
       """).withFallback(buildConfig("localhost", 0))
     val system = ActorSystem(name, config)
     val client = new CrawlerApp(addresses(0) + "/user/api", name)(system)
-    client.createContext[CrawlItem]()
+    client.start[CrawlItem]()
   }
 
   private def buildConfig(host: String, port: Int) = {

@@ -1,16 +1,20 @@
 package org.blikk.crawler.app
 
-import akka.actor._
+import akka.actor.ActorSystem
 import akka.pattern.ask
-import akka.stream.actor._
+import akka.stream.actor.ActorPublisher
 import akka.stream.scaladsl2._
 import akka.util.Timeout
 import com.rabbitmq.client._
+import org.apache.commons.lang3.SerializationUtils
 import org.blikk.crawler._
 import scala.concurrent.Await
 import scala.concurrent.duration._
-import org.apache.commons.lang3.SerializationUtils
 
+/**
+  * The `CrawlerApp` is responsible for connecting to the crawler platform endpoint.
+  * Use the `start` method to start consuming data.
+  */
 class CrawlerApp(apiEndpoint: String, appId: String)
   (implicit system: ActorSystem)  {
 
@@ -29,7 +33,7 @@ class CrawlerApp(apiEndpoint: String, appId: String)
   val rabbitCF = new ConnectionFactory()
   rabbitCF.setUri(connectionInfo.rabbitMQUri)
 
-  def createContext[A]() : StreamContext[A] = {
+  def start[A]() : StreamContext[A] = {
     // Initialize a new RabbitMQ connection
     val connection = rabbitCF.newConnection()
     val channel = connection.createChannel()
@@ -40,6 +44,7 @@ class CrawlerApp(apiEndpoint: String, appId: String)
     val flow = FlowFrom(publisher).map { element =>
       SerializationUtils.deserialize[A](element)
     }
+    // Return a context
     val materializer = FlowMaterializer(akka.stream.MaterializerSettings(system))
     StreamContext(flow, clientActor)(system, connection, materializer)
   }

@@ -14,21 +14,27 @@ object ApiClient {
   }
 }
 
-class ApiClient(apiEndpoint: String, appId: String)
-  extends Actor with ActorLogging {
+/** 
+  * Communicates with the remote API endpoint to get connection information and send commands. 
+  * The apiEndpoint URI should be of the form: `akka.tcp://<systemName>@<ip>:<port>/api`
+  */
+class ApiClient(apiEndpoint: String, appId: String) extends Actor with ActorLogging {
 
   implicit val apiTimeout = Timeout(5.seconds)
   import context.dispatcher
 
-  val apiActor = context.system.actorSelection(apiEndpoint)
+  // Connects to the crawler platform API actor using Akka remoting
+  var apiActor : ActorSelection = null
 
   override def preStart() {
-    log.info("Connecting to {}", apiEndpoint)
+    log.info("connecting to {}...", apiEndpoint)
+    apiActor = context.system.actorSelection(apiEndpoint)
   }
 
   override def receive = {
     case ConnectionInfoRequest =>
-      (apiActor ? ApiRequest(ConnectionInfoRequest)).mapTo[ApiResponse].map(_.payload) pipeTo sender
+      (apiActor ? ApiRequest(ConnectionInfoRequest)).mapTo[ApiResponse]
+        .map(_.payload) pipeTo sender
     case req: WrappedHttpRequest =>
       log.debug("Adding to frontier: {}", req)
       apiActor ? ApiRequest(FetchRequest(req, appId)) onComplete {
