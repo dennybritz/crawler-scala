@@ -32,21 +32,24 @@ class SimpleCrawlSpec extends IntegrationSuite("SimpleCrawlIntegrationSpec") {
     it("should be able to extract and crawl multiple links") {
       implicit val streamContext = createStreamContext()
       import streamContext.{materializer, system}
+      import system.dispatcher
 
       val in = streamContext.flow
-      val fLinkExtractor = LinkExtractor.noFilter()
+      val fLinkExtractor = RequestExtractor.build()
       val fLinkSender = ForeachSink[CrawlItem] { item => 
         log.info("{}", item.toString) 
         probes(1).ref ! item.req.uri.toString
       }
       val stats = StatsCollector.build()
 
-      FlowGraph { implicit b =>
+      val graph = FlowGraph { implicit b =>
         val bcast = Broadcast[CrawlItem]
         in ~> bcast ~> fLinkExtractor ~> FrontierSink.build()
         bcast ~> fLinkSender
-        bcast ~> stats.withSink(ForeachSink { x => log.info("{}", x)})
+        bcast ~> stats 
       }.run()
+
+      stats.future(graph).onSuccess { case stats: CrawlStats => log.info(stats.toString) }
 
       streamContext.api ! WrappedHttpRequest.getUrl("http://localhost:9090/links/1")
       probes(1).receiveN(3).toSet should === (Set("http://localhost:9090/links/1", 

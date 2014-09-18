@@ -1,13 +1,19 @@
 package org.blikk.crawler.app
 
-import akka.stream.scaladsl2.{FlowWithSource, FlowMaterializer}
 import akka.actor._
+import akka.stream.scaladsl2.{FlowWithSource, FlowMaterializer}
 import com.rabbitmq.client.{Connection => RabbitConnection}
+import org.blikk.crawler.ImplicitLogging
 
+/** 
+  * The context for a running streaming application.
+  * Within a running application, you can interact with the API client `api`
+  * The flow of the streaming context can only be consumed once.
+  */
 case class StreamContext[A](flow: FlowWithSource[Array[Byte],A], api: ActorRef)
-  (implicit _system: ActorSystem, _rabbitConn: RabbitConnection, _materializer: FlowMaterializer) {
+  (implicit _system: ActorSystem, _rabbitConn: RabbitConnection, _materializer: FlowMaterializer) 
+  extends ImplicitLogging {
 
-  lazy val log = akka.event.Logging.getLogger(_system, this)
   implicit val materializer = _materializer
   implicit val system = _system
   implicit val rabbitConnection = _rabbitConn

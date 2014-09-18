@@ -1,22 +1,15 @@
 package org.blikk.crawler.processors
 
-import akka.stream.scaladsl2._
-import org.blikk.crawler._
-import org.blikk.crawler.app._
-import org.jsoup._
-import scala.collection.JavaConversions._
-import scala.concurrent.Future
-import spray.http.Uri
+import akka.stream.scaladsl2.{ForeachSink}
+import org.blikk.crawler.app.StreamContext
+import org.blikk.crawler.{CrawlItem, WrappedHttpRequest}
 
 object FrontierSink {
-  def build()(implicit ctx: StreamContext[CrawlItem]) : ForeachSink[WrappedHttpRequest] = {
-    
-    import ctx.system
-    lazy val log = akka.event.Logging.getLogger(ctx.system, this)
 
-    ForeachSink { newReq =>  
-      log.debug("Sending to frontier: {}", newReq)
-      ctx.api ! newReq
-    }
+  /** 
+    * Builds a sink that sends incoming requests to the crawler frontier
+    */ 
+  def build()(implicit ctx: StreamContext[_]) : ForeachSink[WrappedHttpRequest] = {
+    ForeachSink { ctx.api ! _ }
   }
 }

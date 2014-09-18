@@ -12,12 +12,19 @@ object RabbitPublisher {
     Props(classOf[RabbitPublisher], channel, queue, exchange, routingKey)
 }
 
+/** 
+  * Binds a queue RabbitMQ exchange and publishes all received data. 
+  * This actor can be transformed into a reactive flow.
+  */ 
 class RabbitPublisher(channel: Channel, queue: RabbitQueueDefinition, 
     exchange: RabbitExchangeDefinition, routingKey: String) extends Actor with ActorLogging 
   with ActorPublisher[Array[Byte]] {
 
+  // Keeps track of the assigned queue and consumer tag
   var assignedQueue : String = ""
   var consumerTag : String = ""
+
+  // The actual consumer object using RabbitMQ libraries
   val consumer =  new RabbitConsumer(channel, self)(context.system)
 
   override def preStart(){
@@ -33,7 +40,7 @@ class RabbitPublisher(channel: Channel, queue: RabbitQueueDefinition,
   }
 
   override def postStop(){
-    // We unbding and delete the queue
+    // We unbding the queue and close the the channel if it's still open
     if (channel.isOpen){
       log.info("cancelling rabbitMQ consumption for {}", consumerTag)
       channel.basicCancel(consumerTag)
@@ -44,16 +51,19 @@ class RabbitPublisher(channel: Channel, queue: RabbitQueueDefinition,
   }
 
   def receive = {
-    case x : RabbitMessage =>
-      processItem(x)
+    case x : RabbitMessage => processItem(x)
+    case msg : ActorPublisherMessage => // Nothing to do
+    case msg => log.warning("unhandled message: {}", msg) 
   }
 
   def processItem(x: RabbitMessage) {
-    log.debug("processing tag=\"{}\"", x.deliveryTag)
+    // log.debug("processing deliveryTag=\"{}\"", x.deliveryTag)
     if (isActive && totalDemand > 0) {
       onNext(x.payload)
       channel.basicAck(x.deliveryTag, false)
     } else {
+      // Requeue the message
+      log.warning("requeuing deliveryTag=\"{}\" because demand is too low", x.deliveryTag)
       channel.basicNack(x.deliveryTag, false, true)
     }
   }

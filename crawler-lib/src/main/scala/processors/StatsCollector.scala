@@ -4,33 +4,25 @@ import akka.stream.scaladsl2._
 import org.blikk.crawler._
 import org.blikk.crawler.app._
 
-case class CrawlStats(numFetched: Int, numBytesFetched: Long, duration: Long) {
+/* Statistics calculated from `CrawlItem` objects */
+case class CrawlStats(numFetched: Int, numBytesFetched: Long, startTime: Long) {
   override def toString() = {
-    s"""crawlstats: numFetched=${numFetched} numBytesFetched=${numBytesFetched} duration=${duration}"""
+    val duration = System.currentTimeMillis - startTime
+    s"""numFetched=${numFetched} numBytesFetched=${numBytesFetched} duration=${duration}"""
   }
 }
 
 object StatsCollector {
 
-  def build() : ProcessorFlow[CrawlItem, CrawlStats] = {
-    val collector = new StatsCollector()
-    FlowFrom[CrawlItem].map(collector.run)
+  /* Builds a new stats collector sink */
+  def build() = {
+    val zeroStats = CrawlStats(0, 0, System.currentTimeMillis)
+    FoldSink[CrawlStats, CrawlItem](zeroStats) { (currentStats, item) =>
+      CrawlStats(
+        currentStats.numFetched + 1,
+        currentStats.numBytesFetched + item.res.entity.data.length,
+        currentStats.startTime)
+    }
   }
-}
-
-class StatsCollector {
-
-  val startTime = System.currentTimeMillis
-  var currentStats = CrawlStats(0, 0, 0)
-
-  def run(item: CrawlItem) : CrawlStats = {
-    currentStats = currentStats.copy(
-      numFetched = currentStats.numFetched + 1,
-      numBytesFetched = currentStats.numBytesFetched + item.res.entity.data.length,
-      duration = System.currentTimeMillis - startTime
-    )
-    currentStats
-  }
-
 
 }

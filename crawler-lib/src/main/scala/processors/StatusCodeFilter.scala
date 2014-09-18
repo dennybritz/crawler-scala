@@ -1,29 +1,37 @@
 package org.blikk.crawler.processors
 
 import org.blikk.crawler._
-import spray.http._
 import spray.http.StatusCodes._
-import akka.stream.scaladsl2._
+import akka.stream.scaladsl2.{FlowFrom, ProcessorFlow}
 
 object StatusCodeFilter {
+
+  /* Build a status code filtering flow */
   def build() : ProcessorFlow[CrawlItem, CrawlItem] =  {
-    val filter = new StatusCodeFilter()
-    FlowFrom[CrawlItem].filter(filter.runThrough)
+    val scf = new StatusCodeFilter()
+    FlowFrom[CrawlItem].filter(scf.filter)
   }
+
 }
 
+/**
+  * Filters crawler responses based on the HTTP status code 
+  * Items with success (2xx) or redirection (3xx) codes pass through the filter.
+  * Items with client (4xx) or server error (5xx) codes are filtered out.
+  * Other unknown status codes are filtered out.
+  */ 
 class StatusCodeFilter extends Logging {
-  def runThrough(item: CrawlItem) : Boolean = item.res.status match {
+  def filter(item: CrawlItem) : Boolean = item.res.status match {
     case code : Success => true
     case code : Redirection => true
     case code : ServerError =>
-      log.warn("error fetching {} ({}): {}", item.req.uri.toString, item.req.uuid, item.res)
+      log.warn(s"error fetching ${item.req.uri}: ${item.res.toString}")
       false
     case code : ClientError =>
-      log.warn("error fetching {} ({}): {}", item.req.uri.toString, item.req.uuid, item.res)
+      log.warn(s"error fetching ${item.req.uri}: ${item.res.toString}")
       false
     case otherCode => 
-      log.warn("unhandled HTTP status code: {}", otherCode.toString)
+      log.warn(s"unhandled HTTP status code: ${otherCode.toString}")
       false
   }
 }

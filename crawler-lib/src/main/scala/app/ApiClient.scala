@@ -30,6 +30,7 @@ class ApiClient(apiEndpoint: String, appId: String)
     case ConnectionInfoRequest =>
       (apiActor ? ApiRequest(ConnectionInfoRequest)).mapTo[ApiResponse].map(_.payload) pipeTo sender
     case req: WrappedHttpRequest =>
+      log.debug("Adding to frontier: {}", req)
       apiActor ? ApiRequest(FetchRequest(req, appId)) onComplete {
         case Success(ApiResponse.OK) => // Ok, nothing to do
         case Success(ApiError(reason)) => log.error("API error: {}", reason)

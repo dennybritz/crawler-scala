@@ -17,12 +17,12 @@ class DuplicateFilteringSpec extends IntegrationSuite("DuplicateFilteringSpec") 
       import streamContext.{materializer, system}
 
       val in = streamContext.flow
-      val fLinkExtractor = LinkExtractor.noFilter()
+      val fLinkExtractor = RequestExtractor.build()
       val fLinkSender = ForeachSink[CrawlItem] { item => 
         log.info("{}", item.toString) 
         probes(1).ref ! item.req.uri.toString
       }
-      val dupFilter = UrlDuplicateFilter.build()
+      val dupFilter = DuplicateFilter.buildUrlDuplicateFilter()
 
       FlowGraph { implicit b =>
         val bcast = Broadcast[CrawlItem]        
