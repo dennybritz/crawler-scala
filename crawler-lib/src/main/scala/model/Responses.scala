@@ -1,27 +1,29 @@
 package org.blikk.crawler
 
-trait Response extends Serializable
-
 import spray.http.HttpResponse
+import spray.http.HttpEntity
 import java.util.UUID
 
-// We use spray.io for HTTP responses
-
 object WrappedHttpResponse {
-  implicit def sprayConversion(res: HttpResponse) : WrappedHttpResponse = 
-    new WrappedHttpResponse(res)
-  implicit def sprayConversion(res: WrappedHttpResponse) : HttpResponse = 
-    res.rawResponse
-  def empty() : WrappedHttpResponse = new WrappedHttpResponse(
-    new HttpResponse(entity=spray.http.HttpEntity.Empty)
+  
+  implicit def fromSpray(res: HttpResponse) = WrappedHttpResponse(res)
+  implicit def toSpray(res: WrappedHttpResponse) = res.rawResponse
+
+  /* Returns an empty HTTP 200 response */
+  def empty() : WrappedHttpResponse = WrappedHttpResponse(
+    new HttpResponse(entity=HttpEntity.Empty)
   )
-  def withContent(data: String) : WrappedHttpResponse = new WrappedHttpResponse(
-    new HttpResponse(entity=spray.http.HttpEntity(data))
+
+  /* Returns a response with the given string content and status code 200 */
+  def withContent(data: String) = WrappedHttpResponse(
+    new HttpResponse(entity=HttpEntity(data))
   )
+
+  def apply(rawResponse: HttpResponse) : WrappedHttpResponse = 
+    WrappedHttpResponse(rawResponse, System.currentTimeMillis)
 }
 
-case class WrappedHttpResponse(rawResponse: HttpResponse, 
-  timestamp: Long,
-  uuid : String = UUID.randomUUID.toString()) extends Response {
+/* A HttpResponse wrapped with additional information */ 
+case class WrappedHttpResponse(rawResponse: HttpResponse, createdAt: Long) {
   def this(rawResponse: HttpResponse) = this(rawResponse, System.currentTimeMillis)
 }

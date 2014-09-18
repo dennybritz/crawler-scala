@@ -48,7 +48,7 @@ trait CrawlServiceLike { this: Actor with ActorLogging =>
   def crawlServiceBehavior : Receive = {
     case RouteFetchRequest(fetchReq) => 
       routeFetchRequestGlobally(fetchReq)
-    case msg @ FetchRequest(req, jobId) =>
+    case msg @ FetchRequest(req, appId) =>
       executeFetchRequest(msg)
     case msg: FrontierCommand =>
       frontier ! msg 
@@ -81,7 +81,7 @@ trait CrawlServiceLike { this: Actor with ActorLogging =>
     val serializedItem = SerializationUtils.serialize(item)
     val channel = rabbitMQChannel.get()
     log.info("writing numBytes={} to RabbitMQ", serializedItem.size)
-    channel.basicPublish(RabbitData.DataExchange.name, fetchReq.jobId, null, serializedItem)
+    channel.basicPublish(RabbitData.DataExchange.name, fetchReq.appId, null, serializedItem)
   }
 
 }

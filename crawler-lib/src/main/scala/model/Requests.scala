@@ -1,37 +1,31 @@
 package org.blikk.crawler
 
-import spray.http._
-import java.util.UUID
-
-trait Request extends Serializable
-
-// We use spray.io for HTTP requests
+import spray.http.{HttpRequest, HttpMethods, Uri}
 
 object WrappedHttpRequest {
   
-  implicit def sprayConversion(req: HttpRequest) : WrappedHttpRequest = 
-    new WrappedHttpRequest(req)
+  implicit def fromSpray(req: HttpRequest) = new WrappedHttpRequest(req)
+  implicit def toSpray(wrappedReq: WrappedHttpRequest) = wrappedReq.req
   
-  implicit def sprayConversion(req: WrappedHttpRequest) : 
-    spray.http.HttpRequest = req.req
-  
+  /* Builds a new wrapped HTTP request with method GET for the given url */
   def getUrl(url: String) = 
-    new WrappedHttpRequest(new HttpRequest(HttpMethods.GET, Uri(url)))
+    WrappedHttpRequest(new HttpRequest(HttpMethods.GET, Uri(url)))
 }
 
+/* A HTTP request with additional fields */
 case class WrappedHttpRequest(req: HttpRequest, 
-  timestamp : Long,
-  provenance: List[WrappedHttpRequest] = List.empty,
-  uuid : String = UUID.randomUUID.toString()) extends Request {
-  def this(req: HttpRequest) = this(req, System.currentTimeMillis)
+  provenance: List[WrappedHttpRequest] = List.empty) {
+
   def host = req.uri.authority.host.toString
   def port = req.uri.authority.port
 
-  def withProvenance(source: WrappedHttpRequest, maxProvenance : Int = 10) : 
-    WrappedHttpRequest = {
-    this.copy(
-      provenance = (source.provenance :+ source.copy(provenance=Nil)).takeRight(maxProvenance)
-    )
+  /** 
+    * Copies this request with the source request appended in the provenance list 
+    * Cuts off the provenance at `maxProvenance` items.
+    */
+  def withProvenance(source: WrappedHttpRequest, maxProvenance : Int = 10) = {
+    val newProvenance = (source.provenance :+ source.copy(provenance=Nil)).takeRight(maxProvenance)
+    this.copy(provenance = newProvenance)
   }
 
 }

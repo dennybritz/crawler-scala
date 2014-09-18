@@ -1,6 +1,8 @@
 package org.blikk.crawler
 
-/* API Messages:  */
+/* API Messages: */
+/* ================================================== */
+
 case class ApiRequest(payload: Any)
 case class ApiResponse(payload: Any)
 case class ApiError(reason: String)
@@ -9,11 +11,16 @@ object ApiResponse {
 }
 
 /* The API client requests connection information for RabbitMQ when it first starts */
+/* ================================================== */
+
 case object ConnectionInfoRequest
 case class ConnectionInfo(rabbitMQUri: String)
 
 /* General Messages */
-case class FetchRequest(req: WrappedHttpRequest, jobId: String)
+/* ================================================== */
+
+/* Instructs the crawler to fetch the requested URL */
+case class FetchRequest(req: WrappedHttpRequest, appId: String)
 
 /* Wrapper class for messages that are dequeued from RabbitMQ */
 case class RabbitMessage(
