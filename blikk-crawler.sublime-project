@@ -4,7 +4,7 @@
 		{
 			"follow_symlinks": true,
 			"path": ".",
-      "folder_exclude_patterns": ["target"],
+      "folder_exclude_patterns": ["crawler*", "deploy", "target"],
       "binary_file_patterns": ["*.log"]
 		},
     {
@@ -22,6 +22,12 @@
     {
       "follow_symlinks": true,
       "path": "deploy",
+      "folder_exclude_patterns": ["target"],
+      "binary_file_patterns": ["*.log"]
+    },
+    {
+      "follow_symlinks": true,
+      "path": "crawler-test",
       "folder_exclude_patterns": ["target"],
       "binary_file_patterns": ["*.log"]
     }

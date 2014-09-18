@@ -4,7 +4,7 @@ import com.typesafe.sbt.SbtStartScript
 
 object BlikkBuild extends Build {
 
-  lazy val root = Project(id = "blikk", base = file(".")) aggregate(crawlerBackend, crawlerLib)
+  lazy val root = Project(id = "blikk", base = file(".")) aggregate(crawlerBackend, crawlerLib, crawlerTest)
 
   lazy val crawlerBackend = Project(id = "blikk-crawler-backend", base = file("./crawler-backend"),
     settings = Project.defaultSettings ++ crawlerSettings ++ 
@@ -12,6 +12,9 @@ object BlikkBuild extends Build {
 
   lazy val crawlerLib = Project(id="blikk-crawler-lib", base=file("./crawler-lib"), 
     settings = Project.defaultSettings ++ crawlerLibSettings)
+
+  lazy val crawlerTest = Project(id="blikk-crawler-tests", base=file("./crawler-test"), 
+    settings = Project.defaultSettings ++ crawlerTestSettings) dependsOn(crawlerLib, crawlerBackend)
 
   val commonSettings = Seq(
     version := "0.1",
@@ -26,9 +29,7 @@ object BlikkBuild extends Build {
     name := "blikk-crawler-backend",
     libraryDependencies ++= Seq(
       "com.typesafe.akka" %% "akka-cluster" % "2.3.5",
-      "com.typesafe.akka" %% "akka-testkit" % "2.3.5",
       "com.typesafe.akka" %% "akka-contrib" % "2.3.5",
-      "com.typesafe.akka" %% "akka-multi-node-testkit" % "2.3.6",
       "io.spray" %% "spray-routing" % "1.3.1"
     ) ++ commonLibraryDependencies
   )
@@ -36,6 +37,15 @@ object BlikkBuild extends Build {
   val crawlerLibSettings = commonSettings ++ Seq(
     name := "blikk-crawler-lib",
     libraryDependencies ++= commonLibraryDependencies
+  )
+
+  val crawlerTestSettings = commonSettings ++ Seq(
+    name := "blikk-crawler-test",
+    libraryDependencies ++= commonLibraryDependencies ++ Seq(
+      "org.scalatest" %% "scalatest" % "2.2.1" % "test",
+      "com.typesafe.akka" %% "akka-multi-node-testkit" % "2.3.6",
+      "com.typesafe.akka" %% "akka-testkit" % "2.3.5"
+    )
   )
 
   val commonLibraryDependencies = Seq(
@@ -50,7 +60,6 @@ object BlikkBuild extends Build {
     "io.spray" %% "spray-http" % "1.3.1",
     "org.apache.commons" % "commons-lang3" % "3.3.2",
     "org.jsoup" % "jsoup" % "1.7.3",
-    "org.scalatest" %% "scalatest" % "2.2.1" % "test",
     "org.scalautils" %% "scalautils" % "2.1.5"
   )
 

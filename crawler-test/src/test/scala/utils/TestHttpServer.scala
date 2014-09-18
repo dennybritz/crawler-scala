@@ -10,7 +10,6 @@ import spray.http.StatusCodes._
 import spray.routing._
 import scala.concurrent.Await
 import scala.concurrent.duration._
-import scala.io.Source
 import akka.util.Timeout
 
 class HttpServerListener extends HttpServiceActor with ActorLogging {
@@ -33,7 +32,6 @@ class HttpServerListener extends HttpServiceActor with ActorLogging {
     path("status" / "503") {
       complete(StatusCodes.ServiceUnavailable)
     } ~
-    //respondWithStatus(StatusCodes.NotFound)
     complete("OK!")
   }
 
@@ -43,12 +41,14 @@ object TestHttpServer extends Logging {
 
   implicit val askTimeout = Timeout(1 seconds)
 
-  def start(interface: String, port: Int)(implicit system: ActorSystem) : Unit = {
-    // TODO: Get and save actor to shut down server later
+  // Starts a test HTTP server and returns the listener actor
+  def start()(implicit system: ActorSystem) : ActorRef = {
     val listener = system.actorOf(Props[HttpServerListener])
-    val boundFuture = (IO(Http) ? Http.Bind(listener, interface, port)).mapTo[Http.Bound]
+    val boundFuture = (IO(Http) ? Http.Bind(listener, 
+      TestConfig.HttpServerHost, TestConfig.HttpServerPort)).mapTo[Http.Bound]
     val boundResult = Await.result(boundFuture, 1.seconds)
     log.info(s"HTTP server started: ${boundResult.toString}")
+    listener
   }
 
 }

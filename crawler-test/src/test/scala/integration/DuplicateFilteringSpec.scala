@@ -10,7 +10,7 @@ import org.blikk.crawler.processors._
 
 class DuplicateFilteringSpec extends IntegrationSuite("DuplicateFilteringSpec") {
 
-  describe("A distributed crawler") {
+  describe("crawler") {
     
     it("should be able to filter duplicate links") {
       implicit val streamContext = createStreamContext()

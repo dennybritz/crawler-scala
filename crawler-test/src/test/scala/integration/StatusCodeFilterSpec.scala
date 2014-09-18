@@ -8,9 +8,9 @@ import akka.stream.scaladsl2._
 import akka.stream.scaladsl2.FlowGraphImplicits._
 import org.blikk.crawler.processors._
 
-class StatusCodeFilterSpec extends IntegrationSuite("StatusCodeFilterIntegrationSpec") {
+class StatusCodeFilterSpec extends IntegrationSuite("StatusCodeFilterSpec") {
 
-  describe("A distributed crawler") {
+  describe("crawler") {
     
     it("should be able to filter results by status code") {
       implicit val streamContext = createStreamContext()
@@ -23,7 +23,6 @@ class StatusCodeFilterSpec extends IntegrationSuite("StatusCodeFilterIntegration
       val statusCodeFilter = StatusCodeFilter.build()
 
       streamContext.flow.append(statusCodeFilter).withSink(fLinkSender).run()
-
       streamContext.api ! WrappedHttpRequest.getUrl("http://localhost:9090/1")
       streamContext.api ! WrappedHttpRequest.getUrl("http://localhost:9090/status/301")
       streamContext.api ! WrappedHttpRequest.getUrl("http://localhost:9090/status/404")

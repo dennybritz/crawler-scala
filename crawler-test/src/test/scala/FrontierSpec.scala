@@ -5,20 +5,12 @@ import org.blikk.crawler._
 import scala.concurrent.duration._
 import akka.testkit.TestActorRef
 
-
-class FrontierSpec extends AkkaSingleNodeSpec("FrontierSpec") 
-  with LocalRabbitMQ {
-
-  before {
-    purgeQueue(Frontier.FrontierQueue.name)
-    purgeQueue(Frontier.FrontierScheduledQueue.name)
-  }
-
+class FrontierSpec extends AkkaSingleNodeSpec("FrontierSpec") {
+  
   describe("The Frontier") {
 
     it("should work with immediate requests") {
       val frontier = TestActorRef(Frontier.props(factory.newConnection(), self))
-      frontier.receive(ClearFrontier)
       val req1 = WrappedHttpRequest.getUrl("localhost:9090/1")
       val req2 = WrappedHttpRequest.getUrl("localhost:9090/2")
       frontier.receive(AddToFrontier(FetchRequest(req1, "testJob")))
@@ -31,7 +23,6 @@ class FrontierSpec extends AkkaSingleNodeSpec("FrontierSpec")
 
     it("should work with scheduled requests") {
       val frontier = TestActorRef(Frontier.props(factory.newConnection(), self))
-      frontier.receive(ClearFrontier)
       val req1 = WrappedHttpRequest.getUrl("localhost:9090/1")
       val scheduledTime = System.currentTimeMillis + 3*1000 // + 4 seconds
       val req2 = WrappedHttpRequest.getUrl("localhost:9090/2")

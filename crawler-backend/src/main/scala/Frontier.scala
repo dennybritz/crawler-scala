@@ -29,8 +29,8 @@ class Frontier(rabbitConn: RabbitConnection, target: ActorRef)
 
   override def preStart() {
     // Declare the necessary queues and exchanges
-    log.info("""declaring RabbitMQ exchange "{}"" and queues "{}", "{}" """, FrontierExchange, 
-      FrontierQueue, FrontierScheduledQueue)
+    log.info("""declaring RabbitMQ exchange "{}" and queues "{}", "{}" """, FrontierExchange.name, 
+      FrontierQueue.name, FrontierScheduledQueue.name)
     rabbitChannel.exchangeDeclare(FrontierExchange.name, FrontierExchange.exchangeType, 
       FrontierExchange.durable)
     rabbitChannel.queueDeclare(FrontierQueue.name, FrontierQueue.durable, 
@@ -49,6 +49,9 @@ class Frontier(rabbitConn: RabbitConnection, target: ActorRef)
     }.withSink(ForeachSink { item => 
       target ! RouteFetchRequest(item)
     }).run()
+    // We need to wait a while before the rabbit consumer is done with binding
+    // to the queue. This is ugly, is there a nicer way?
+    Thread.sleep(1000)
   }
 
   /* Additional actor behavior */

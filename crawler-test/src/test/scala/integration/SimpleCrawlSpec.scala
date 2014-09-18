@@ -8,12 +8,11 @@ import akka.stream.scaladsl2._
 import akka.stream.scaladsl2.FlowGraphImplicits._
 import org.blikk.crawler.processors._
 
-class SimpleCrawlSpec extends IntegrationSuite("SimpleCrawlIntegrationSpec") {
+class SimpleCrawlSpec extends IntegrationSuite("SimpleCrawlSpec") {
 
-  describe("A distributed crawler") {
+  describe("crawler") {
     
     it("should be able to crawl one link"){
-
       implicit val streamContext = createStreamContext()
       import streamContext.{materializer, system}
       

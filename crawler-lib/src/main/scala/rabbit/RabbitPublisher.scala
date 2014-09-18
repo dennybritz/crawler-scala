@@ -41,6 +41,7 @@ class RabbitPublisher(channel: Channel, queue: RabbitQueueDefinition,
 
   override def postStop(){
     // We unbding the queue and close the the channel if it's still open
+    onComplete()
     if (channel.isOpen){
       log.info("cancelling rabbitMQ consumption for {}", consumerTag)
       channel.basicCancel(consumerTag)
