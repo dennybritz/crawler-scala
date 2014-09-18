@@ -55,7 +55,6 @@ class SimpleCrawlSpec extends IntegrationSuite("SimpleCrawlSpec") {
       streamContext.shutdown()
     }
 
-
   }
 
 }
