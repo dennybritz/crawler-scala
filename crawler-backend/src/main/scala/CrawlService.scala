@@ -7,6 +7,7 @@ import akka.cluster.ClusterEvent._
 import akka.cluster.routing._
 import akka.routing.ConsistentHashingRouter.ConsistentHashableEnvelope
 import akka.routing._
+import akka.stream.scaladsl2.ImplicitFlowMaterializer
 import scala.concurrent.duration._
 
 
@@ -16,7 +17,7 @@ object CrawlService {
 }
 
 class CrawlService(implicit val rabbitMQ: RabbitMQConnection) 
-  extends CrawlServiceLike with Actor with ActorLogging {
+  extends CrawlServiceLike with Actor with ActorLogging with ImplicitFlowMaterializer {
 
   val serviceRouter : ActorRef = context.actorOf(ClusterRouterGroup(
     ConsistentHashingGroup(Nil), ClusterRouterGroupSettings(
@@ -40,8 +41,7 @@ class CrawlService(implicit val rabbitMQ: RabbitMQConnection)
     Cluster(context.system)
       .subscribe(self, initialStateMode = InitialStateAsEvents,
       classOf[MemberEvent])
-    // Initialize a channel
-    rabbitMQChannel.get()
+    initializeSinks()
   }
 
   val clusterBehavior : Receive = {

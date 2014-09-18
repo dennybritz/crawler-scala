@@ -15,3 +15,6 @@ case class AddToFrontier(
   req: FetchRequest,
   scheduledTime : Option[Long] = None,
   ignoreDeduplication : Boolean = false) extends FrontierCommand
+
+/* Convenience wrapper for a fetch response */
+case class FetchResponse(fetchReq: FetchRequest, res: WrappedHttpResponse)

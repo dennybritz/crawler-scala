@@ -5,6 +5,8 @@ import akka.cluster.routing._
 import akka.io.IO
 import akka.pattern.{ask, pipe}
 import akka.routing.ConsistentHashingRouter.ConsistentHashableEnvelope
+import akka.stream.actor._
+import akka.stream.scaladsl2._
 import akka.util.Timeout
 import com.rabbitmq.client.{Connection => RabbitMQConnection, Channel => RabbitMQChannel, AMQP}
 import org.apache.commons.lang3.SerializationUtils
@@ -13,22 +15,14 @@ import scala.util.{Try, Success, Failure}
 import spray.can.Http
 import spray.http._
 
-trait CrawlServiceLike { this: Actor with ActorLogging =>
+trait CrawlServiceLike { 
+  this: Actor with ActorLogging with ImplicitFlowMaterializer =>
 
   implicit val askTimeout = Timeout(5.seconds)
   import context.system
   import context.dispatcher
-
-  /* A thread-local RabbitMQ channel */
+  
   implicit def rabbitMQ: RabbitMQConnection
-  lazy val rabbitMQChannel = new ThreadLocal[RabbitMQChannel] {
-    override def initialValue = { 
-      val channel = rabbitMQ.createChannel()
-      channel.exchangeDeclare(RabbitData.DataExchange.name, 
-        RabbitData.DataExchange.exchangeType, RabbitData.DataExchange.durable)
-      channel
-    }
-  }
 
   /* The frontier */
   def frontierProps = Frontier.props(rabbitMQ, self)
@@ -44,6 +38,23 @@ trait CrawlServiceLike { this: Actor with ActorLogging =>
 
   /* Asks peers using scatter-gather */
   def peerScatterGatherRouter : ActorRef
+
+  /* Converts fetched items into a stream */
+  lazy val responsePublisher = {
+    context.actorOf(Props[ResponsePublisher], "responsePublisher")
+  }
+
+  /** 
+    * IMPORTANT: Call ths method in preStart() when subclasses.
+    * We initialize the response data stream that writes out the data
+    */
+  def initializeSinks() {
+    log.info("Initializing output streams...")
+    val input = FlowFrom(ActorPublisher[FetchResponse](responsePublisher))
+    val rabbitSubscriber = context.actorOf(RabbitMQSubscriber.props(rabbitMQ), "rabbitSubscriber")
+    val rabbitSink = SubscriberSink(ActorSubscriber[FetchResponse](rabbitSubscriber))
+    input.withSink(rabbitSink).run()
+  }
 
   def crawlServiceBehavior : Receive = {
     case RouteFetchRequest(fetchReq) => 
@@ -65,23 +76,10 @@ trait CrawlServiceLike { this: Actor with ActorLogging =>
   /* Executes a FetchRequest using Spray's request-level library */
   def executeFetchRequest(fetchReq: FetchRequest) : Unit = {
     log.info("executing {}", fetchReq)
-    val futureResponse = (IO(Http) ? fetchReq.req.req).mapTo[HttpResponse]
-    futureResponse.onComplete { 
-      case Success(response : HttpResponse) =>
-        writeFetchResponse(new WrappedHttpResponse(response), fetchReq)
-      case Failure(err) => 
-        log.error("Error fetching {}", fetchReq)
-        log.error(err.toString)
-    }
+    (IO(Http) ? fetchReq.req.req).mapTo[HttpResponse].map { res =>
+      FetchResponse(fetchReq, res)
+    } pipeTo responsePublisher
   }
 
-  /* Writes a CrawlItem to the data store (RabbitMQ) */
-  def writeFetchResponse(response: WrappedHttpResponse, fetchReq: FetchRequest) : Unit = {
-    val item = CrawlItem(fetchReq.req, response)
-    val serializedItem = SerializationUtils.serialize(item)
-    val channel = rabbitMQChannel.get()
-    log.debug("writing numBytes={} to RabbitMQ", serializedItem.size)
-    channel.basicPublish(RabbitData.DataExchange.name, fetchReq.appId, null, serializedItem)
-  }
 
 }
