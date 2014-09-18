@@ -4,7 +4,6 @@ import akka.actor.{Actor, ActorLogging, ActorRef, Props, Status}
 import akka.cluster.routing._
 import akka.io.IO
 import akka.pattern.{ask, pipe}
-import akka.routing.ConsistentHashingRouter.ConsistentHashableEnvelope
 import akka.stream.actor._
 import akka.stream.scaladsl2._
 import akka.util.Timeout
@@ -25,10 +24,9 @@ trait CrawlServiceLike {
   implicit def rabbitMQ: RabbitMQConnection
 
   /* The frontier */
-  def frontierProps = Frontier.props(rabbitMQ, self)
+  def frontierProps = Frontier.props(rabbitMQ, serviceRouter)
   lazy val frontier = {
     val frontierActor = context.actorOf(frontierProps, "frontier")
-    frontierActor ! StartFrontier(1.seconds, self)
     context.watch(frontierActor)
     frontierActor
   }
@@ -49,6 +47,7 @@ trait CrawlServiceLike {
     * We initialize the response data stream that writes out the data
     */
   def initializeSinks() {
+    log.info(flowMaterializerSettings.toString)
     log.info("Initializing output streams...")
     val input = FlowFrom(ActorPublisher[FetchResponse](responsePublisher))
     val rabbitSubscriber = context.actorOf(RabbitMQSubscriber.props(rabbitMQ), "rabbitSubscriber")
@@ -57,8 +56,6 @@ trait CrawlServiceLike {
   }
 
   def crawlServiceBehavior : Receive = {
-    case RouteFetchRequest(fetchReq) => 
-      routeFetchRequestGlobally(fetchReq)
     case msg @ FetchRequest(req, appId) =>
       executeFetchRequest(msg)
     case msg: FrontierCommand =>
@@ -66,12 +63,6 @@ trait CrawlServiceLike {
   }
 
   def defaultBehavior : Receive = crawlServiceBehavior
-
-  /* Routes a fetch request using consistent hasing to the right cluster node */
-  def routeFetchRequestGlobally(fetchReq: FetchRequest) : Unit = {
-    log.debug("routing {}", fetchReq)
-    serviceRouter ! ConsistentHashableEnvelope(fetchReq, fetchReq.req.host)
-  }
 
   /* Executes a FetchRequest using Spray's request-level library */
   def executeFetchRequest(fetchReq: FetchRequest) : Unit = {

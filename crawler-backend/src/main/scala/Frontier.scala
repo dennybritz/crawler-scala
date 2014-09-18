@@ -1,6 +1,7 @@
 package org.blikk.crawler
 
 import akka.actor._
+import akka.routing.ConsistentHashingRouter.ConsistentHashableEnvelope
 import akka.stream.actor._
 import akka.stream.scaladsl2._
 import com.rabbitmq.client.{Connection => RabbitConnection, Channel => RabbitChannel, AMQP}
@@ -19,7 +20,7 @@ object Frontier {
 }
 
 class Frontier(rabbitConn: RabbitConnection, target: ActorRef) 
-  extends Actor with ActorLogging {
+  extends Actor with ActorLogging with ImplicitFlowMaterializer {
 
   import Frontier._
   import context.dispatcher
@@ -39,7 +40,6 @@ class Frontier(rabbitConn: RabbitConnection, target: ActorRef)
       FrontierScheduledQueue.exclusive, FrontierScheduledQueue.autoDelete, 
       FrontierScheduledQueue.options)
 
-    implicit val materializer = FlowMaterializer(akka.stream.MaterializerSettings(context.system))
     val publisherActor = context.actorOf(
       RabbitPublisher.props(rabbitConn.createChannel(), 
       FrontierQueue, FrontierExchange, "*"))
@@ -47,7 +47,7 @@ class Frontier(rabbitConn: RabbitConnection, target: ActorRef)
     FlowFrom(publisher).map { element =>
       SerializationUtils.deserialize[FetchRequest](element)
     }.withSink(ForeachSink { item => 
-      target ! RouteFetchRequest(item)
+      routeFetchRequestGlobally(item)
     }).run()
     // We need to wait a while before the rabbit consumer is done with binding
     // to the queue. This is ugly, is there a nicer way?
@@ -84,6 +84,11 @@ class Frontier(rabbitConn: RabbitConnection, target: ActorRef)
       case _ =>
         rabbitChannel.basicPublish(FrontierExchange.name, fetchReq.req.host, null, serializedMsg)
     }
+  }
+
+  def routeFetchRequestGlobally(fetchReq: FetchRequest) : Unit = {
+    log.debug("routing {}", fetchReq)
+    target ! ConsistentHashableEnvelope(fetchReq, fetchReq.req.host)
   }
 
 }

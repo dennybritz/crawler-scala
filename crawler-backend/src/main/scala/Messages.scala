@@ -3,9 +3,6 @@ package org.blikk.crawler
 import akka.actor.ActorRef
 import scala.concurrent.duration._
 
-/* Routes a Fetch Request to the apporpriate cluster nodes */
-case class RouteFetchRequest(req: FetchRequest)
-
 /* Commands for the frontier. These are not available on the client */
 trait FrontierCommand
 case class StartFrontier(delay: FiniteDuration, target: ActorRef) extends FrontierCommand

@@ -5,7 +5,6 @@ import akka.actor.{Actor, ActorLogging, ActorRef, Props, Status}
 import akka.cluster.Cluster
 import akka.cluster.ClusterEvent._
 import akka.cluster.routing._
-import akka.routing.ConsistentHashingRouter.ConsistentHashableEnvelope
 import akka.routing._
 import akka.stream.scaladsl2.ImplicitFlowMaterializer
 import scala.concurrent.duration._

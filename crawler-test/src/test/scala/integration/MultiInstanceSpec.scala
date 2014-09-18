@@ -23,7 +23,7 @@ class MultiInstanceSpec extends IntegrationSuite("MultiInstanceSpec") {
       List(streamContext1, streamContext2).foreach { streamContext =>
         import streamContext.{materializer, system}    
         streamContext.flow.withSink(ForeachSink { item => 
-          item.res.status.intValue shouldBe 400
+          item.res.status.intValue shouldBe 200
           probes(1).ref ! item.req.uri.toString
         }).run()
       }
@@ -31,12 +31,11 @@ class MultiInstanceSpec extends IntegrationSuite("MultiInstanceSpec") {
       // Request 40 pages
       (1 to 40).foreach { i =>
         streamContext1.api ! WrappedHttpRequest.getUrl(s"http://localhost:9090/${i}") 
-        Thread.sleep(100)
       }
 
       // Expect to receive 40 results, no more
-      probes(1).receiveN(40).toSet shouldBe 
-        (1 to 40).map(i => s"http://localhost:9090/${i}").toSet 
+      probes(1).receiveN(40).map(_.toString).sorted shouldBe 
+        (1 to 40).map(i => s"http://localhost:9090/${i}").sorted 
       probes(1).expectNoMsg()
 
       // Clean up

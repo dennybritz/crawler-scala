@@ -1,9 +1,10 @@
 package org.blikk.test
 
 import akka.actor.{Actor, ActorLogging, ActorRef, Props}
+import akka.routing.ConsistentHashingRouter.ConsistentHashableEnvelope
+import akka.testkit.TestActorRef
 import org.blikk.crawler._
 import scala.concurrent.duration._
-import akka.testkit.TestActorRef
 
 class FrontierSpec extends AkkaSingleNodeSpec("FrontierSpec") {
   
@@ -15,9 +16,10 @@ class FrontierSpec extends AkkaSingleNodeSpec("FrontierSpec") {
       val req2 = WrappedHttpRequest.getUrl("localhost:9090/2")
       frontier.receive(AddToFrontier(FetchRequest(req1, "testJob")))
       frontier.receive(AddToFrontier(FetchRequest(req2, "testJob")))
+
       receiveN(2).toSet == Set(
-        RouteFetchRequest(FetchRequest(WrappedHttpRequest.getUrl("localhost:9090/1"), "testJob")),
-        RouteFetchRequest(FetchRequest(WrappedHttpRequest.getUrl("localhost:9090/2"), "testJob")))
+        ConsistentHashableEnvelope(FetchRequest(req1, "testJob"), req1.host),
+        ConsistentHashableEnvelope(FetchRequest(req2, "testJob"), req2.host))
       frontier.stop()
     }
 
@@ -28,9 +30,9 @@ class FrontierSpec extends AkkaSingleNodeSpec("FrontierSpec") {
       val req2 = WrappedHttpRequest.getUrl("localhost:9090/2")
       frontier.receive(AddToFrontier(FetchRequest(req1, "testJob")))
       frontier.receive(AddToFrontier(FetchRequest(req2, "testJob"), Option(scheduledTime)))
-      expectMsg(RouteFetchRequest(FetchRequest(req1, "testJob")))
+      expectMsg(ConsistentHashableEnvelope(FetchRequest(req1, "testJob"), req1.host))
       expectNoMsg(1.seconds)
-      expectMsg(5.seconds, RouteFetchRequest(FetchRequest(req2, "testJob")))
+      expectMsg(5.seconds, ConsistentHashableEnvelope(FetchRequest(req2, "testJob"), req2.host))
       frontier.stop()
     }
 
