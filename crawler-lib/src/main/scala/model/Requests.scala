@@ -10,6 +10,8 @@ object WrappedHttpRequest {
   /* Builds a new wrapped HTTP request with method GET for the given url */
   def getUrl(url: String) = 
     WrappedHttpRequest(new HttpRequest(HttpMethods.GET, Uri(url)))
+
+  def empty = WrappedHttpRequest(new HttpRequest())
 }
 
 /* A HTTP request with additional fields */

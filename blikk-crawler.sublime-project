@@ -19,15 +19,15 @@
       "folder_exclude_patterns": ["target"],
       "binary_file_patterns": ["*.log"]
     },
-    {
+    {  
       "follow_symlinks": true,
-      "path": "deploy",
+      "path": "crawler-test",
       "folder_exclude_patterns": ["target"],
       "binary_file_patterns": ["*.log"]
     },
     {
       "follow_symlinks": true,
-      "path": "crawler-test",
+      "path": "deploy",
       "folder_exclude_patterns": ["target"],
       "binary_file_patterns": ["*.log"]
     }
