@@ -7,15 +7,19 @@ import com.google.common.hash.{BloomFilter, Funnel, Funnels}
 object DuplicateFilter {
 
   /* Build a duplicate filter based on a string representation of an item */
-  def build[A](expectedInsertions: Int = 1000000, fpp: Double = 0.0001)
+  def build[A](initialItems : Seq[A] = Nil, 
+    expectedInsertions: Int = 1000000, fpp: Double = 0.0001)
   (mapFunc: A => String) : ProcessorFlow[A, A] = {
     val sdf = new StringDuplicateFilter(expectedInsertions, fpp)
+    initialItems.map(mapFunc).foreach(sdf.addItem)
     FlowFrom[A].filter{ item => sdf.filter(mapFunc(item)) }
   }
 
   /* Builds a duplicate filter based on the URL of the request */
-  def buildUrlDuplicateFilter(expectedInsertions: Int = 1000000, fpp: Double = 0.0001) = {
-    build[WrappedHttpRequest](expectedInsertions, fpp) { req => req.uri.toString}
+  def buildUrlDuplicateFilter(initialItems : Seq[WrappedHttpRequest] = Nil,
+    expectedInsertions: Int = 1000000, fpp: Double = 0.0001) = {
+    build[WrappedHttpRequest](initialItems, expectedInsertions, fpp) { req => 
+      req.uri.toString}
   }
 
 }
@@ -47,5 +51,8 @@ trait DuplicateFilter[A] {
       true
     }
   }
+
+  /* Manually adds an item to the filter. Useful for initialization. */
+  def addItem(item: A) = bloomFilter.put(item)
 
 }

@@ -35,24 +35,22 @@ class SimpleCrawlSpec extends IntegrationSuite("SimpleCrawlSpec") {
 
       val in = streamContext.flow
       val fLinkExtractor = RequestExtractor.build()
+      val duplicateFilter = DuplicateFilter.buildUrlDuplicateFilter(
+        List(WrappedHttpRequest.getUrl("http://localhost:9090/crawl/1")))
       val fLinkSender = ForeachSink[CrawlItem] { item => 
         log.info("{}", item.toString) 
         probes(1).ref ! item.req.uri.toString
       }
-      val stats = StatsCollector.build()
-
+      
       val graph = FlowGraph { implicit b =>
         val bcast = Broadcast[CrawlItem]
-        in ~> bcast ~> fLinkExtractor ~> FrontierSink.build()
+        in ~> bcast ~> fLinkExtractor.append(duplicateFilter) ~> FrontierSink.build()
         bcast ~> fLinkSender
-        bcast ~> stats 
       }.run()
 
-      stats.future(graph).onSuccess { case stats: CrawlStats => log.info(stats.toString) }
-
-      streamContext.api ! WrappedHttpRequest.getUrl("http://localhost:9090/links/1")
-      probes(1).receiveN(3).toSet should === (Set("http://localhost:9090/links/1", 
-              "http://localhost:9090/links/2", "http://localhost:9090/links/3"))
+      streamContext.api ! WrappedHttpRequest.getUrl("http://localhost:9090/crawl/1")
+      probes(1).receiveN(10).toSet shouldBe (1 to 10).map { num =>
+        s"http://localhost:9090/crawl/${num}"}.toSet
       probes(1).expectNoMsg()
       streamContext.shutdown()
     }

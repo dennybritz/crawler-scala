@@ -27,10 +27,19 @@ class HttpServerListener extends HttpServiceActor with ActorLogging {
       redirect("/", StatusCodes.PermanentRedirect)
     } ~
     path("status" / "404") {
-      respondWithStatus(StatusCodes.NotFound) { complete(StatusCodes.NotFound) }
+      complete(StatusCodes.NotFound)
     } ~
     path("status" / "503") {
       complete(StatusCodes.ServiceUnavailable)
+    } ~
+    path("crawl" / IntNumber) { pageNum =>
+      pageNum match {
+        case x if pageNum < 10 && pageNum > 0 =>
+          complete(s"""<a href="/crawl/${x+1}">This is the next page</a>""")
+        case x if pageNum >= 10 =>
+          complete("""<a href="/crawl/1">Go back to the beginning</a>""")
+        case _ => complete(StatusCodes.NotFound)
+      }
     } ~
     complete("OK!")
   }
