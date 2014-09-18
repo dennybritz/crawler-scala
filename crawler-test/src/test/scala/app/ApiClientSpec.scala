@@ -13,7 +13,7 @@ class ApiClientSpec extends AkkaSingleNodeSpec("ApiClientSpec") {
   describe("API Client") {
     
     it("should be able to get connection information") {
-      val actor = system.actorOf(ApiClient.props(endpoint, "testApp"), "apiClient")
+      val actor = system.actorOf(ApiClient.props(endpoint, "testApp"))
       actor ! ConnectionInfoRequest
       probe.expectMsg(ApiRequest(ConnectionInfoRequest))
       probe.reply(ApiResponse(ConnectionInfo("someUri")))
@@ -22,7 +22,7 @@ class ApiClientSpec extends AkkaSingleNodeSpec("ApiClientSpec") {
     }
 
     it("should relay http requests") {
-      val actor = system.actorOf(ApiClient.props(endpoint, "testApp"), "apiClient")
+      val actor = system.actorOf(ApiClient.props(endpoint, "testApp"))
       val req = WrappedHttpRequest.getUrl("http://google.com")
       actor ! req
       probe.expectMsg(ApiRequest(FetchRequest(req, "testApp")))
