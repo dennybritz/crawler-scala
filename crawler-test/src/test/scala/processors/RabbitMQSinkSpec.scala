@@ -5,9 +5,7 @@ import akka.stream.actor._
 import org.blikk.crawler.processors.RabbitMQSink
 import org.blikk.crawler._
 import org.scalatest._
-import scala.concurrent.Await
 import scala.concurrent.duration._
-import spray.http.{HttpResponse, HttpEntity}
 
 class RabbitMQSinkSpec extends AkkaSingleNodeSpec("RabbitMQSinkSpec") {
 

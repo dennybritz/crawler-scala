@@ -8,7 +8,7 @@ class AkkaSingleNodeSpec(val name: String) extends TestKit(ActorSystem(name, Tes
   with LocalRabbitMQ with ImplicitSender with FunSpecLike 
   with BeforeAndAfter with BeforeAndAfterAll with Matchers {
 
-  lazy val log = akka.event.Logging.getLogger(system, this)
+  def log = akka.event.Logging.getLogger(system, this)
 
   override def beforeAll() {
     clearRabbitMQ()
