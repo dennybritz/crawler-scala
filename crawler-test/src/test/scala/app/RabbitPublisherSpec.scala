@@ -10,7 +10,6 @@ import akka.stream.scaladsl._
 class RabbitPublisherSpec extends AkkaSingleNodeSpec("RabbitPublisherSpec")
   with LocalRabbitMQ  {
 
-    val log = akka.event.Logging.getLogger(system, this)
     val exchange = RabbitExchangeDefinition(s"${this.name}-exchange", "direct", false)
     val queue = RabbitQueueDefinition(s"${this.name}-queue", false)
     val routingKey = "*"

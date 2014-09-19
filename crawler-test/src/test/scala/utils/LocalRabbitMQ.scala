@@ -7,12 +7,12 @@ import scala.util.Try
 trait LocalRabbitMQ {
 
   val rabbitMQconnectionString = TestConfig.RabbitMQUri
-  val factory = new ConnectionFactory()
-  factory.setUri(rabbitMQconnectionString)
+  val rabbitFactory = new ConnectionFactory()
+  rabbitFactory.setUri(rabbitMQconnectionString)
 
   /* Executes the block within a new connection and channel */
   def withLocalRabbit[A](func: Channel => A) : A = {
-    val conn = factory.newConnection()
+    val conn = rabbitFactory.newConnection()
     val channel = conn.createChannel()
     Resource.using(conn) { conn =>
       Resource.using(channel) { channel =>
@@ -28,7 +28,7 @@ trait LocalRabbitMQ {
   }
 
   def deleteQueue(queueName: String){
-    val conn = factory.newConnection()
+    val conn = rabbitFactory.newConnection()
     val channel = conn.createChannel()
     val result = Try {
       channel.queueDeclarePassive(queueName)

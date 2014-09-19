@@ -58,7 +58,7 @@ class IntegrationSuite(val name: String) extends FunSpec with BeforeAndAfter wit
     cluster.joinSeedNodes(List(AddressFromURIString.parse(
       addresses.headOption.getOrElse(newAddress))))
     val newService = newSystem.actorOf(
-      CrawlService.props(factory.newConnection()), s"crawlService")
+      CrawlService.props(rabbitFactory.newConnection()), s"crawlService")
     services += newService
     val newApi = newSystem.actorOf(ApiLayer.props(newService), "api")
     apis += newApi

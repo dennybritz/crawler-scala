@@ -28,8 +28,10 @@ class RabbitPublisher(channel: Channel, queue: RabbitQueueDefinition,
   val consumer =  new RabbitConsumer(channel, self)(context.system)
 
   override def preStart(){
+    // Wait until we are active
+    // TODO: This is ugly, refactor it into an FSM?
+    while(!isActive){ Thread.sleep(100) }
     log.info("susbcribing consumer to RabbitMQ queue...")
-    // non-durable, non-exclusive, non-autodelete queue
     assignedQueue = channel.queueDeclare(queue.name, queue.durable, 
       queue.exclusive, queue.autoDelete, queue.options).getQueue
     channel.queueBind(assignedQueue, exchange.name, routingKey)
@@ -64,7 +66,7 @@ class RabbitPublisher(channel: Channel, queue: RabbitQueueDefinition,
       channel.basicAck(x.deliveryTag, false)
     } else {
       // Requeue the message
-      log.warning("requeuing deliveryTag=\"{}\" because demand is too low", x.deliveryTag)
+      log.warning("requeuing deliveryTag=\"{}\", not active anymore or demand is too low", x.deliveryTag)
       channel.basicNack(x.deliveryTag, false, true)
     }
   }
