@@ -74,7 +74,7 @@ class Frontier(rabbitConn: RabbitConnection, target: ActorRef)
   def receive = {
     case msg @ AddToFrontier(req, scheduledTime, ignoreDeduplication) =>
       val requestTime = scheduledTime
-      log.info("adding to frontier: {} (scheduled: {})", req.req.uri.toString, requestTime)
+      log.debug("adding to frontier: {} (scheduled: {})", req.req.uri.toString, requestTime)
       addToFrontier(req, requestTime, ignoreDeduplication)
     case ClearFrontier =>
       log.info("clearing frontier")

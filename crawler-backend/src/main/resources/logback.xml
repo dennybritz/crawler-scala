@@ -7,7 +7,7 @@
       <pattern>%date{ISO8601} %highlight(%-5level) %gray([%logger{36}]) %cyan([%X{akkaSource}]) %cyan([%X{sourceThread}]) - %msg%n</pattern>
     </encoder>
   </appender>
-.t
+  
 
   <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
     <file>${user.dir}/log/current.log</file>
