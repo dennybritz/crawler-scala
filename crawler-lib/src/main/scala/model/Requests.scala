@@ -18,7 +18,7 @@ object WrappedHttpRequest {
 case class WrappedHttpRequest(req: HttpRequest, 
   provenance: List[WrappedHttpRequest] = List.empty) {
 
-  def host = req.uri.authority.host.toString.split(".").takeRight(2).mkString(".")
+  def host = req.uri.authority.host.toString.split('.').takeRight(2).mkString(".")
   def port = req.uri.authority.port
 
   /** 

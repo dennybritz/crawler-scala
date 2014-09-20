@@ -31,12 +31,12 @@ object RequestExtractor extends Logging {
     (mapFunc : (CrawlItem, String) => WrappedHttpRequest) : 
     ProcessorFlow[(CrawlItem, Set[String]), WrappedHttpRequest] = {
       FlowFrom[(CrawlItem, Set[String])].mapConcat { case(source, links) =>
-        links.map { link => 
+        links.flatMap { link => 
           Try(mapFunc(source, link)).toOption orElse { 
             log.warn(s"Could not generate request from ${link}")
             None
           }
-        }.flatten.filterNot { newReq =>
+        }.filterNot { newReq =>
           internalOnly && newReq.host != source.req.host
         }.toList
       }
