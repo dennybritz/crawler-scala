@@ -19,7 +19,7 @@ class RequestExtractorSpec extends AkkaSingleNodeSpec("RequestExtractorSpec") {
 
   describe("Stats Collector") {
     
-    it("should correctly extract links"){
+    it("should correctly extract internal+external links"){
       val data = List(
         itemWithContent("somesite.com",
           """<a href='http://google.com'>I am a link</a>"""),
@@ -29,7 +29,7 @@ class RequestExtractorSpec extends AkkaSingleNodeSpec("RequestExtractorSpec") {
           <a href='/relative'>I am a link</a>
         """))
 
-      val requestExtractor = RequestExtractor.build()
+      val requestExtractor = RequestExtractor.build(false)
       val arraySink = FoldSink[List[WrappedHttpRequest], WrappedHttpRequest](Nil)(_ :+ _)
       val flow = FlowFrom(data).append(requestExtractor)
         .withSink(arraySink).run()
@@ -37,7 +37,26 @@ class RequestExtractorSpec extends AkkaSingleNodeSpec("RequestExtractorSpec") {
 
       finalResult.map(_.uri.toString()).toSet shouldBe Set(
         "http://google.com", "http://twitter.com", "http://twitter.com/relative")
-      
+    }
+
+    it("should correctly extract internal links only"){
+      val data = List(
+        itemWithContent("somesite.com",
+          """<a href='http://google.com'>I am a link</a>"""),
+        itemWithContent("http://twitter.com",
+        """
+          <a href='http://twitter.com'>I am a link too.</a>
+          <a href='/relative'>I am a link</a>
+          <a href='http://google.com'>
+        """))
+
+      val requestExtractor = RequestExtractor.build(true)
+      val arraySink = FoldSink[List[WrappedHttpRequest], WrappedHttpRequest](Nil)(_ :+ _)
+      val flow = FlowFrom(data).append(requestExtractor)
+        .withSink(arraySink).run()
+      val finalResult = Await.result(arraySink.future(flow), 1.second)
+
+      finalResult.map(_.uri.toString()).toSet shouldBe Set("http://twitter.com", "http://twitter.com/relative")
     }
 
   }

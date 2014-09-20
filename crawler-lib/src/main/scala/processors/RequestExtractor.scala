@@ -9,7 +9,7 @@ import scala.collection.JavaConversions._
   * Helper methods for building processes that generate new 
   * requests from fetched content
   */
-object RequestExtractor {
+object RequestExtractor extends Logging {
 
   /** 
     * Builds a processor that exractrs links from a given CrawlItem 
@@ -26,32 +26,31 @@ object RequestExtractor {
     }
   }
 
-  def buildRequestGenerator(mapFunc : (CrawlItem, String) => WrappedHttpRequest): 
-  ProcessorFlow[(CrawlItem, Set[String]), WrappedHttpRequest] = {
-    FlowFrom[(CrawlItem, Set[String])].mapConcat { case(source, links) =>
-      links.map( link => mapFunc(source, link) ).toList
-    }
+  def buildRequestGenerator(internalOnly: Boolean = true)
+    (mapFunc : (CrawlItem, String) => WrappedHttpRequest) : 
+    ProcessorFlow[(CrawlItem, Set[String]), WrappedHttpRequest] = {
+      FlowFrom[(CrawlItem, Set[String])].mapConcat { case(source, links) =>
+        links.map( link => mapFunc(source, link) ).filterNot { newReq =>
+          internalOnly && newReq.host != source.req.host
+        }.toList
+      }
   }
 
-  def buildRequestGenerator() : ProcessorFlow[(CrawlItem, Set[String]), WrappedHttpRequest] = 
-  buildRequestGenerator { (source, link) =>
-    WrappedHttpRequest.getUrl(link).withProvenance(source.req)
-  }
-
-  /**
-  * Builds a processor that generates new HTTP requests
-  * by extracting all links from a fetched document
-  */
-  def build(mapFunc : (CrawlItem, String) => WrappedHttpRequest) : 
+  def build(internalOnly: Boolean, mapFunc : (CrawlItem, String) => WrappedHttpRequest) : 
   ProcessorFlow[CrawlItem, WrappedHttpRequest] = {
     val linkExtractor = RequestExtractor.buildLinkExtractor()
-    val requestGenerator = RequestExtractor.buildRequestGenerator(mapFunc)
+    val requestGenerator = RequestExtractor.buildRequestGenerator(internalOnly)(mapFunc)
     linkExtractor.append(requestGenerator)
   }
 
-  def build() : ProcessorFlow[CrawlItem, WrappedHttpRequest] = {
+  /**
+    * Builds a processor that generates new HTTP requests
+    * by extracting all links from a fetched document
+    */
+  def build(internalOnly: Boolean = true) : ProcessorFlow[CrawlItem, WrappedHttpRequest] = {
     val linkExtractor = RequestExtractor.buildLinkExtractor()
-    val requestGenerator = RequestExtractor.buildRequestGenerator()
+    val requestGenerator = RequestExtractor.buildRequestGenerator(internalOnly)((source, link) =>
+      WrappedHttpRequest.getUrl(link).withProvenance(source.req))
     linkExtractor.append(requestGenerator)
   }
 
