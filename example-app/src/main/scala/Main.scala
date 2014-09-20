@@ -35,14 +35,14 @@ object Main extends App {
     * - Stop at the crawl after 10 pages
     */
     
-    val seedUrls = List(WrappedHttpRequest.getUrl("http://techcrunch.com/"))
+    val seedUrls = List(WrappedHttpRequest.getUrl("http://cnn.com/"))
     val dupFilter = DuplicateFilter.buildUrlDuplicateFilter(seedUrls)
     val frontierSink = FrontierSink.build()
     val reqExtractor = RequestExtractor.build()
     val statusCodeFilter = StatusCodeFilter.build()
     val src = streamContext.flow
     val bcast = Broadcast[CrawlItem]
-    val terminationSink = TerminationSink.build {_.numFetched >= 10}
+    val terminationSink = TerminationSink.build {_.numFetched >= 100}
 
     // Create a processor that counts all words in a document
     val wordCounter = FlowFrom[CrawlItem].map { item =>
@@ -75,7 +75,8 @@ object Main extends App {
     // When the stream is over print the result
     countAggregator.future(graph).onComplete { 
       case Success(finalResult) => 
-        Console.println(finalResult.toString)
+        val sortedResult = finalResult.toList.sortBy(_._2)
+        Console.println(sortedResult.reverse.take(25))
         streamContext.shutdown()
       case Failure(err) => 
         log.error(err.toString)

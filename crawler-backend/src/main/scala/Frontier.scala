@@ -30,7 +30,7 @@ class Frontier(rabbitConn: RabbitConnection, target: ActorRef)
 
   // Keep track of when we can politely send out the next request to each domain
   val nextRequestTime = MutableMap[String, Long]().withDefaultValue(System.currentTimeMillis)
-  val defaultDelay = 250 // 250ms default delay for requests to the same domain
+  val defaultDelay = 1000 // 1s default delay for requests to the same domain
 
   override def preStart() {
     // Declare the necessary queues and exchanges

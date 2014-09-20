@@ -4,6 +4,7 @@ import akka.stream.scaladsl2.{ProcessorFlow, FlowFrom}
 import org.blikk.crawler._
 import org.jsoup._
 import scala.collection.JavaConversions._
+import scala.util.Try
 
 /** 
   * Helper methods for building processes that generate new 
@@ -30,7 +31,12 @@ object RequestExtractor extends Logging {
     (mapFunc : (CrawlItem, String) => WrappedHttpRequest) : 
     ProcessorFlow[(CrawlItem, Set[String]), WrappedHttpRequest] = {
       FlowFrom[(CrawlItem, Set[String])].mapConcat { case(source, links) =>
-        links.map( link => mapFunc(source, link) ).filterNot { newReq =>
+        links.map { link => 
+          Try(mapFunc(source, link)).toOption orElse { 
+            log.warn(s"Could not generate request from ${link}")
+            None
+          }
+        }.flatten.filterNot { newReq =>
           internalOnly && newReq.host != source.req.host
         }.toList
       }
