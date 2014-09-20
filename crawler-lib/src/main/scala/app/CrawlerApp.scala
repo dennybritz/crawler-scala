@@ -6,7 +6,6 @@ import akka.stream.actor.ActorPublisher
 import akka.stream.scaladsl2._
 import akka.util.Timeout
 import com.rabbitmq.client._
-import org.apache.commons.lang3.SerializationUtils
 import org.blikk.crawler._
 import scala.concurrent.Await
 import scala.concurrent.duration._
@@ -16,7 +15,7 @@ import scala.concurrent.duration._
   * Use the `start` method to start consuming data.
   */
 class CrawlerApp(apiEndpoint: String, appId: String)
-  (implicit system: ActorSystem)  {
+  (implicit val system: ActorSystem) extends ImplicitLogging {
 
   implicit val askTimeout = Timeout(5.seconds)
 
@@ -46,7 +45,7 @@ class CrawlerApp(apiEndpoint: String, appId: String)
     }
     // Return a context
     val materializer = FlowMaterializer(akka.stream.MaterializerSettings(system))
-    StreamContext(flow, clientActor)(system, connection, materializer)
+    StreamContext(flow, clientActor, publisherActor)(system, connection, materializer)
   }
 
 

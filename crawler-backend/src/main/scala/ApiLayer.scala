@@ -22,7 +22,9 @@ class ApiLayer(crawlService: ActorRef) extends Actor with ActorLogging {
 
   def receive = {
     case ApiRequest(ConnectionInfoRequest) =>
-      sender ! ApiResponse(ConnectionInfo(config.getString("blikk.rabbitMQ.uri")))
+      val connInfo = config.getString("blikk.rabbitMQ.uri")
+      log.info("sending rabbitMQ information to {}: {}", sender, connInfo)
+      sender ! ApiResponse(ConnectionInfo(connInfo))
     case ApiRequest(msg: FetchRequest) =>
       crawlService ! AddToFrontier(msg)
       sender ! ApiResponse.OK

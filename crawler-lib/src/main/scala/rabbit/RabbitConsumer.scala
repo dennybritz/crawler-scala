@@ -12,6 +12,7 @@ class RabbitConsumer(channel: Channel, target: ActorRef)
 
   override def handleDelivery(consumerTag: String, envelope: Envelope, 
     properties: AMQP.BasicProperties, body: Array[Byte]) : Unit = {
+    //log.debug(envelope.getDeliveryTag)
     val msg = RabbitMessage(
       envelope.getRoutingKey, 
       properties.getContentType, 

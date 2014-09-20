@@ -8,7 +8,6 @@ import akka.stream.actor._
 import akka.stream.scaladsl2._
 import akka.util.Timeout
 import com.rabbitmq.client.{Connection => RabbitMQConnection, Channel => RabbitMQChannel, AMQP}
-import org.apache.commons.lang3.SerializationUtils
 import scala.concurrent.duration._
 import scala.util.{Try, Success, Failure}
 import spray.can.Http
@@ -47,6 +46,8 @@ trait CrawlServiceLike {
     * We initialize the response data stream that writes out the data
     */
   def initializeSinks() {
+    // Might as well initialize the frontier here
+    frontier
     log.info(flowMaterializerSettings.toString)
     log.info("Initializing output streams...")
     val input = FlowFrom(ActorPublisher[FetchResponse](responsePublisher))

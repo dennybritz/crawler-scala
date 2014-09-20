@@ -5,7 +5,6 @@ import akka.routing.ConsistentHashingRouter.ConsistentHashableEnvelope
 import akka.stream.actor._
 import akka.stream.scaladsl2._
 import com.rabbitmq.client.{Connection => RabbitConnection, Channel => RabbitChannel, AMQP}
-import org.apache.commons.lang3.SerializationUtils
 import scala.collection.JavaConversions._
 import scala.concurrent.duration._
 
@@ -26,7 +25,7 @@ class Frontier(rabbitConn: RabbitConnection, target: ActorRef)
   import context.dispatcher
 
   val rabbitChannel = rabbitConn.createChannel()
-  val rabbitRoutingKey = "*"
+  val rabbitRoutingKey = "#"
 
   override def preStart() {
     // Declare the necessary queues and exchanges
@@ -42,7 +41,7 @@ class Frontier(rabbitConn: RabbitConnection, target: ActorRef)
 
     val publisherActor = context.actorOf(
       RabbitPublisher.props(rabbitConn.createChannel(), 
-      FrontierQueue, FrontierExchange, "*"))
+      FrontierQueue, FrontierExchange, rabbitRoutingKey))
     val publisher = ActorPublisher[Array[Byte]](publisherActor)
     FlowFrom(publisher).map { element =>
       SerializationUtils.deserialize[FetchRequest](element)

@@ -10,7 +10,7 @@ import org.blikk.crawler.ImplicitLogging
   * Within a running application, you can interact with the API client `api`
   * The flow of the streaming context can only be consumed once.
   */
-case class StreamContext[A](flow: FlowWithSource[Array[Byte],A], api: ActorRef)
+case class StreamContext[A](flow: FlowWithSource[Array[Byte],A], api: ActorRef, publisher: ActorRef)
   (implicit _system: ActorSystem, _rabbitConn: RabbitConnection, _materializer: FlowMaterializer) 
   extends ImplicitLogging {
 
@@ -19,9 +19,11 @@ case class StreamContext[A](flow: FlowWithSource[Array[Byte],A], api: ActorRef)
   implicit val rabbitConnection = _rabbitConn
 
   def shutdown(){
-    log.info("shutting down")
-    _system.shutdown()
-    _system.awaitTermination()
+    system.synchronized {
+      log.info("shutting down")
+      system.shutdown()
+      system.awaitTermination()
+    }
   }
 
 }

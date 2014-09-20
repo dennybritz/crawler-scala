@@ -4,7 +4,7 @@ import com.typesafe.sbt.SbtStartScript
 
 object BlikkBuild extends Build {
 
-  lazy val root = Project(id = "blikk", base = file(".")) aggregate(crawlerBackend, crawlerLib, crawlerTest)
+  lazy val root = Project(id = "blikk", base = file(".")) aggregate(crawlerBackend, crawlerLib, crawlerTest, exampleApp)
 
   lazy val crawlerBackend = Project(id = "blikk-crawler-backend", base = file("./crawler-backend"),
     settings = Project.defaultSettings ++ crawlerSettings ++ 
@@ -16,11 +16,15 @@ object BlikkBuild extends Build {
   lazy val crawlerTest = Project(id="blikk-crawler-tests", base=file("./crawler-test"), 
     settings = Project.defaultSettings ++ crawlerTestSettings) dependsOn(crawlerLib, crawlerBackend)
 
+  lazy val exampleApp = Project(id="blikk-example-app", base=file("./example-app"),
+    settings = Project.defaultSettings ++ exampleAppSettings) dependsOn(crawlerLib)
+
   val commonSettings = Seq(
     version := "0.1",
     scalaVersion := "2.11.2",
     resolvers += "Akka Repo Snapshots" at "http://repo.akka.io/snapshots",
     parallelExecution in Test := false,
+    fork := true,
     fork in Test := true,
     baseDirectory in run := file(".")
   )
@@ -56,11 +60,15 @@ object BlikkBuild extends Build {
     "com.typesafe.akka" % "akka-stream-experimental_2.11" % "0.7",
     "com.typesafe.akka" %% "akka-actor" % "2.3.5",
     "com.typesafe.akka" %% "akka-slf4j" % "2.3.5",
+    "com.typesafe.akka" %% "akka-remote" % "2.3.5",
     "io.spray" %% "spray-can" % "1.3.1",
     "io.spray" %% "spray-http" % "1.3.1",
-    "org.apache.commons" % "commons-lang3" % "3.3.2",
     "org.jsoup" % "jsoup" % "1.7.3",
     "org.scalautils" %% "scalautils" % "2.1.5"
+  )
+
+  val exampleAppSettings = commonSettings ++ Seq(
+    name := "blikk-example-app"
   )
 
 

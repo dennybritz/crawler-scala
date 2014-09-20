@@ -3,7 +3,6 @@ package org.blikk.crawler.processors
 import akka.actor._
 import akka.stream.actor._
 import com.rabbitmq.client.{Connection => RabbitConnection, Channel => RabbitChannel, AMQP}
-import org.apache.commons.lang3.SerializationUtils
 import org.blikk.crawler.RabbitExchangeDefinition
 import scala.util.{Try, Success, Failure}
 

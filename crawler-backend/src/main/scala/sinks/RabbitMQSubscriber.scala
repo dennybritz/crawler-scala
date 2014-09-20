@@ -3,7 +3,6 @@ package org.blikk.crawler
 import akka.actor._
 import akka.stream.actor._
 import com.rabbitmq.client.{Connection => RabbitConnection, Channel => RabbitChannel, AMQP}
-import org.apache.commons.lang3.SerializationUtils
 
 object RabbitMQSubscriber {
   def props(conn: RabbitConnection) = Props(classOf[RabbitMQSubscriber], conn)
@@ -44,6 +43,8 @@ class RabbitMQSubscriber(conn: RabbitConnection) extends Actor with ActorLogging
 
   /* Writes a CrawlItem to RabbitMQ */
   def writeFetchResponse(fetchRes: FetchResponse) : Unit = {
+    //log.debug(fetchRes.res.toString)
+    SerializationUtils.serialize(fetchRes.res)
     val item = CrawlItem(fetchRes.fetchReq.req, fetchRes.res)
     val serializedItem = SerializationUtils.serialize(item)
     val channel = rabbitMQChannel.get()

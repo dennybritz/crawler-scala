@@ -2,12 +2,14 @@ package org.blikk.crawler
 
 import spray.http.HttpResponse
 import spray.http.HttpEntity
+import spray.http._
 import java.util.UUID
 
 object WrappedHttpResponse {
   
   implicit def fromSpray(res: HttpResponse) = WrappedHttpResponse(res)
-  implicit def toSpray(res: WrappedHttpResponse) = res.rawResponse
+  // implicit def toSpray(res: WrappedHttpResponse) = 
+  //   HttpResponse(res.status, HttpEntity(res.stringEntity), res.headers)
 
   /* Returns an empty HTTP 200 response */
   def empty() : WrappedHttpResponse = WrappedHttpResponse(
@@ -20,10 +22,15 @@ object WrappedHttpResponse {
   )
 
   def apply(rawResponse: HttpResponse) : WrappedHttpResponse = 
-    WrappedHttpResponse(rawResponse, System.currentTimeMillis)
+    new WrappedHttpResponse(rawResponse)
 }
 
 /* A HttpResponse wrapped with additional information */ 
-case class WrappedHttpResponse(rawResponse: HttpResponse, createdAt: Long) {
-  def this(rawResponse: HttpResponse) = this(rawResponse, System.currentTimeMillis)
+case class WrappedHttpResponse(
+  status: StatusCode,
+  stringEntity: String,
+  headers: Map[String, String],
+  createdAt: Long) {
+  def this(rawResponse: HttpResponse) = this(rawResponse.status, rawResponse.entity.asString,
+    rawResponse.headers.map(HttpHeader.unapply).map(_.get).toMap, System.currentTimeMillis)
 }

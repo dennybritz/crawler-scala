@@ -21,7 +21,7 @@ class CrawlService(implicit val rabbitMQ: RabbitMQConnection)
   val serviceRouter : ActorRef = context.actorOf(ClusterRouterGroup(
     ConsistentHashingGroup(Nil), ClusterRouterGroupSettings(
       totalInstances = 100, 
-      routeesPaths = List("/user/crawlService"), 
+      routeesPaths = List("/user/crawl-service"), 
       allowLocalRoutees = true, 
       useRole = None)).props(),
     "serviceRouter")

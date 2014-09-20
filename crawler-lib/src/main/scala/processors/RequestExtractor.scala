@@ -19,7 +19,7 @@ object RequestExtractor {
     val extractor = new LinkExtractor()
     FlowFrom[CrawlItem].map { item =>
       val baseUri = item.req.uri.scheme + ":" + item.req.uri.authority + item.req.uri.path
-      val links = extractor.extract(item.res.entity.asString, baseUri)
+      val links = extractor.extract(item.res.stringEntity, baseUri)
       (item, links)
     }
   }

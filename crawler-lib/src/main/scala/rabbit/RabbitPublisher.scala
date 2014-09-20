@@ -7,6 +7,7 @@ import org.blikk.crawler._
 import scala.collection.JavaConversions._
 
 object RabbitPublisher {
+  case object CompleteStream
   def props(channel: Channel, queue: RabbitQueueDefinition, 
     exchange: RabbitExchangeDefinition, routingKey: String) = 
     Props(classOf[RabbitPublisher], channel, queue, exchange, routingKey)
@@ -30,7 +31,6 @@ class RabbitPublisher(channel: Channel, queue: RabbitQueueDefinition,
   override def preStart(){
     // Wait until we are active
     // TODO: This is ugly, refactor it into an FSM?
-    while(!isActive){ Thread.sleep(100) }
     log.info("susbcribing consumer to RabbitMQ queue...")
     assignedQueue = channel.queueDeclare(queue.name, queue.durable, 
       queue.exclusive, queue.autoDelete, queue.options).getQueue
@@ -39,11 +39,11 @@ class RabbitPublisher(channel: Channel, queue: RabbitQueueDefinition,
     // No autoack
     consumerTag = channel.basicConsume(assignedQueue, false, consumer)
     log.info("susbcribed to queue {}", assignedQueue)
+    while(!isActive){ Thread.sleep(100) }
   }
 
   override def postStop(){
     // We unbding the queue and close the the channel if it's still open
-    onComplete()
     if (channel.isOpen){
       log.info("cancelling rabbitMQ consumption for {}", consumerTag)
       channel.basicCancel(consumerTag)
@@ -55,6 +55,7 @@ class RabbitPublisher(channel: Channel, queue: RabbitQueueDefinition,
 
   def receive = {
     case x : RabbitMessage => processItem(x)
+    case RabbitPublisher.CompleteStream => onComplete()
     case msg : ActorPublisherMessage => // Nothing to do
     case msg => log.warning("unhandled message: {}", msg) 
   }

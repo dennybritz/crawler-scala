@@ -16,7 +16,7 @@ object ApiClient {
 
 /** 
   * Communicates with the remote API endpoint to get connection information and send commands. 
-  * The apiEndpoint URI should be of the form: `akka.tcp://<systemName>@<ip>:<port>/api`
+  * The apiEndpoint URI should be of the form: `akka.tcp://<systemName>@<ip>:<port>/user/api`
   */
 class ApiClient(apiEndpoint: String, appId: String) extends Actor with ActorLogging {
 
