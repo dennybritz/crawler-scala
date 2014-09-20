@@ -29,8 +29,8 @@ object WrappedHttpResponse {
 case class WrappedHttpResponse(
   status: StatusCode,
   stringEntity: String,
-  headers: Map[String, String],
+  headers: List[(String, String)],
   createdAt: Long) {
   def this(rawResponse: HttpResponse) = this(rawResponse.status, rawResponse.entity.asString,
-    rawResponse.headers.map(HttpHeader.unapply).map(_.get).toMap, System.currentTimeMillis)
+    rawResponse.headers.map(HttpHeader.unapply).map(_.get), System.currentTimeMillis)
 }
