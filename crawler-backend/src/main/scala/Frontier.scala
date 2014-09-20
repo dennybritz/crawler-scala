@@ -2,11 +2,13 @@ package org.blikk.crawler
 
 import akka.actor._
 import akka.routing.ConsistentHashingRouter.ConsistentHashableEnvelope
+import akka.stream.OverflowStrategy
 import akka.stream.actor._
 import akka.stream.scaladsl2._
+import akka.stream.scaladsl2.FlowGraphImplicits._
 import com.rabbitmq.client.{Connection => RabbitConnection, Channel => RabbitChannel, AMQP}
-import scala.collection.mutable.{Map => MutableMap}
 import scala.collection.JavaConversions._
+import scala.collection.mutable.{Map => MutableMap}
 import scala.concurrent.duration._
 
 object Frontier {
@@ -50,34 +52,28 @@ class Frontier(rabbitConn: RabbitConnection, target: ActorRef)
     val publisher = ActorPublisher[Array[Byte]](publisherActor)
     FlowFrom(publisher).map { element =>
       SerializationUtils.deserialize[FetchRequest](element)
-    }.withSink(ForeachSink { item => 
-      routeFetchRequestGlobally(item)
+    }.groupBy(_.req.host.trim).withSink(ForeachSink { case(key, domainFlow) =>
+      // We rate-limit the new domain flow
+      log.info("starting new subscription for {}", key)
+      val tickSrc = FlowFrom(0 millis, defaultDelay.millis, () => "tick")
+      val zip = Zip[String, FetchRequest]
+      FlowGraph { implicit b =>
+        tickSrc ~> zip.left
+        domainFlow.buffer(5000, OverflowStrategy.backpressure) ~> zip.right
+        zip.out ~> ForeachSink[(String,FetchRequest)] { case(_, item) =>
+          routeFetchRequestGlobally(item)
+        }
+      }.run()
     }).run()
     // We need to wait a while before the rabbit consumer is done with binding
     // to the queue. This is ugly, is there a nicer way?
     Thread.sleep(1000)
   }
 
-  // Returns a the next available request time
-  // TODO: We should probably refactor this later on with Akka streams
-  def throttle(msg: AddToFrontier) : Option[Long] = {
-    val hostname = msg.req.req.host
-    nextRequestTime.get(hostname) match {
-      case Some(x) if x > System.currentTimeMillis =>
-        // We're not allowed to send this request yet, schedule it and update the state
-        nextRequestTime.put(hostname, x + defaultDelay)
-        Option(x)
-      case _ =>
-        // We can send the request immediately, but may delay future requests
-        nextRequestTime.put(hostname, System.currentTimeMillis + defaultDelay)
-        None
-    }
-  }
-
   /* Additional actor behavior */
   def receive = {
     case msg @ AddToFrontier(req, scheduledTime, ignoreDeduplication) =>
-      val requestTime = scheduledTime orElse throttle(msg)
+      val requestTime = scheduledTime
       log.info("adding to frontier: {} (scheduled: {})", req.req.uri.toString, requestTime)
       addToFrontier(req, requestTime, ignoreDeduplication)
     case ClearFrontier =>
