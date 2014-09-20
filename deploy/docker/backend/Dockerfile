@@ -29,9 +29,9 @@ RUN git clone git@github.com:dennybritz/blikk-crawler.git /blikk-crawler
 ENV BLIKK_CRAWLER_HOME /blikk-crawler
 
 # Compile
-# Note: We compile twice to allow Docker caching
 WORKDIR /blikk-crawler
 RUN sbt compile
+RUN sbt stage
 
 # Set Java options 
 # TODO
