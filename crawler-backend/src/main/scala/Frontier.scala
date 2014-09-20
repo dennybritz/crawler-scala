@@ -5,6 +5,7 @@ import akka.routing.ConsistentHashingRouter.ConsistentHashableEnvelope
 import akka.stream.actor._
 import akka.stream.scaladsl2._
 import com.rabbitmq.client.{Connection => RabbitConnection, Channel => RabbitChannel, AMQP}
+import scala.collection.mutable.{Map => MutableMap}
 import scala.collection.JavaConversions._
 import scala.concurrent.duration._
 
@@ -26,6 +27,10 @@ class Frontier(rabbitConn: RabbitConnection, target: ActorRef)
 
   val rabbitChannel = rabbitConn.createChannel()
   val rabbitRoutingKey = "#"
+
+  // Keep track of when we can politely send out the next request to each domain
+  val nextRequestTime = MutableMap[String, Long]().withDefaultValue(System.currentTimeMillis)
+  val defaultDelay = 250 // 250ms default delay for requests to the same domain
 
   override def preStart() {
     // Declare the necessary queues and exchanges
@@ -53,11 +58,28 @@ class Frontier(rabbitConn: RabbitConnection, target: ActorRef)
     Thread.sleep(1000)
   }
 
+  // Returns a the next available request time
+  // TODO: We should probably refactor this later on with Akka streams
+  def throttle(msg: AddToFrontier) : Option[Long] = {
+    val hostname = msg.req.req.host
+    nextRequestTime.get(hostname) match {
+      case Some(x) if x > System.currentTimeMillis =>
+        // We're not allowed to send this request yet, schedule it and update the state
+        nextRequestTime.put(hostname, x + defaultDelay)
+        Option(x)
+      case _ =>
+        // We can send the request immediately, but may delay future requests
+        nextRequestTime.put(hostname, System.currentTimeMillis + defaultDelay)
+        None
+    }
+  }
+
   /* Additional actor behavior */
   def receive = {
-    case AddToFrontier(req, scheduledTime, ignoreDeduplication) =>
-      log.info("adding to frontier: {} (scheduled: {})", req.req.uri.toString, scheduledTime)
-      addToFrontier(req, scheduledTime, ignoreDeduplication)
+    case msg @ AddToFrontier(req, scheduledTime, ignoreDeduplication) =>
+      val requestTime = scheduledTime orElse throttle(msg)
+      log.info("adding to frontier: {} (scheduled: {})", req.req.uri.toString, requestTime)
+      addToFrontier(req, requestTime, ignoreDeduplication)
     case ClearFrontier =>
       log.info("clearing frontier")
       clearFrontier()

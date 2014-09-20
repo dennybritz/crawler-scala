@@ -7,6 +7,7 @@ import org.blikk.crawler.app._
 import akka.stream.scaladsl2._
 import akka.stream.scaladsl2.FlowGraphImplicits._
 import org.blikk.crawler.processors._
+import scala.concurrent.duration._
 
 class MultiInstanceSpec extends IntegrationSuite("MultiInstanceSpec") {
 
@@ -34,7 +35,7 @@ class MultiInstanceSpec extends IntegrationSuite("MultiInstanceSpec") {
       }
 
       // Expect to receive 40 results, no more
-      probes(1).receiveN(40).map(_.toString).sorted shouldBe 
+      probes(1).receiveN(40, 20.seconds).map(_.toString).sorted shouldBe 
         (1 to 40).map(i => s"http://localhost:9090/${i}").sorted 
       probes(1).expectNoMsg()
 
