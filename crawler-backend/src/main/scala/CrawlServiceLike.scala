@@ -30,7 +30,7 @@ trait CrawlServiceLike {
   // We can keep this many messages per domain in a buffer 
   val perDomainBuffer = 5000
   // We send out this many requests at once. Useful for HTTP pipelining
-  val requestBlockSize = 4
+  val requestBlockSize = 1
 
   /* The frontier */
   def frontierProps = Frontier.props(rabbitMQ, serviceRouter)
