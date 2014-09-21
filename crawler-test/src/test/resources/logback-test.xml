@@ -10,7 +10,7 @@
 .t
 
   <appender name="FILE" class="ch.qos.logback.core.FileAppender">
-    <file>/var/log/blikk-crawler-test/${bySecond}.log</file>
+    <file>/usr/local/var/log/blikk-crawler-test/${bySecond}.log</file>
     <encoder>
       <pattern>%date{ISO8601} %-5level [%logger{36}][%X{akkaSource}] - %msg%n</pattern>
     </encoder>

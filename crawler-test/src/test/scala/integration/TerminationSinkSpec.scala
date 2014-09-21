@@ -33,8 +33,10 @@ class TerminationSinkSpec extends IntegrationSuite("TerminationSinkSpec") {
       }.run()
 
       streamContext.api ! WrappedHttpRequest.getUrl("http://localhost:9090/crawl/1")
-      probes(1).receiveN(5).toSet shouldBe (1 to 5).map { num =>
-        s"http://localhost:9090/crawl/${num}"}.toSet
+      probes(1).within(5.seconds) {
+        probes(1).receiveN(5).toSet shouldBe (1 to 5).map { num =>
+          s"http://localhost:9090/crawl/${num}"}.toSet
+      }
       probes(1).expectNoMsg()
       streamContext.shutdown()
     }

@@ -2,7 +2,6 @@ package org.blikk.crawler
 
 import akka.actor._
 import akka.routing.ConsistentHashingRouter.ConsistentHashableEnvelope
-import akka.stream.OverflowStrategy
 import akka.stream.actor._
 import akka.stream.scaladsl2._
 import akka.stream.scaladsl2.FlowGraphImplicits._
@@ -30,10 +29,6 @@ class Frontier(rabbitConn: RabbitConnection, target: ActorRef)
   val rabbitChannel = rabbitConn.createChannel()
   val rabbitRoutingKey = "#"
 
-  // Keep track of when we can politely send out the next request to each domain
-  val nextRequestTime = MutableMap[String, Long]().withDefaultValue(System.currentTimeMillis)
-  val defaultDelay = 250 // 250ms default delay for requests to the same domain
-
   override def preStart() {
     // Declare the necessary queues and exchanges
     log.info("""declaring RabbitMQ exchange "{}" and queues "{}", "{}" """, FrontierExchange.name, 
@@ -52,19 +47,7 @@ class Frontier(rabbitConn: RabbitConnection, target: ActorRef)
     val publisher = ActorPublisher[Array[Byte]](publisherActor)
     FlowFrom(publisher).map { element =>
       SerializationUtils.deserialize[FetchRequest](element)
-    }.groupBy(_.req.host.trim).withSink(ForeachSink { case(key, domainFlow) =>
-      // We rate-limit the new domain flow
-      log.info("starting new subscription for {}", key)
-      val tickSrc = FlowFrom(0 millis, defaultDelay.millis, () => "tick")
-      val zip = Zip[String, FetchRequest]
-      FlowGraph { implicit b =>
-        tickSrc ~> zip.left
-        domainFlow.buffer(5000, OverflowStrategy.backpressure) ~> zip.right
-        zip.out ~> ForeachSink[(String,FetchRequest)] { case(_, item) =>
-          routeFetchRequestGlobally(item)
-        }
-      }.run()
-    }).run()
+    }.withSink(ForeachSink[FetchRequest](routeFetchRequestGlobally)).run()
     // We need to wait a while before the rabbit consumer is done with binding
     // to the queue. This is ugly, is there a nicer way?
     Thread.sleep(1000)

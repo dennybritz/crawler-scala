@@ -23,7 +23,9 @@ class SimpleCrawlSpec extends IntegrationSuite("SimpleCrawlSpec") {
       }).run()
 
       streamContext.api ! WrappedHttpRequest.getUrl("http://localhost:9090/1")
-      probes(1).expectMsg("http://localhost:9090/1")
+      probes(1).within(5.seconds) {
+        probes(1).expectMsg("http://localhost:9090/1")
+      }
       probes(1).expectNoMsg()
       streamContext.shutdown()
     }
@@ -49,8 +51,11 @@ class SimpleCrawlSpec extends IntegrationSuite("SimpleCrawlSpec") {
       }.run()
 
       streamContext.api ! WrappedHttpRequest.getUrl("http://localhost:9090/crawl/1")
-      probes(1).receiveN(10).toSet shouldBe (1 to 10).map { num =>
-        s"http://localhost:9090/crawl/${num}"}.toSet
+      probes(1).within(10.seconds) {
+        probes(1).receiveN(10).toSet shouldBe (1 to 10).map { num =>
+          s"http://localhost:9090/crawl/${num}"}.toSet
+      }
+
       probes(1).expectNoMsg()
       streamContext.shutdown()
     }

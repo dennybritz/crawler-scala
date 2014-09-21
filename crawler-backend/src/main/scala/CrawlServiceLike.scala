@@ -4,11 +4,14 @@ import akka.actor.{Actor, ActorLogging, ActorRef, Props, Status}
 import akka.cluster.routing._
 import akka.io.IO
 import akka.pattern.{ask, pipe}
+import akka.stream.OverflowStrategy
 import akka.stream.actor._
 import akka.stream.scaladsl2._
+import akka.stream.scaladsl2.FlowGraphImplicits._
 import akka.util.Timeout
 import com.rabbitmq.client.{Connection => RabbitMQConnection, Channel => RabbitMQChannel, AMQP}
 import scala.concurrent.duration._
+import scala.collection.immutable.Seq
 import scala.util.{Try, Success, Failure}
 import spray.can.Http
 import spray.http._
@@ -21,6 +24,13 @@ trait CrawlServiceLike {
   import context.dispatcher
   
   implicit def rabbitMQ: RabbitMQConnection
+
+  // Delay for requests to the same domain
+  val defaultDelay = 500 
+  // We can keep this many messages per domain in a buffer 
+  val perDomainBuffer = 5000
+  // We send out this many requests at once. Useful for HTTP pipelining
+  val requestBlockSize = 4
 
   /* The frontier */
   def frontierProps = Frontier.props(rabbitMQ, serviceRouter)
@@ -53,7 +63,19 @@ trait CrawlServiceLike {
     val input = FlowFrom(ActorPublisher[FetchResponse](responsePublisher))
     val rabbitSubscriber = context.actorOf(RabbitMQSubscriber.props(rabbitMQ), "rabbitSubscriber")
     val rabbitSink = SubscriberSink(ActorSubscriber[FetchResponse](rabbitSubscriber))
-    input.withSink(rabbitSink).run()
+    // We throttle the responses based on the domain
+    input.groupBy(_.fetchReq.req.host.trim).withSink(ForeachSink { case(key, domainFlow) =>
+      log.info("starting new response stream for {}", key)
+      // We use a tick source + zip as a trivial throttler implementation
+      val tickSrc = FlowFrom(0 millis, defaultDelay.millis, () => "tick")
+      val zip = Zip[String, Seq[FetchResponse]]
+      FlowGraph { implicit b =>
+        tickSrc ~> zip.left
+        domainFlow.buffer(perDomainBuffer, OverflowStrategy.backpressure)
+          .groupedWithin(requestBlockSize, defaultDelay.millis) ~> zip.right
+        zip.out ~> FlowFrom[(String, Seq[FetchResponse])].mapConcat(_._2).withSink(rabbitSink)
+      }.run()
+    }).run()
   }
 
   def crawlServiceBehavior : Receive = {
