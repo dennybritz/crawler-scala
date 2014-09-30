@@ -7,8 +7,8 @@ import org.blikk.crawler.RabbitExchangeDefinition
 import scala.util.{Try, Success, Failure}
 
 object RabbitMQSink {
-  def props[A](conn: RabbitConnection, rabbitExchange: RabbitExchangeDefinition, 
-    ser: A => (Array[Byte], String)) = Props(classOf[RabbitMQSink[A]], conn, rabbitExchange, ser)
+  def props[A](conn: RabbitConnection, rabbitExchange: RabbitExchangeDefinition) 
+    (ser: A => (Array[Byte], String)) = Props(classOf[RabbitMQSink[A]], conn, rabbitExchange, ser)
 }
 
 /**

@@ -4,7 +4,8 @@ import com.typesafe.sbt.SbtStartScript
 
 object BlikkBuild extends Build {
 
-  lazy val root = Project(id = "blikk", base = file(".")) aggregate(crawlerBackend, crawlerLib, crawlerTest, exampleApp)
+  lazy val root = Project(id = "blikk", base = file(".")) aggregate(crawlerBackend, 
+    crawlerLib, crawlerTest, exampleApp, contactApp)
 
   lazy val crawlerBackend = Project(id = "blikk-crawler-backend", base = file("./crawler-backend"),
     settings = Project.defaultSettings ++ crawlerSettings ++ 
@@ -18,6 +19,9 @@ object BlikkBuild extends Build {
 
   lazy val exampleApp = Project(id="blikk-example-app", base=file("./example-app"),
     settings = Project.defaultSettings ++ exampleAppSettings) dependsOn(crawlerLib)
+
+  lazy val contactApp = Project(id="contact-app", base=file("./contact-app"),
+    settings = Project.defaultSettings ++ contactAppSettings) dependsOn(crawlerLib)
 
   val commonSettings = Seq(
     version := "0.1",
@@ -63,12 +67,23 @@ object BlikkBuild extends Build {
     "com.typesafe.akka" %% "akka-remote" % "2.3.5",
     "io.spray" %% "spray-can" % "1.3.1",
     "io.spray" %% "spray-http" % "1.3.1",
+    "io.spray" %%  "spray-json" % "1.3.0",
     "org.jsoup" % "jsoup" % "1.7.3",
     "org.scalautils" %% "scalautils" % "2.1.5"
   )
 
   val exampleAppSettings = commonSettings ++ Seq(
     name := "blikk-example-app"
+  )
+
+  val contactAppSettings = commonSettings ++ Seq(
+    name := "contact-app",
+    libraryDependencies ++= commonLibraryDependencies ++ Seq(
+      "org.scalatest" %% "scalatest" % "2.2.1" % "test",
+      "com.typesafe.play" %% "play-json" % "2.4.0-M1",
+      "io.spray" %% "spray-routing" % "1.3.1",
+      "com.typesafe.akka" %% "akka-testkit" % "2.3.5"
+    )
   )
 
 

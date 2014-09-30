@@ -23,7 +23,8 @@ object RequestExtractor extends Logging {
       // We additionaly extract the `location` header used for redirects
       val redirectUrls = item.res.headers.filter(_._1.toLowerCase == "location").map(_._2).toSet
       val links = extractor.extract(item.res.stringEntity, baseUri) ++ redirectUrls
-      (item, links)
+      val normalizedLinks = links.map(UrlNormalizer.normalize)
+      (item, normalizedLinks)
     }
   }
 
@@ -37,7 +38,7 @@ object RequestExtractor extends Logging {
             None
           }
         }.filterNot { newReq =>
-          internalOnly && newReq.host != source.req.host
+          internalOnly && (newReq.tld != source.req.tld)
         }.toList
       }
   }
@@ -70,7 +71,7 @@ class LinkExtractor {
 
   def extract(content: String, baseUri: String) : Set[String] = {
     val doc = Jsoup.parse(content, baseUri)
-    doc.select("a[href]").toList.map(_.attr("abs:href")).filterNot(_.isEmpty).toSet
+    doc.select("a[href]").toList.map(_.attr("abs:href").trim()).filterNot(_.isEmpty).toSet
   }
 
 

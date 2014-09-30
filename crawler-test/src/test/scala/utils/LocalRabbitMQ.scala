@@ -1,7 +1,7 @@
 package org.blikk.test
 
 import com.rabbitmq.client._
-import org.blikk.crawler.{Resource, Frontier}
+import org.blikk.crawler.{Resource, Frontier, RabbitData}
 import scala.util.Try
 
 trait LocalRabbitMQ {
@@ -23,8 +23,10 @@ trait LocalRabbitMQ {
 
   /* Deletes queue data from RabbitMQ */
   def clearRabbitMQ(){
-    List(Frontier.FrontierQueue.name,
-      Frontier.FrontierScheduledQueue.name).foreach(deleteQueue)
+    List(
+      RabbitData.FrontierQueue.name,
+      RabbitData.FrontierScheduledQueue.name
+    ).foreach(deleteQueue)
   }
 
   def deleteQueue(queueName: String){

@@ -56,9 +56,12 @@ trait CrawlServiceLike {
     * We initialize the response data stream that writes out the data
     */
   def initializeSinks() {
+    // Initialize RabbitMQ data
+    Resource.using(rabbitMQ.createChannel()) { implicit channel =>
+      RabbitData.declareAll()
+    }
     // Might as well initialize the frontier here
     frontier
-    log.info(flowMaterializerSettings.toString)
     log.info("Initializing output streams...")
     val input = FlowFrom(ActorPublisher[FetchResponse](responsePublisher))
     val rabbitSubscriber = context.actorOf(RabbitMQSubscriber.props(rabbitMQ), "rabbitSubscriber")

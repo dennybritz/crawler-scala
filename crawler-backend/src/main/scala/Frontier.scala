@@ -14,33 +14,19 @@ object Frontier {
   def props(rabbitConn: RabbitConnection, target: ActorRef) = {
     Props(classOf[Frontier], rabbitConn, target)
   }
-  val FrontierExchange = RabbitExchangeDefinition("blikk-frontier-exchange", "topic", true)
-  val FrontierQueue = RabbitQueueDefinition("blikk-frontier-queue", true, false, false, Map.empty)
-  val FrontierScheduledQueue = RabbitQueueDefinition("blikk-frontier-queue-scheduled", true,
-    false, false, Map("x-dead-letter-exchange" -> FrontierExchange.name))
+  
 }
 
 class Frontier(rabbitConn: RabbitConnection, target: ActorRef) 
   extends Actor with ActorLogging with ImplicitFlowMaterializer {
 
-  import Frontier._
+  import RabbitData._
   import context.dispatcher
 
   val rabbitChannel = rabbitConn.createChannel()
   val rabbitRoutingKey = "#"
 
   override def preStart() {
-    // Declare the necessary queues and exchanges
-    log.info("""declaring RabbitMQ exchange "{}" and queues "{}", "{}" """, FrontierExchange.name, 
-      FrontierQueue.name, FrontierScheduledQueue.name)
-    rabbitChannel.exchangeDeclare(FrontierExchange.name, FrontierExchange.exchangeType, 
-      FrontierExchange.durable)
-    rabbitChannel.queueDeclare(FrontierQueue.name, FrontierQueue.durable, 
-      FrontierQueue.exclusive, FrontierQueue.autoDelete, FrontierQueue.options)
-    rabbitChannel.queueDeclare(FrontierScheduledQueue.name, FrontierScheduledQueue.durable, 
-      FrontierScheduledQueue.exclusive, FrontierScheduledQueue.autoDelete, 
-      FrontierScheduledQueue.options)
-
     val publisherActor = context.actorOf(
       RabbitPublisher.props(rabbitConn.createChannel(), 
       FrontierQueue, FrontierExchange, rabbitRoutingKey))

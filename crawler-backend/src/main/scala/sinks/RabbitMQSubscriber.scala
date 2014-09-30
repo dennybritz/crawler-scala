@@ -26,9 +26,6 @@ class RabbitMQSubscriber(conn: RabbitConnection) extends Actor with ActorLogging
 
   override def preStart(){
     log.info("starting")
-    log.info("initializing RabbitMQ exchange {}", RabbitData.DataExchange.name)
-    rabbitMQChannel.get().exchangeDeclare(RabbitData.DataExchange.name, 
-      RabbitData.DataExchange.exchangeType, RabbitData.DataExchange.durable) 
   }
 
   def receive = {

@@ -18,8 +18,10 @@ object WrappedHttpRequest {
 case class WrappedHttpRequest(req: HttpRequest, 
   provenance: List[WrappedHttpRequest] = List.empty) {
 
-  def host = req.uri.authority.host.toString.split('.').takeRight(2).mkString(".")
+  def host = req.uri.authority.host.toString
   def port = req.uri.authority.port
+  def tld = host.split('.').takeRight(2).mkString(".")
+  lazy val reverseHost = host.split('.').reverse.mkString(".")
 
   /** 
     * Copies this request with the source request appended in the provenance list 
