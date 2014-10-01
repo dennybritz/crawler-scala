@@ -37,12 +37,12 @@ class RabbitPublisher(channel: Channel, queue: RabbitQueueDefinition,
       queue.exclusive, queue.autoDelete, queue.options).getQueue
     channel.queueBind(assignedQueue, exchange.name, routingKey)
     log.info("bound queue {} to exchange {}", assignedQueue, exchange.name)
-    // No autoack
-    consumerTag = channel.basicConsume(assignedQueue, false, consumer)
-    log.info("susbcribed to queue {}", assignedQueue)
     // Wait until we are active
     // TODO: This is ugly, refactor it into an FSM?
     while(!isActive) { Thread.sleep(100) }
+    // No autoack
+    consumerTag = channel.basicConsume(assignedQueue, false, consumer)
+    log.info("susbcribed to queue {}", assignedQueue)
   }
 
   override def postStop(){

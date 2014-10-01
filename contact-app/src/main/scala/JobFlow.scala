@@ -62,13 +62,13 @@ object ContactExtractionFlow {
     val urlEventEmitter = FlowFrom[CrawlItem].map { ci => 
       Event(ci.req.uri.toString, "url_processed", System.currentTimeMillis) }
     val eventMerge = Merge[Event]
+    val frontierMerge = Merge[WrappedHttpRequest]
     
-
     val mfg = FlowGraph { implicit b =>
       // Broadcast all items that were succesfully fetched
       src.takeWithin(maxTime).append(statusCodeFilter) ~> bcast
       // Exract links and request new URLs from the crawler
-      bcast ~> reqExtractor.append(dupFilter).withSink(frontierSink)
+      bcast ~> reqExtractor.append(dupFilter) ~> frontierMerge
       // Extract contact information
       bcast ~> itemExtractor ~> eventMerge
       bcast ~> urlEventEmitter ~> eventMerge
@@ -78,7 +78,9 @@ object ContactExtractionFlow {
       dataBroadcast ~> dataSink
       dataBroadcast ~> rabbitSink
       dataBroadcast ~> ForeachSink[Event] { event => log.info("{}", event)}
-      FlowFrom(seedUrls).withSink(frontierSink)
+
+      FlowFrom(seedUrls) ~> frontierMerge
+      frontierMerge ~> frontierSink
     }.run()
 
     // Handle the result

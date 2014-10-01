@@ -23,7 +23,7 @@ class JobManager(apiEndpoint: String) extends Actor with ActorLogging {
 
   def receive = {
     case msg @ StartJob(url, callbackUrl, timeLimit) =>
-      val appId = java.util.UUID.randomUUID().toString
+      val appId = s"com.bikk.contactapp.${java.util.UUID.randomUUID()}"
       log.info("starting new job {} with appID={}", msg, appId)
       sender ! appId
       startJob(appId, url, callbackUrl, timeLimit)
