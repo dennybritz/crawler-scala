@@ -5,6 +5,7 @@ import akka.stream.actor._
 import com.rabbitmq.client._
 import org.blikk.crawler._
 import scala.collection.JavaConversions._
+import scala.annotation.tailrec
 
 object RabbitPublisher {
   case object CompleteStream
@@ -28,9 +29,9 @@ class RabbitPublisher(channel: Channel, queue: RabbitQueueDefinition,
   // The actual consumer object using RabbitMQ libraries
   val consumer =  new RabbitConsumer(channel, self)(context.system)
 
+  var buf = Vector.empty[RabbitMessage]
+
   override def preStart(){
-    // Wait until we are active
-    // TODO: This is ugly, refactor it into an FSM?
     log.info("susbcribing consumer to RabbitMQ queue...")
     assignedQueue = channel.queueDeclare(queue.name, queue.durable, 
       queue.exclusive, queue.autoDelete, queue.options).getQueue
@@ -39,7 +40,9 @@ class RabbitPublisher(channel: Channel, queue: RabbitQueueDefinition,
     // No autoack
     consumerTag = channel.basicConsume(assignedQueue, false, consumer)
     log.info("susbcribed to queue {}", assignedQueue)
-    while(!isActive){ Thread.sleep(100) }
+    // Wait until we are active
+    // TODO: This is ugly, refactor it into an FSM?
+    while(!isActive) { Thread.sleep(100) }
   }
 
   override def postStop(){
@@ -62,14 +65,23 @@ class RabbitPublisher(channel: Channel, queue: RabbitQueueDefinition,
 
   def processItem(x: RabbitMessage) {
     // log.debug("processing deliveryTag=\"{}\"", x.deliveryTag)
-    if (isActive && totalDemand > 0) {
-      onNext(x.payload)
+    if (isActive) {
+      buf :+= x
+      deliverBuffer()
       channel.basicAck(x.deliveryTag, false)
     } else {
       // Requeue the message
-      log.warning("requeuing deliveryTag=\"{}\", not active anymore or demand is too low", x.deliveryTag)
+      log.warning("requeuing deliveryTag=\"{}\", not active anymore." + 
+        "demand={} isActive={}", x.deliveryTag, totalDemand, isActive)
       channel.basicNack(x.deliveryTag, false, true)
     }
   }
 
+  def deliverBuffer() {
+    if (totalDemand > 0) {
+      val (use, keep) = buf.splitAt(totalDemand.toInt)
+      buf = keep
+      use.map(_.payload).foreach(onNext)
+    }
+  }
 }

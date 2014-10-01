@@ -3,18 +3,19 @@ package org.blikk.crawler
 import akka.actor._
 import akka.routing.ConsistentHashingRouter.ConsistentHashableEnvelope
 import akka.stream.actor._
+import akka.stream.OverflowStrategy
 import akka.stream.scaladsl2._
 import akka.stream.scaladsl2.FlowGraphImplicits._
 import com.rabbitmq.client.{Connection => RabbitConnection, Channel => RabbitChannel, AMQP}
 import scala.collection.JavaConversions._
 import scala.collection.mutable.{Map => MutableMap}
+import scala.collection.immutable.Seq
 import scala.concurrent.duration._
 
 object Frontier {
   def props(rabbitConn: RabbitConnection, target: ActorRef) = {
     Props(classOf[Frontier], rabbitConn, target)
   }
-  
 }
 
 class Frontier(rabbitConn: RabbitConnection, target: ActorRef) 
@@ -26,14 +27,31 @@ class Frontier(rabbitConn: RabbitConnection, target: ActorRef)
   val rabbitChannel = rabbitConn.createChannel()
   val rabbitRoutingKey = "#"
 
+  // Delay for requests to the same domain
+  val defaultDelay = 500 
+  // We can keep this many messages per domain in a buffer 
+  val perDomainBuffer = 5000
+
   override def preStart() {
     val publisherActor = context.actorOf(
       RabbitPublisher.props(rabbitConn.createChannel(), 
-      FrontierQueue, FrontierExchange, rabbitRoutingKey))
+      FrontierQueue, FrontierExchange, rabbitRoutingKey), s"frontierRabbit")
     val publisher = ActorPublisher[Array[Byte]](publisherActor)
+
     FlowFrom(publisher).map { element =>
       SerializationUtils.deserialize[FetchRequest](element)
-    }.withSink(ForeachSink[FetchRequest](routeFetchRequestGlobally)).run()
+    }.groupBy(_.req.host.trim).withSink(ForeachSink { case(key, domainFlow) =>
+      log.info("starting new request stream for {}", key)
+      val tickSrc = FlowFrom(0 millis, defaultDelay.millis, () => "tick")
+      val zip = Zip[String, FetchRequest]
+      FlowGraph { implicit b =>
+        tickSrc ~> zip.left
+        domainFlow.buffer(perDomainBuffer, OverflowStrategy.backpressure) ~> zip.right
+        zip.out ~> FlowFrom[(String, FetchRequest)].map(_._2)
+          .withSink(ForeachSink[FetchRequest](routeFetchRequestGlobally))
+      }.run()
+    }).run()
+
     // We need to wait a while before the rabbit consumer is done with binding
     // to the queue. This is ugly, is there a nicer way?
     Thread.sleep(1000)
@@ -73,7 +91,7 @@ class Frontier(rabbitConn: RabbitConnection, target: ActorRef)
   }
 
   def routeFetchRequestGlobally(fetchReq: FetchRequest) : Unit = {
-    log.debug("routing {}", fetchReq)
+    log.debug("routing {}", fetchReq.req.uri.toString)
     target ! ConsistentHashableEnvelope(fetchReq, fetchReq.req.host)
   }
 

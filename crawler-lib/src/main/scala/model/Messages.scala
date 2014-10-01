@@ -10,12 +10,6 @@ object ApiResponse {
   val OK = ApiResponse("OK")
 }
 
-/* The API client requests connection information for RabbitMQ when it first starts */
-/* ================================================== */
-
-case object ConnectionInfoRequest
-case class ConnectionInfo(rabbitMQUri: String)
-
 /* General Messages */
 /* ================================================== */
 

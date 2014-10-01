@@ -44,10 +44,9 @@ class JobManager(apiEndpoint: String) extends Actor with ActorLogging {
     val app = new CrawlerApp(apiEndpoint, appId)
     val streamContext = app.start[CrawlItem]()
     activeJobs.put(appId, streamContext) 
-    ContactExtractionFlow.create(appId, maxPages, timeLimit, startUrl)(streamContext)
+    ContactExtractionFlow.create(maxPages, timeLimit, startUrl)(streamContext)
     // We watch the producer actor to shutdown the context on termination
     context.watch(streamContext.publisher)
-    streamContext.api ! WrappedHttpRequest.getUrl(startUrl)
   }
    
 }

@@ -72,7 +72,7 @@ class IntegrationSuite(val name: String) extends FunSpec with BeforeAndAfter wit
       akka.actor.provider = akka.remote.RemoteActorRefProvider
       """).withFallback(buildConfig("localhost", 0))
     val system = ActorSystem(appId, config)
-    val client = new CrawlerApp(addresses(0) + "/user/api", appId)(system)
+    val client = new CrawlerApp(TestConfig.RabbitMQUri, appId)(system)
     client.start[CrawlItem]()
   }
 

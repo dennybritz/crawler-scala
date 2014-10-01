@@ -20,9 +20,9 @@ class RabbitMQSinkSpec extends AkkaSingleNodeSpec("RabbitMQSinkSpec") {
     it("should write items to Rabbit"){
       val data = List("Are", "you", "ready?")
       val rabbitConn = rabbitFactory.newConnection()
-      val rabbitSinkActor = system.actorOf(
-        RabbitMQSink.props[String](rabbitConn, exchangeDef)(x => (x.getBytes, "*")))
-      val rabbitSink = SubscriberSink(ActorSubscriber[String](rabbitSinkActor))
+      // val rabbitSinkActor = system.actorOf(
+      //   RabbitMQSink.props[String](rabbitConn, exchangeDef)(x => (x.getBytes, "*")))
+      val rabbitSink = RabbitMQSink.build[String](rabbitConn, exchangeDef)(x => (x.getBytes, "*"))
 
       // Make sure the data is in RabbitMQ
       // We use our rabbitpublisher to receive the data

@@ -18,7 +18,8 @@ class MultiInstanceSpec extends IntegrationSuite("MultiInstanceSpec") {
       // Create two apps
       val streamContext1 = createStreamContext()
       val streamContext2 = createStreamContext()
-      
+      val frontierSink = FrontierSink.build()(streamContext1)
+
       // Run the same graph in each context
       // Data should be shared
       List(streamContext1, streamContext2).foreach { streamContext =>
@@ -30,9 +31,11 @@ class MultiInstanceSpec extends IntegrationSuite("MultiInstanceSpec") {
       }
       
       // Request 40 pages
-      (1 to 40).foreach { i =>
-        streamContext1.api ! WrappedHttpRequest.getUrl(s"http://localhost:9090/${i}") 
-      }
+      val seeds = (1 to 40).map { i =>
+        WrappedHttpRequest.getUrl(s"http://localhost:9090/${i}") 
+      }.toList
+
+      FlowFrom(seeds).withSink(frontierSink).run()(streamContext1.materializer)
 
       // Expect to receive 40 results, no more
       probes(1).receiveN(40, 20.seconds).map(_.toString).sorted shouldBe 

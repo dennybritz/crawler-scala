@@ -16,13 +16,17 @@ class SimpleCrawlSpec extends IntegrationSuite("SimpleCrawlSpec") {
       implicit val streamContext = createStreamContext()
       import streamContext.{materializer, system}
       
+      val seeds = List(WrappedHttpRequest.getUrl("http://localhost:9090/1"))
+      val frontier = FrontierSink.build()
+
       streamContext.flow.withSink(ForeachSink { item => 
         log.info("{}", item.toString) 
         assert(item.res.status.intValue === 200)
         probes(1).ref ! item.req.uri.toString
       }).run()
 
-      streamContext.api ! WrappedHttpRequest.getUrl("http://localhost:9090/1")
+      FlowFrom(seeds).withSink(frontier).run()
+
       probes(1).within(5.seconds) {
         probes(1).expectMsg("http://localhost:9090/1")
       }
@@ -35,6 +39,7 @@ class SimpleCrawlSpec extends IntegrationSuite("SimpleCrawlSpec") {
       import streamContext.{materializer, system}
       import system.dispatcher
 
+      val seeds = List(WrappedHttpRequest.getUrl("http://localhost:9090/crawl/1"))
       val in = streamContext.flow
       val fLinkExtractor = RequestExtractor.build()
       val duplicateFilter = DuplicateFilter.buildUrlDuplicateFilter(
@@ -43,14 +48,17 @@ class SimpleCrawlSpec extends IntegrationSuite("SimpleCrawlSpec") {
         log.info("{}", item.toString) 
         probes(1).ref ! item.req.uri.toString
       }
+      val frontier = FrontierSink.build()
       
       val graph = FlowGraph { implicit b =>
         val bcast = Broadcast[CrawlItem]
-        in ~> bcast ~> fLinkExtractor.append(duplicateFilter) ~> FrontierSink.build()
+        val frontierMerge = Merge[WrappedHttpRequest]
+        in ~> bcast ~> fLinkExtractor.append(duplicateFilter) ~> frontierMerge
         bcast ~> fLinkSender
+        FlowFrom(seeds) ~> frontierMerge
+        frontierMerge ~> frontier
       }.run()
 
-      streamContext.api ! WrappedHttpRequest.getUrl("http://localhost:9090/crawl/1")
       probes(1).within(10.seconds) {
         probes(1).receiveN(10).toSet shouldBe (1 to 10).map { num =>
           s"http://localhost:9090/crawl/${num}"}.toSet

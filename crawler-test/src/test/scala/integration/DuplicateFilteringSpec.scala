@@ -23,15 +23,22 @@ class DuplicateFilteringSpec extends IntegrationSuite("DuplicateFilteringSpec") 
         probes(1).ref ! item.req.uri.toString
       }
       val dupFilter = DuplicateFilter.buildUrlDuplicateFilter()
+      val seeds = List(
+        WrappedHttpRequest.getUrl("http://localhost:9090/links/1"),
+        WrappedHttpRequest.getUrl("http://localhost:9090/links/1")
+      )
+      val frontier = FrontierSink.build()
 
       FlowGraph { implicit b =>
+        val frontierMerge = Merge[WrappedHttpRequest]
         val bcast = Broadcast[CrawlItem]        
-        in ~> bcast ~> fLinkExtractor.append(dupFilter) ~> FrontierSink.build()
+        in ~> bcast ~> fLinkExtractor.append(dupFilter) ~> frontierMerge
         bcast ~> fLinkSender
+        FlowFrom(seeds) ~> frontierMerge 
+        frontierMerge ~> frontier
       }.run()
 
-      streamContext.api ! WrappedHttpRequest.getUrl("http://localhost:9090/links/1")
-      streamContext.api ! WrappedHttpRequest.getUrl("http://localhost:9090/links/1")
+      
       probes(1).receiveN(4).toSet should === (Set("http://localhost:9090/links/1", 
               "http://localhost:9090/links/2", "http://localhost:9090/links/3"))
       probes(1).expectNoMsg()

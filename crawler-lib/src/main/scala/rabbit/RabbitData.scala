@@ -54,5 +54,4 @@ object RabbitData extends Logging {
       queue.autoDelete, queue.options)
   }
 
-
 }

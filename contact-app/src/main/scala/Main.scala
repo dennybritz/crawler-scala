@@ -20,7 +20,7 @@ object Main extends App {
   // Get the API endpoint from the configuration
   // It is automatically set by the syste,
   val config = ConfigFactory.load()
-  val apiEndpoint = config.getString("blikk.app.apiEndpoint")
+  val apiEndpoint = config.getString("blikk.app.rabbitMQ.uri")
 
   implicit val system = ActorSystem("contact-app")
   val jobManager = system.actorOf(JobManager.props(apiEndpoint), "jobManager")

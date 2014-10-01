@@ -64,21 +64,9 @@ trait CrawlServiceLike {
     frontier
     log.info("Initializing output streams...")
     val input = FlowFrom(ActorPublisher[FetchResponse](responsePublisher))
-    val rabbitSubscriber = context.actorOf(RabbitMQSubscriber.props(rabbitMQ), "rabbitSubscriber")
+    val rabbitSubscriber = context.actorOf(RabbitMQSubscriber.props(rabbitMQ), s"rabbitSubscriber")
     val rabbitSink = SubscriberSink(ActorSubscriber[FetchResponse](rabbitSubscriber))
-    // We throttle the responses based on the domain
-    input.groupBy(_.fetchReq.req.host.trim).withSink(ForeachSink { case(key, domainFlow) =>
-      log.info("starting new response stream for {}", key)
-      // We use a tick source + zip as a trivial throttler implementation
-      val tickSrc = FlowFrom(0 millis, defaultDelay.millis, () => "tick")
-      val zip = Zip[String, Seq[FetchResponse]]
-      FlowGraph { implicit b =>
-        tickSrc ~> zip.left
-        domainFlow.buffer(perDomainBuffer, OverflowStrategy.backpressure)
-          .groupedWithin(requestBlockSize, defaultDelay.millis) ~> zip.right
-        zip.out ~> FlowFrom[(String, Seq[FetchResponse])].mapConcat(_._2).withSink(rabbitSink)
-      }.run()
-    }).run()
+    input.withSink(rabbitSink).run()
   }
 
   def crawlServiceBehavior : Receive = {

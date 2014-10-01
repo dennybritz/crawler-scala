@@ -16,6 +16,13 @@ class StatusCodeFilterSpec extends IntegrationSuite("StatusCodeFilterSpec") {
       implicit val streamContext = createStreamContext()
       import streamContext.{materializer, system}
 
+      val seeds = List(
+        WrappedHttpRequest.getUrl("http://localhost:9090/1"),
+        WrappedHttpRequest.getUrl("http://localhost:9090/status/301"),
+        WrappedHttpRequest.getUrl("http://localhost:9090/status/404"),
+        WrappedHttpRequest.getUrl("http://localhost:9090/status/503")
+      )
+      val frontier = FrontierSink.build()
       val fLinkSender = ForeachSink[CrawlItem] { item => 
         log.info("{}", item.toString) 
         probes(1).ref ! item.req.uri.toString
@@ -23,10 +30,7 @@ class StatusCodeFilterSpec extends IntegrationSuite("StatusCodeFilterSpec") {
       val statusCodeFilter = StatusCodeFilter.build()
 
       streamContext.flow.append(statusCodeFilter).withSink(fLinkSender).run()
-      streamContext.api ! WrappedHttpRequest.getUrl("http://localhost:9090/1")
-      streamContext.api ! WrappedHttpRequest.getUrl("http://localhost:9090/status/301")
-      streamContext.api ! WrappedHttpRequest.getUrl("http://localhost:9090/status/404")
-      streamContext.api ! WrappedHttpRequest.getUrl("http://localhost:9090/status/503")
+      FlowFrom(seeds).withSink(frontier).run()
 
       probes(1).receiveN(2).toSet should === (Set("http://localhost:9090/1", 
         "http://localhost:9090/status/301"))

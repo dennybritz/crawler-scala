@@ -13,16 +13,16 @@ import scala.util.{Success, Failure}
 
 object Main extends App {
     
-  val appName = "example-app"
+  val appName = "com.blikk.example-app"
 
   // Get the API endpoint from the configuration
   // It is automatically set by the syste,
   val config = ConfigFactory.load()
-  val apiEndpoint = config.getString("blikk.app.apiEndpoint")
+  val rabbitMQUrl = config.getString("blikk.app.rabbitMQ.uri")
 
   // Start a new crawler app
   implicit val system = ActorSystem("appName")
-  val app = new CrawlerApp(apiEndpoint, appName)
+  val app = new CrawlerApp(rabbitMQUrl, appName)
 
   // Create a new stream context
   implicit val streamContext = app.start[CrawlItem]()
@@ -60,16 +60,22 @@ object Main extends App {
     }
 
     val graph = FlowGraph { implicit b =>
+      val frontierMerge = Merge[WrappedHttpRequest]
       // Broadcast all items that were succesfully fetched
-      src.append(statusCodeFilter) ~> bcast
+      src.buffer(5000, OverflowStrategy.backpressure).append(statusCodeFilter) ~> bcast
       // Exract links and request new URLs from the crawler
-      bcast ~> reqExtractor.append(dupFilter).withSink(frontierSink)
+      bcast ~> reqExtractor.append(dupFilter) ~> frontierMerge
       // Count words and aggregate
       bcast ~> wordCounter ~> countAggregator
       // Terminate on conditions (more than 10 links fetched)
       bcast ~> terminationSink
       // Logging
       bcast ~> ForeachSink[CrawlItem]{ item => log.info("processing: {}", item.req.uri.toString) }
+      // Iniate the crawl with the seeds
+      FlowFrom(seedUrls) ~> frontierMerge
+      frontierMerge ~> 
+        FlowFrom[WrappedHttpRequest].map{ req => log.info("Adding to frontier: {}", req.uri.toString); req } 
+        .withSink(frontierSink)
     }.run()
 
     // When the stream is over print the result
@@ -82,9 +88,6 @@ object Main extends App {
         log.error(err.toString)
         streamContext.shutdown()
     }
-
-    // Iniate the crawl with the seeds
-    seedUrls.foreach(streamContext.api ! _)
-
+    
     system.awaitTermination()
 }

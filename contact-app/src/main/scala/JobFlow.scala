@@ -23,7 +23,7 @@ object ContactExtractionFlow {
   rabbitFactory.setUri(rabbitUrl)
   val rabbitConn = rabbitFactory.newConnection()
 
-  def create(appId: String, maxPages: Int, maxTime: FiniteDuration, startUrl: String)
+  def create(maxPages: Int, maxTime: FiniteDuration, startUrl: String)
   (implicit ctx: StreamContext[CrawlItem]) : MaterializedFlowGraph = {
     
     import ctx._
@@ -78,6 +78,7 @@ object ContactExtractionFlow {
       dataBroadcast ~> dataSink
       dataBroadcast ~> rabbitSink
       dataBroadcast ~> ForeachSink[Event] { event => log.info("{}", event)}
+      FlowFrom(seedUrls).withSink(frontierSink)
     }.run()
 
     // Handle the result

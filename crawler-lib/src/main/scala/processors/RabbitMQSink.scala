@@ -2,6 +2,7 @@ package org.blikk.crawler.processors
 
 import akka.actor._
 import akka.stream.actor._
+import akka.stream.scaladsl2._
 import com.rabbitmq.client.{Connection => RabbitConnection, Channel => RabbitChannel, AMQP}
 import org.blikk.crawler.RabbitExchangeDefinition
 import scala.util.{Try, Success, Failure}
@@ -9,6 +10,12 @@ import scala.util.{Try, Success, Failure}
 object RabbitMQSink {
   def props[A](conn: RabbitConnection, rabbitExchange: RabbitExchangeDefinition) 
     (ser: A => (Array[Byte], String)) = Props(classOf[RabbitMQSink[A]], conn, rabbitExchange, ser)
+
+  def build[A](conn: RabbitConnection, rabbitExchange: RabbitExchangeDefinition) 
+    (ser: A => (Array[Byte], String))(implicit system: ActorSystem) : SubscriberSink[A] = {
+      val rabbitSinkActor = system.actorOf(RabbitMQSink.props(conn, rabbitExchange)(ser))
+      SubscriberSink(ActorSubscriber[A](rabbitSinkActor))
+    }
 }
 
 /**
@@ -32,6 +39,7 @@ class RabbitMQSink[A](conn: RabbitConnection, rabbitExchange: RabbitExchangeDefi
     log.info("initializing RabbitMQ exchange {}", rabbitExchange.name)
     rabbitMQChannel.get().exchangeDeclare(rabbitExchange.name, 
       rabbitExchange.exchangeType, rabbitExchange.durable) 
+    log.info("started")
   }
 
   def receive = {
