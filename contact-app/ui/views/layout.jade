@@ -1,0 +1,23 @@
+doctype html
+html(ng-app="blikk-contactapp")
+  head
+    title Contact data extractor
+    link(rel="stylesheet", href="/normalize.css/normalize.css")
+    link(rel="stylesheet", href="/bootstrap/dist/css/bootstrap.min.css")
+    link(rel="stylesheet", href="/bootstrap-material-design/css-compiled/material.css")
+    link(rel="stylesheet", href="/bootstrap-material-design/css-compiled/material-wfont.css")
+    link(rel="stylesheet", href="/bootstrap-material-design/css-compiled/ripples.css")
+    link(rel="stylesheet", href="/bootstrap-material-design/icons/icons-material-design.css")
+    link(rel="stylesheet", href="/font-awesome/css/font-awesome.css")
+    link(rel="stylesheet", href="/stylesheets/style.css")
+    script(src="/jquery/dist/jquery.min.js")
+    script(src="/underscore/underscore-min.js")
+    script(src="/angular/angular.min.js")
+    script(src="/angular-route/angular-route.min.js")
+    script(data-main="/javascripts/app.js", src="/require.js/build/require.min.js")
+    script(src="/bootstrap/dist/js/bootstrap.min.js")    
+    script(src="/bootstrap-material-design/scripts/ripples.js")
+    script(src="/bootstrap-material-design/scripts/material.js")
+  body
+    .container-fluid
+      div(ng-view)

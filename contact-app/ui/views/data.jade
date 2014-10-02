@@ -1,0 +1,25 @@
+.row
+  .col-md-8
+    .panel.panel-default
+      .panel-heading Contact information
+      .panel-body
+        br/
+        .list-group
+          div(ng-repeat="extraction in extractions track by $index")
+            .list-group-item
+              .row-action-primary
+                i.icon-material-email2(ng-if="extraction.extractionType == 'email'")
+                i.icon-material-phone(ng-if="extraction.extractionType == 'phone'")
+              .row-content
+                h4.list-group-item-heading {{extraction.value}}
+                p.list-group-item-text {{extraction.src}}
+            .list-group-separator
+  .col-md-4
+    .panel.panel-default
+      .panel-heading Crawled URLs
+      .panel-body
+        p(ng-repeat="url in urls track by $index") 
+          {{url}}
+
+
+

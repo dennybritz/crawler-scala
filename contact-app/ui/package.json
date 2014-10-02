@@ -1,0 +1,21 @@
+{
+  "name": "blikk-contactapp",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "start": "node ./bin/www"
+  },
+  "dependencies": {
+    "amqp": "^0.2.0",
+    "body-parser": "~1.0.0",
+    "cookie-parser": "~1.0.1",
+    "debug": "^0.7.4",
+    "express": "^4.2.0",
+    "jade": "~1.3.0",
+    "less-middleware": "^1.0.4",
+    "morgan": "~1.0.0",
+    "node-uuid": "^1.4.1",
+    "request": "^2.44.0",
+    "static-favicon": "~1.0.0"
+  }
+}
