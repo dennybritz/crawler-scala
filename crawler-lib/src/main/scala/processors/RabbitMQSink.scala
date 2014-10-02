@@ -55,7 +55,7 @@ class RabbitMQSink[A](rabbitMQChannel: RabbitChannel, rabbitExchange: RabbitExch
   /* Writes the item to RabbitMQ */
   def writeData(item: A) : Unit = {
     val Tuple2(serializedItem, routingKey) = ser(item)
-    log.debug("writing numBytes={} to RabbitMQ", serializedItem.size)
+    log.info("writing numBytes={} to RabbitMQ with routingKey={}", serializedItem.size, routingKey)
     rabbitMQChannel.basicPublish(rabbitExchange.name, routingKey, null, serializedItem)
   }
 
