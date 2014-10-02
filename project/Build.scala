@@ -61,6 +61,7 @@ object BlikkBuild extends Build {
     "com.typesafe.akka" %% "akka-slf4j" % "2.3.5",
     "com.typesafe.akka" %% "akka-remote" % "2.3.5",
     "io.spray" %% "spray-can" % "1.3.1",
+    "io.spray" %% "spray-client" % "1.3.1",
     "io.spray" %% "spray-http" % "1.3.1",
     "io.spray" %%  "spray-json" % "1.3.0",
     "org.jsoup" % "jsoup" % "1.7.3",

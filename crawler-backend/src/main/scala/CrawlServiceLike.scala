@@ -15,6 +15,8 @@ import scala.collection.immutable.Seq
 import scala.util.{Try, Success, Failure}
 import spray.can.Http
 import spray.http._
+import spray.httpx.encoding._
+import spray.httpx.ResponseTransformation._
 
 trait CrawlServiceLike { 
   this: Actor with ActorLogging with ImplicitFlowMaterializer =>
@@ -80,7 +82,8 @@ trait CrawlServiceLike {
   /* Executes a FetchRequest using Spray's request-level library */
   def executeFetchRequest(fetchReq: FetchRequest) : Unit = {
     log.info("fetching url=\"{}\"", fetchReq.req.uri.toString)
-    (IO(Http) ? fetchReq.req.req).mapTo[HttpResponse].map { res =>
+    val respFuture = (IO(Http) ? fetchReq.req.req).mapTo[HttpResponse]
+    (respFuture.map(decode(NoEncoding) ~> decode(Gzip) ~> decode(Deflate))).map { res =>
       FetchResponse(fetchReq, res)
     } pipeTo responsePublisher
   }
