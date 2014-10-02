@@ -34,7 +34,7 @@ class CrawlerApp(rabbitMQUri: String, appId: String)
     val channel = connection.createChannel()
     // Create the flow
     val publisherActor = system.actorOf(RabbitPublisher.props(
-      channel, queue, exchange, routingKey), "rabbitMQPublisher")
+      channel, queue, exchange, routingKey), s"rabbitMQPublisher-${appId}")
     val publisher = ActorPublisher[Array[Byte]](publisherActor)
     val flow = FlowFrom(publisher).map { element =>
       SerializationUtils.deserialize[A](element)

@@ -15,7 +15,7 @@ object TerminationSink {
 
     FoldSink[CrawlStats, CrawlItem](zeroStats) { (currentStats, item) =>
       val newStats = currentStats.update(item)
-      if(f(newStats)) {
+      if(f(newStats) && !f(currentStats) ) {
         // Shutdown if the termination condition is fulfilled
         log.info("Terminating with: {}", newStats)
         ctx.publisher !  RabbitPublisher.CompleteStream

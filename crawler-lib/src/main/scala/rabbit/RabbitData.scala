@@ -23,6 +23,9 @@ case class RabbitExchangeDefinition(
   */
 object RabbitData extends Logging {
 
+  // The RabbitMQ default exchange
+  val DefaultExchange = RabbitExchangeDefinition("", "direct", true)
+
   // Used to exchange messages between crawl platform and crawl apps
   val DataExchange = RabbitExchangeDefinition("com.blikk.crawler.data-x", "direct", true)
 

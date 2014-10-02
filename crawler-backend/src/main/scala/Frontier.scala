@@ -28,7 +28,7 @@ class Frontier(rabbitConn: RabbitConnection, target: ActorRef)
   val rabbitRoutingKey = "#"
 
   // Delay for requests to the same domain
-  val defaultDelay = 500 
+  val defaultDelay = 750 
   // We can keep this many messages per domain in a buffer 
   val perDomainBuffer = 5000
 
@@ -45,7 +45,7 @@ class Frontier(rabbitConn: RabbitConnection, target: ActorRef)
       val tickSrc = FlowFrom(0 millis, defaultDelay.millis, () => "tick")
       val zip = Zip[String, FetchRequest]
       FlowGraph { implicit b =>
-        tickSrc ~> zip.left
+        tickSrc.buffer(1, OverflowStrategy.dropTail) ~> zip.left
         domainFlow.buffer(perDomainBuffer, OverflowStrategy.backpressure) ~> zip.right
         zip.out ~> FlowFrom[(String, FetchRequest)].map(_._2)
           .withSink(ForeachSink[FetchRequest](routeFetchRequestGlobally))

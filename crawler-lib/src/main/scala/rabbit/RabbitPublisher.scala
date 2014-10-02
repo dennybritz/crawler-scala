@@ -35,7 +35,8 @@ class RabbitPublisher(channel: Channel, queue: RabbitQueueDefinition,
     log.info("susbcribing consumer to RabbitMQ queue...")
     assignedQueue = channel.queueDeclare(queue.name, queue.durable, 
       queue.exclusive, queue.autoDelete, queue.options).getQueue
-    channel.queueBind(assignedQueue, exchange.name, routingKey)
+    if (exchange != RabbitData.DefaultExchange)
+      channel.queueBind(assignedQueue, exchange.name, routingKey)
     log.info("bound queue {} to exchange {}", assignedQueue, exchange.name)
     // Wait until we are active
     // TODO: This is ugly, refactor it into an FSM?
@@ -51,7 +52,8 @@ class RabbitPublisher(channel: Channel, queue: RabbitQueueDefinition,
       log.info("cancelling rabbitMQ consumption for {}", consumerTag)
       channel.basicCancel(consumerTag)
       log.info("unbinding rabbitMQ queue {}", assignedQueue)
-      channel.queueUnbind(queue.name, exchange.name, routingKey)
+      if (exchange != RabbitData.DefaultExchange) 
+        channel.queueUnbind(queue.name, exchange.name, routingKey)
       channel.close()
     }
   }

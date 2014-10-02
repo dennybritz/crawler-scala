@@ -18,15 +18,15 @@ class JobManager(apiEndpoint: String) extends Actor with ActorLogging {
   implicit val _system = context.system
   import context.dispatcher
 
-  val maxPages = 500
+  val maxPages = 100
   val activeJobs = MutableMap[String, StreamContext[CrawlItem]]()
 
   def receive = {
-    case msg @ StartJob(url, callbackUrl, timeLimit) =>
-      val appId = s"com.bikk.contactapp.${java.util.UUID.randomUUID()}"
+    case msg @ StartJob(url, appId, timeLimit) =>
+      //val appId = s"com.bikk.contactapp.${java.util.UUID.randomUUID()}"
       log.info("starting new job {} with appID={}", msg, appId)
       sender ! appId
-      startJob(appId, url, callbackUrl, timeLimit)
+      startJob(appId, url, timeLimit)
     case Terminated(someActor) =>
       activeJobs.find(_._2.publisher == someActor) foreach { case Tuple2(appId, streamContext) =>
         log.info("app={} has shut down", appId)
@@ -39,7 +39,7 @@ class JobManager(apiEndpoint: String) extends Actor with ActorLogging {
       context.system.shutdown()
   }
 
-  def startJob(appId: String, startUrl: String, callbackUrl: String, timeLimit: FiniteDuration) : Unit = {
+  def startJob(appId: String, startUrl: String, timeLimit: FiniteDuration) : Unit = {
     // Create a new app and stream context
     val app = new CrawlerApp(apiEndpoint, appId)
     val streamContext = app.start[CrawlItem]()

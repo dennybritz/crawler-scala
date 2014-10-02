@@ -1,21 +1,22 @@
 package org.blikk.contactapp
 
-import akka.io._
-import spray.can._
-import spray.http._
-import akka.stream._
+import akka.actor.ActorSystem
+import akka.stream.actor._
 import akka.stream.scaladsl2._
 import akka.stream.scaladsl2.FlowGraphImplicits._
-import akka.actor.ActorSystem
+import com.rabbitmq.client.{Connection => RabbitMQConnection, ConnectionFactory => RabbitMQCF}
 import com.typesafe.config.ConfigFactory
 import org.blikk.crawler._
 import org.blikk.crawler.app._
 import org.blikk.crawler.processors._
-import org.jsoup.Jsoup
-import scala.util.{Success, Failure}
 import scala.concurrent.duration._
+import spray.can._
+import spray.http._
+import spray.json._
+import JsonProtocols._
 
-object Main extends App {
+
+object Main extends App with ImplicitLogging {
 
   // Get the API endpoint from the configuration
   // It is automatically set by the syste,
@@ -24,10 +25,21 @@ object Main extends App {
 
   implicit val system = ActorSystem("contact-app")
   val jobManager = system.actorOf(JobManager.props(rabbitMQUri), "jobManager")
-  //val api = system.actorOf(HttpApi.props(jobManager), "api")
-  //IO(Http) ! Http.Bind(api, "localhost", 9090)
 
-  jobManager ! StartJob("https://news.ycombinator.com/", "", 2.minutes)
+  // Create a Flow for reading jobs from RabbitMQ
+  val rabbitFactory = new RabbitMQCF()
+  rabbitFactory.setUri(rabbitMQUri)
+  val rabbitConn = rabbitFactory.newConnection()
+  val requestQueue = RabbitQueueDefinition("com.blikk.contactapp.requests", true, false, false)
+  val requestActor = system.actorOf(RabbitPublisher.props(rabbitConn.createChannel(), requestQueue, 
+    RabbitData.DefaultExchange, "com.blikk.contactapp.requests"), "requestPublisher")
+  val requestFlow = FlowFrom(ActorPublisher[Array[Byte]](requestActor))
+  implicit val materializer = FlowMaterializer(akka.stream.MaterializerSettings(system))
+  requestFlow.withSink(ForeachSink[Array[Byte]] { item =>
+    val requestObj = new String(item).parseJson.convertTo[Request]
+    log.info("New request url=\"{}\" appId=\"{}\"", requestObj.url, requestObj.appId)
+    jobManager ! StartJob(requestObj.url, requestObj.appId, 5.minutes)
+  }).run()
 
   system.awaitTermination()
   

@@ -1,24 +1,27 @@
 package org.blikk.contactapp
 
 import akka.stream.actor._
+import akka.stream.OverflowStrategy
 import akka.stream.scaladsl2._
 import akka.stream.scaladsl2.FlowGraphImplicits._
-import com.typesafe.config.ConfigFactory
 import com.rabbitmq.client.{Connection => RabbitMQConnection, ConnectionFactory => RabbitMQCF}
+import com.typesafe.config.ConfigFactory
+import java.util.concurrent.atomic.AtomicInteger
+import JsonProtocols._
 import org.blikk.crawler._
 import org.blikk.crawler.app._
 import org.blikk.crawler.processors._
-import scala.util.{Success, Failure}
 import scala.concurrent.duration._
-import play.api.libs.json._
+import scala.util.{Success, Failure}
+import spray.json._
 
 object ContactExtractionFlow {
   
   /* Initial RabbitMQ Setup */
   val config = ConfigFactory.load()
   val rabbitUrl = config.getString("org.blikk.contactapp.rabbitMQUrl")
-  val rabbitExchangeName = config.getString("org.blikk.contactapp.rabbitMQExchange")
-  val rabbitExchangeDef = RabbitExchangeDefinition(rabbitExchangeName, "direct", true)
+  //val rabbitExchangeName = config.getString("org.blikk.contactapp.rabbitMQExchange")
+  //val rabbitExchangeDef = RabbitExchangeDefinition(rabbitExchangeName, "direct", true)
   val rabbitFactory = new RabbitMQCF()
   rabbitFactory.setUri(rabbitUrl)
   val rabbitConn = rabbitFactory.newConnection()
@@ -37,7 +40,7 @@ object ContactExtractionFlow {
     val statusCodeFilter = StatusCodeFilter.build()
     val itemExtractor = FlowFrom[CrawlItem].map { item =>
       DataExtractor.extract(item.res.stringEntity, item.req.uri.toString).map { contactItem =>
-        Event(contactItem.toString, "extracted", System.currentTimeMillis)
+        Event(contactItem.toJson.compactPrint, "extracted", System.currentTimeMillis)
       }
     }.mapConcat(identity)
 
@@ -45,10 +48,9 @@ object ContactExtractionFlow {
     // ==================================================
     val dataSink = FoldSink[List[Event], Event](Nil) { _ :+ _}
     val rabbitSinkActor = ctx.system.actorOf(
-      RabbitMQSink.props[Event](rabbitConn, rabbitExchangeDef) { item =>
-      // TODO: JSON
-      (item.toString.getBytes, appId)
-    })
+      RabbitMQSink.props[Event](rabbitConn, RabbitData.DefaultExchange) { item =>
+      (item.toJson.compactPrint.getBytes, appId + "-out")
+    }, s"sink-${ctx.appId}")
     val rabbitSink = SubscriberSink(ActorSubscriber[Event](rabbitSinkActor))
     val terminationSink = TerminationSink.build {_.numFetched >= maxPages}
 
@@ -63,6 +65,11 @@ object ContactExtractionFlow {
       Event(ci.req.uri.toString, "url_processed", System.currentTimeMillis) }
     val eventMerge = Merge[Event]
     val frontierMerge = Merge[WrappedHttpRequest]
+    // Used to limit things we put into the frontier. Ugly, but needed to finish this quickly.
+    val numFrontierRequests = new AtomicInteger(0);
+    val frontierFilter = FlowFrom[WrappedHttpRequest].filter{ req =>
+      numFrontierRequests.getAndIncrement() < maxPages
+    }
     
     val mfg = FlowGraph { implicit b =>
       // Broadcast all items that were succesfully fetched
@@ -80,13 +87,13 @@ object ContactExtractionFlow {
       dataBroadcast ~> ForeachSink[Event] { event => log.info("{}", event)}
 
       FlowFrom(seedUrls) ~> frontierMerge
-      frontierMerge ~> frontierSink
+      frontierMerge ~> frontierFilter ~> frontierSink
     }.run()
 
     // Handle the result
     dataSink.future(mfg).onComplete { 
       case Success(finalResult) =>
-        log.info(finalResult.toString)
+        //log.info("{}: {}", ctx.appId, finalResult.toString)
         ctx.shutdown()
       case Failure(err) => 
         log.error(err.toString)

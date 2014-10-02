@@ -4,7 +4,7 @@ import akka.actor._
 import akka.stream.actor._
 import akka.stream.scaladsl2._
 import com.rabbitmq.client.{Connection => RabbitConnection, Channel => RabbitChannel, AMQP}
-import org.blikk.crawler.RabbitExchangeDefinition
+import org.blikk.crawler.{RabbitData, RabbitExchangeDefinition}
 import scala.util.{Try, Success, Failure}
 
 object RabbitMQSink {
@@ -37,8 +37,9 @@ class RabbitMQSink[A](conn: RabbitConnection, rabbitExchange: RabbitExchangeDefi
   override def preStart(){
     log.info("starting")
     log.info("initializing RabbitMQ exchange {}", rabbitExchange.name)
-    rabbitMQChannel.get().exchangeDeclare(rabbitExchange.name, 
-      rabbitExchange.exchangeType, rabbitExchange.durable) 
+    if (rabbitExchange != RabbitData.DefaultExchange)
+      rabbitMQChannel.get().exchangeDeclare(rabbitExchange.name, 
+        rabbitExchange.exchangeType, rabbitExchange.durable) 
     log.info("started")
   }
 

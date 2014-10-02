@@ -21,8 +21,7 @@ case class StreamContext[A](appId: String, flow: FlowWithSource[Array[Byte],A], 
   def shutdown(){
     system.synchronized {
       log.info("shutting down")
-      system.shutdown()
-      system.awaitTermination()
+      _system.stop(publisher)
     }
   }
 
