@@ -3,6 +3,13 @@
     .panel.panel-default
       .panel-heading Contact information
       .panel-body
+        p
+          span.label.label-default {{appStatus}}
+          &nbsp;
+          span.label.label-info {{numSecondsElapsed}} seconds
+          &nbsp;
+          span.label.label-success {{extractions.length}} items
+        br/
         br/
         .list-group
           div(ng-repeat="extraction in extractions track by $index")
@@ -12,13 +19,16 @@
                 i.icon-material-phone(ng-if="extraction.extractionType == 'phone'")
               .row-content
                 h4.list-group-item-heading {{extraction.value}}
-                p.list-group-item-text {{extraction.src}}
+                p.list-group-item-text
+                  a(href='{{extraction.src}}' target="_blank"){{extraction.src}}
             .list-group-separator
   .col-md-4
     .panel.panel-default
       .panel-heading Crawled URLs
       .panel-body
-        p(ng-repeat="url in urls track by $index") 
+        p Total URLs crawled: 
+          strong {{urls.length}}
+        p(ng-repeat="url in urls track by $index", style="word-wrap: break-word;")
           {{url}}
 
 

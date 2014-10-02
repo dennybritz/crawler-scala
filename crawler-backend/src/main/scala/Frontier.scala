@@ -11,6 +11,7 @@ import scala.collection.JavaConversions._
 import scala.collection.mutable.{Map => MutableMap}
 import scala.collection.immutable.Seq
 import scala.concurrent.duration._
+import org.blikk.crawler.processors.ThrottleTransformer
 
 object Frontier {
   def props(rabbitConn: RabbitConnection, target: ActorRef) = {
@@ -40,16 +41,21 @@ class Frontier(rabbitConn: RabbitConnection, target: ActorRef)
 
     FlowFrom(publisher).map { element =>
       SerializationUtils.deserialize[FetchRequest](element)
-    }.groupBy(_.req.host.trim).withSink(ForeachSink { case(key, domainFlow) =>
+    }.groupBy(_.req.tld.trim).withSink(ForeachSink { case(key, domainFlow) =>
       log.info("starting new request stream for {}", key)
       val tickSrc = FlowFrom(0 millis, defaultDelay.millis, () => "tick")
       val zip = Zip[String, FetchRequest]
-      FlowGraph { implicit b =>
-        tickSrc.buffer(1, OverflowStrategy.dropTail) ~> zip.left
-        domainFlow.buffer(perDomainBuffer, OverflowStrategy.backpressure) ~> zip.right
-        zip.out ~> FlowFrom[(String, FetchRequest)].map(_._2)
-          .withSink(ForeachSink[FetchRequest](routeFetchRequestGlobally))
-      }.run()
+      domainFlow.buffer(perDomainBuffer, OverflowStrategy.backpressure)
+        .timerTransform("throttle", () => new ThrottleTransformer[FetchRequest](defaultDelay.millis))
+        .withSink(ForeachSink[FetchRequest](routeFetchRequestGlobally))
+        .run()
+      // FlowGraph { implicit b =>
+      //   //tickSrc ~> zip.left
+
+      //      //~> zip.right
+      //   // zip.out ~> FlowFrom[(String, FetchRequest)].map(_._2)
+      //   //   .withSink(ForeachSink[FetchRequest](routeFetchRequestGlobally))
+      // }.run()
     }).run()
 
     // We need to wait a while before the rabbit consumer is done with binding

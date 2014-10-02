@@ -43,26 +43,25 @@ router.get("/data/:appId", function(req, res) {
   var appId = "com.blikk.contactapp." + req.params.appId;
   var queueName = appId + "-out";
   
-  // Create a new readable stream
-  var rs = new stream.Readable();
-  rs._read = function (){};
+  res.set("Content-Type", "text/event-stream");
+  res.setHeader('Transfer-Encoding', 'chunked');
 
   // Subscribe to the rabbitMQ queue
   console.log("Reading from queue " + queueName);
   var q = rabbitConnection.queue(queueName, function (queue) {
     queue.subscribe(function (message, headers, deliveryInfo, messageObject) {
-      var msgString = message.data.toString();
-      var eventObj = JSON.parse(msgString);
+      var eventObj = JSON.parse(message.data.toString());
       var eventStr = 
         "event: " + eventObj.eventType + "\n" +
         "data: " + eventObj.payload;
       console.log(eventObj);
-      rs.push(eventStr + "\n\n");
+      res.write(eventStr + "\n\n");
+      if(eventObj.eventType === "terminated"){
+        res.end()
+        queue.destroy()
+      }
     });
   });
-
-  res.set("Content-Type", "text/event-stream");
-  rs.pipe(res);
 });
 
 module.exports = router;

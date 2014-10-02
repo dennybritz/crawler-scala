@@ -38,7 +38,7 @@ object Main extends App with ImplicitLogging {
   requestFlow.withSink(ForeachSink[Array[Byte]] { item =>
     val requestObj = new String(item).parseJson.convertTo[Request]
     log.info("New request url=\"{}\" appId=\"{}\"", requestObj.url, requestObj.appId)
-    jobManager ! StartJob(requestObj.url, requestObj.appId, 5.minutes)
+    jobManager ! StartJob(requestObj.url, requestObj.appId, 30.seconds)
   }).run()
 
   system.awaitTermination()

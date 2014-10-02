@@ -25,28 +25,43 @@ angular.module("blikk-contactapp", ["ngRoute"])
 
 }])
 
-.controller("dataController", ["$http", "$scope", "$routeParams", function($http, $scope, $routeParams) {
+.controller("dataController", ["$http", "$scope", "$routeParams", "$interval", 
+  function($http, $scope, $routeParams, $interval) {
   
   $scope.appId = $routeParams.appId;
   $scope.extractions = [];
   $scope.urls = [];
+  $scope.numSecondsElapsed = 0;
+  $scope.appStatus = "Waiting" 
   var dataUrl = "/data/"+ $scope.appId;
   
+  var timerPromise = $interval(function(){
+    $scope.numSecondsElapsed += 1;
+  }, 1000);
+
+
   var source = new EventSource(dataUrl);
+
   source.addEventListener("extracted", function(msg){ 
-    console.log(msg.data);
     var extraction = JSON.parse(msg.data.toString());
-    console.log(extraction);
+    //console.log($scope.appId  + ": " + extraction);
     $scope.extractions.push(extraction);
     $scope.extractions = _.uniq($scope.extractions, false, function(x) { return x.value; });
     $scope.$digest();
   }, false);
 
   source.addEventListener("url_processed", function(msg){ 
-    var url = msg.data;
-    console.log(url);
+    $scope.appStatus = "Running";
+    var url = msg.data.toString();
+    //console.log($scope.appId + ": " + url);
     $scope.urls.push(url);
     $scope.$digest();
   }, false);
+
+  source.addEventListener("terminated", function(msg){
+    source.close();
+    $interval.cancel(timerPromise);
+    $scope.appStatus = "Finished"; 
+  });
 
 }])

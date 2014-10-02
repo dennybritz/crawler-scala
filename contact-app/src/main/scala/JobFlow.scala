@@ -2,6 +2,7 @@ package org.blikk.contactapp
 
 import akka.stream.actor._
 import akka.stream.OverflowStrategy
+import akka.stream.actor.ActorSubscriberMessage._
 import akka.stream.scaladsl2._
 import akka.stream.scaladsl2.FlowGraphImplicits._
 import com.rabbitmq.client.{Connection => RabbitMQConnection, ConnectionFactory => RabbitMQCF}
@@ -84,8 +85,7 @@ object ContactExtractionFlow {
       bcast ~> terminationSink
       dataBroadcast ~> dataSink
       dataBroadcast ~> rabbitSink
-      dataBroadcast ~> ForeachSink[Event] { event => log.info("{}", event)}
-
+      dataBroadcast ~> ForeachSink[Event] { event => log.info("appId={} event=\"{}\"", appId, event)}
       FlowFrom(seedUrls) ~> frontierMerge
       frontierMerge ~> frontierFilter ~> frontierSink
     }.run()
@@ -93,8 +93,8 @@ object ContactExtractionFlow {
     // Handle the result
     dataSink.future(mfg).onComplete { 
       case Success(finalResult) =>
-        //log.info("{}: {}", ctx.appId, finalResult.toString)
         ctx.shutdown()
+        // Send a terminated event        
       case Failure(err) => 
         log.error(err.toString)
         ctx.shutdown()
