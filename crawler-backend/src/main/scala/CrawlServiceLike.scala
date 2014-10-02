@@ -79,7 +79,7 @@ trait CrawlServiceLike {
 
   /* Executes a FetchRequest using Spray's request-level library */
   def executeFetchRequest(fetchReq: FetchRequest) : Unit = {
-    log.info("fetching {}", fetchReq.req.uri.toString)
+    log.info("fetching url=\"{}\"", fetchReq.req.uri.toString)
     (IO(Http) ? fetchReq.req.req).mapTo[HttpResponse].map { res =>
       FetchResponse(fetchReq, res)
     } pipeTo responsePublisher
