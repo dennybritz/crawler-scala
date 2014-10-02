@@ -22,7 +22,6 @@ case class StreamContext[A](appId: String, flow: FlowWithSource[Array[Byte],A], 
     system.synchronized {
       log.info("shutting down app={}", appId)
       _system.stop(publisher)
-      _rabbitChannel.close()
     }
   }
 
