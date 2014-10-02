@@ -44,7 +44,8 @@ class RabbitMQSubscriber(rabbitMQChannel: RabbitChannel) extends Actor with Acto
     SerializationUtils.serialize(fetchRes.res)
     val item = CrawlItem(fetchRes.fetchReq.req, fetchRes.res)
     val serializedItem = SerializationUtils.serialize(item)
-    log.debug("writing numBytes={} to RabbitMQ", serializedItem.size)
+    log.debug("writing result for url=\"{}\" appId=\"{}\" numBytes={} to RabbitMQ", 
+      fetchRes.fetchReq.req.uri, fetchRes.fetchReq.appId, serializedItem.size)
     rabbitMQChannel.basicPublish(
       RabbitData.DataExchange.name, 
       fetchRes.fetchReq.appId, 
