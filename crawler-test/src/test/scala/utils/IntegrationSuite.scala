@@ -25,6 +25,7 @@ class IntegrationSuite(val name: String) extends FunSpec with BeforeAndAfter wit
   var addresses = ArrayBuffer[String]()
 
   override def beforeAll(){
+    RabbitData.setRabbitUri(TestConfig.RabbitMQUri)
     clearRabbitMQ()
     deleteQueue(appId)
     TestHttpServer.start()(httpSystem)
@@ -58,7 +59,7 @@ class IntegrationSuite(val name: String) extends FunSpec with BeforeAndAfter wit
     cluster.joinSeedNodes(List(AddressFromURIString.parse(
       addresses.headOption.getOrElse(newAddress))))
     val newService = newSystem.actorOf(
-      CrawlService.props(rabbitFactory.newConnection()), s"crawl-service")
+      CrawlService.props, s"crawl-service")
     services += newService
     val newApi = newSystem.actorOf(ApiLayer.props(newService), "api")
     apis += newApi
@@ -72,7 +73,7 @@ class IntegrationSuite(val name: String) extends FunSpec with BeforeAndAfter wit
       akka.actor.provider = akka.remote.RemoteActorRefProvider
       """).withFallback(buildConfig("localhost", 0))
     val system = ActorSystem(appId, config)
-    val client = new CrawlerApp(TestConfig.RabbitMQUri, appId)(system)
+    val client = new CrawlerApp(appId)(system)
     client.start[CrawlItem]()
   }
 

@@ -17,15 +17,6 @@ import scala.util.{Success, Failure}
 import spray.json._
 
 object ContactExtractionFlow {
-  
-  /* Initial RabbitMQ Setup */
-  val config = ConfigFactory.load()
-  val rabbitUrl = config.getString("org.blikk.contactapp.rabbitMQUrl")
-  //val rabbitExchangeName = config.getString("org.blikk.contactapp.rabbitMQExchange")
-  //val rabbitExchangeDef = RabbitExchangeDefinition(rabbitExchangeName, "direct", true)
-  val rabbitFactory = new RabbitMQCF()
-  rabbitFactory.setUri(rabbitUrl)
-  val rabbitConn = rabbitFactory.newConnection()
 
   def create(maxPages: Int, maxTime: FiniteDuration, startUrl: String)
   (implicit ctx: StreamContext[CrawlItem]) : MaterializedFlowGraph = {
@@ -49,7 +40,7 @@ object ContactExtractionFlow {
     // ==================================================
     val dataSink = FoldSink[List[Event], Event](Nil) { _ :+ _}
     val rabbitSinkActor = ctx.system.actorOf(
-      RabbitMQSink.props[Event](rabbitConn, RabbitData.DefaultExchange) { item =>
+      RabbitMQSink.props[Event](RabbitData.createChannel(), RabbitData.DefaultExchange) { item =>
       (item.toJson.compactPrint.getBytes, appId + "-out")
     }, s"sink-${ctx.appId}")
     val rabbitSink = SubscriberSink(ActorSubscriber[Event](rabbitSinkActor))

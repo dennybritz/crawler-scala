@@ -15,7 +15,8 @@ object FrontierSink {
   def build()(implicit ctx: StreamContext[_]) : SubscriberSink[WrappedHttpRequest] = {
     import ctx.system
     val appId = ctx.appId
-    RabbitMQSink.build[WrappedHttpRequest](ctx.rabbitConnection, 
+    RabbitMQSink.build[WrappedHttpRequest](
+      ctx.rabbitChannel, 
       RabbitData.FrontierExchange) { req =>
       val fetchReq = FetchRequest(req, appId)
       val serializedItem = SerializationUtils.serialize(fetchReq)

@@ -2,7 +2,7 @@ package org.blikk.crawler.app
 
 import akka.actor._
 import akka.stream.scaladsl2.{FlowWithSource, FlowMaterializer}
-import com.rabbitmq.client.{Connection => RabbitConnection}
+import com.rabbitmq.client.{Channel => RabbitChannel}
 import org.blikk.crawler.ImplicitLogging
 
 /** 
@@ -11,17 +11,18 @@ import org.blikk.crawler.ImplicitLogging
   * The flow of the streaming context can only be consumed once.
   */
 case class StreamContext[A](appId: String, flow: FlowWithSource[Array[Byte],A], publisher: ActorRef)
-  (implicit _system: ActorSystem, _rabbitConn: RabbitConnection, _materializer: FlowMaterializer) 
+  (implicit _system: ActorSystem, _rabbitChannel: RabbitChannel, _materializer: FlowMaterializer) 
   extends ImplicitLogging {
 
   implicit val materializer = _materializer
   implicit val system = _system
-  implicit val rabbitConnection = _rabbitConn
+  implicit val rabbitChannel = _rabbitChannel
 
   def shutdown(){
     system.synchronized {
-      log.info("shutting down")
+      log.info("shutting down app={}", appId)
       _system.stop(publisher)
+      _rabbitChannel.close()
     }
   }
 

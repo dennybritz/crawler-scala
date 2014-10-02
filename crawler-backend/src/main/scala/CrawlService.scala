@@ -11,12 +11,11 @@ import scala.concurrent.duration._
 
 
 object CrawlService {
-  def props(rabbitMQ: RabbitMQConnection) 
-    = Props(classOf[CrawlService], rabbitMQ)
+  def props() = Props(classOf[CrawlService])
 }
 
-class CrawlService(implicit val rabbitMQ: RabbitMQConnection) 
-  extends CrawlServiceLike with Actor with ActorLogging with ImplicitFlowMaterializer {
+class CrawlService extends CrawlServiceLike 
+  with Actor with ActorLogging with ImplicitFlowMaterializer {
 
   val serviceRouter : ActorRef = context.actorOf(ClusterRouterGroup(
     ConsistentHashingGroup(Nil), ClusterRouterGroupSettings(

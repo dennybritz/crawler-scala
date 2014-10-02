@@ -8,37 +8,32 @@ import org.blikk.crawler.{RabbitData, RabbitExchangeDefinition}
 import scala.util.{Try, Success, Failure}
 
 object RabbitMQSink {
-  def props[A](conn: RabbitConnection, rabbitExchange: RabbitExchangeDefinition) 
-    (ser: A => (Array[Byte], String)) = Props(classOf[RabbitMQSink[A]], conn, rabbitExchange, ser)
+  def props[A](channel: RabbitChannel, rabbitExchange: RabbitExchangeDefinition) 
+    (ser: A => (Array[Byte], String)) = Props(classOf[RabbitMQSink[A]], channel, rabbitExchange, ser)
 
-  def build[A](conn: RabbitConnection, rabbitExchange: RabbitExchangeDefinition) 
+  def build[A](channel: RabbitChannel, rabbitExchange: RabbitExchangeDefinition) 
     (ser: A => (Array[Byte], String))(implicit system: ActorSystem) : SubscriberSink[A] = {
-      val rabbitSinkActor = system.actorOf(RabbitMQSink.props(conn, rabbitExchange)(ser))
+      val rabbitSinkActor = system.actorOf(RabbitMQSink.props(channel, rabbitExchange)(ser))
       SubscriberSink(ActorSubscriber[A](rabbitSinkActor))
-    }
+  }
 }
 
 /**
   * Subscribes to the stream of items and publishes them into RabbitMQ
   */
-class RabbitMQSink[A](conn: RabbitConnection, rabbitExchange: RabbitExchangeDefinition)
+class RabbitMQSink[A](rabbitMQChannel: RabbitChannel, rabbitExchange: RabbitExchangeDefinition)
   (ser: A => (Array[Byte], String)) extends Actor with ActorLogging with ActorSubscriber {
 
   import ActorSubscriberMessage._
 
-  // What is a good value?
+  // TODO: What is a good value?
   def requestStrategy = WatermarkRequestStrategy(100)
-
-  // Use a different channel on each thread
-  lazy val rabbitMQChannel = new ThreadLocal[RabbitChannel] {
-    override def initialValue = conn.createChannel()
-  }
 
   override def preStart(){
     log.info("starting")
     log.info("initializing RabbitMQ exchange {}", rabbitExchange.name)
     if (rabbitExchange != RabbitData.DefaultExchange)
-      rabbitMQChannel.get().exchangeDeclare(rabbitExchange.name, 
+      rabbitMQChannel.exchangeDeclare(rabbitExchange.name, 
         rabbitExchange.exchangeType, rabbitExchange.durable) 
     log.info("started")
   }
@@ -60,9 +55,8 @@ class RabbitMQSink[A](conn: RabbitConnection, rabbitExchange: RabbitExchangeDefi
   /* Writes the item to RabbitMQ */
   def writeData(item: A) : Unit = {
     val Tuple2(serializedItem, routingKey) = ser(item)
-    val channel = rabbitMQChannel.get()
     log.debug("writing numBytes={} to RabbitMQ", serializedItem.size)
-    channel.basicPublish(rabbitExchange.name, routingKey, null, serializedItem)
+    rabbitMQChannel.basicPublish(rabbitExchange.name, routingKey, null, serializedItem)
   }
 
 

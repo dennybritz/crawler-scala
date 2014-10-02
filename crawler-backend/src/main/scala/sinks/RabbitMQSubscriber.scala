@@ -5,13 +5,14 @@ import akka.stream.actor._
 import com.rabbitmq.client.{Connection => RabbitConnection, Channel => RabbitChannel, AMQP}
 
 object RabbitMQSubscriber {
-  def props(conn: RabbitConnection) = Props(classOf[RabbitMQSubscriber], conn)
+  def props(channel: RabbitChannel) 
+    = Props(classOf[RabbitMQSubscriber], channel)
 }
 
 /**
   * Subscribes to the stream of request-response objects and publishes them into RabbitMQ
   */
-class RabbitMQSubscriber(conn: RabbitConnection) extends Actor with ActorLogging 
+class RabbitMQSubscriber(rabbitMQChannel: RabbitChannel) extends Actor with ActorLogging 
   with ActorSubscriber {
 
   import ActorSubscriberMessage._
@@ -19,13 +20,12 @@ class RabbitMQSubscriber(conn: RabbitConnection) extends Actor with ActorLogging
   // Is 100 a good value? I have no idea.
   def requestStrategy = WatermarkRequestStrategy(100)
 
-  // Use a different channel on each thread
-  lazy val rabbitMQChannel = new ThreadLocal[RabbitChannel] {
-    override def initialValue = conn.createChannel()
-  }
-
   override def preStart(){
     log.info("starting")
+  }
+
+  override def postStop(){
+    rabbitMQChannel.close()
   }
 
   def receive = {
@@ -44,9 +44,12 @@ class RabbitMQSubscriber(conn: RabbitConnection) extends Actor with ActorLogging
     SerializationUtils.serialize(fetchRes.res)
     val item = CrawlItem(fetchRes.fetchReq.req, fetchRes.res)
     val serializedItem = SerializationUtils.serialize(item)
-    val channel = rabbitMQChannel.get()
     log.debug("writing numBytes={} to RabbitMQ", serializedItem.size)
-    channel.basicPublish(RabbitData.DataExchange.name, fetchRes.fetchReq.appId, null, serializedItem)
+    rabbitMQChannel.basicPublish(
+      RabbitData.DataExchange.name, 
+      fetchRes.fetchReq.appId, 
+      null, 
+      serializedItem)
   }
 
 

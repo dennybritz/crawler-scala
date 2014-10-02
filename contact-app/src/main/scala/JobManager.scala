@@ -1,7 +1,7 @@
 package org.blikk.contactapp
 
 import akka.actor._
-import com.rabbitmq.client.{Connection => RabbitMQConnection, ConnectionFactory => RabbitMQCF}
+import com.rabbitmq.client.{Channel => RabbitChannel}
 import org.blikk.crawler._
 import org.blikk.crawler.app._
 import scala.concurrent.duration._
@@ -11,10 +11,10 @@ import JsonProtocols._
 import spray.json._
 
 object JobManager {
-  def props(apiEndpoint: String) = Props(classOf[JobManager], apiEndpoint)
+  def props = Props(classOf[JobManager])
 }
 
-class JobManager(apiEndpoint: String) extends Actor with ActorLogging {
+class JobManager extends Actor with ActorLogging {
 
   implicit val _system = context.system
   import context.dispatcher
@@ -32,7 +32,7 @@ class JobManager(apiEndpoint: String) extends Actor with ActorLogging {
       activeJobs.find(_._2.publisher == someActor) foreach { case Tuple2(appId, streamContext) =>
         log.info("app={} has shut down", appId)
         // Publish a terminated event to RabbitMQ
-        publishTerminatedEvent(streamContext.rabbitConnection, appId)
+        publishTerminatedEvent(appId)
         streamContext.shutdown()
         activeJobs.remove(appId)
       }
@@ -42,8 +42,8 @@ class JobManager(apiEndpoint: String) extends Actor with ActorLogging {
       context.system.shutdown()
   }
 
-  def publishTerminatedEvent(conn: RabbitMQConnection, appId: String){
-    Resource.using(conn.createChannel()) { channel =>
+  def publishTerminatedEvent(appId: String){
+    Resource.using(RabbitData.createChannel()) { channel =>
       log.info("Emitting termination event to RabbitMQ")
       val eventStr = Event("", "terminated", System.currentTimeMillis).toJson.compactPrint
       val routingKey = appId + "-out"
@@ -53,7 +53,7 @@ class JobManager(apiEndpoint: String) extends Actor with ActorLogging {
 
   def startJob(appId: String, startUrl: String, timeLimit: FiniteDuration) : Unit = {
     // Create a new app and stream context
-    val app = new CrawlerApp(apiEndpoint, appId)
+    val app = new CrawlerApp(appId)
     val streamContext = app.start[CrawlItem]()
     // We watch the producer actor to shutdown the context on termination
     context.watch(streamContext.publisher)

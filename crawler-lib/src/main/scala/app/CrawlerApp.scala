@@ -14,7 +14,7 @@ import scala.concurrent.duration._
   * The `CrawlerApp` is responsible for connecting to the crawler platform endpoint.
   * Use the `start` method to start consuming data.
   */
-class CrawlerApp(rabbitMQUri: String, appId: String)
+class CrawlerApp(appId: String)
   (implicit val system: ActorSystem) extends ImplicitLogging {
 
   implicit val askTimeout = Timeout(5.seconds)
@@ -24,14 +24,8 @@ class CrawlerApp(rabbitMQUri: String, appId: String)
   val exchange = RabbitData.DataExchange
   val routingKey : String = appId
 
-  // Initialize: Get the RabbitMQ connection information
-  val rabbitCF = new ConnectionFactory()
-  rabbitCF.setUri(rabbitMQUri)
-
   def start[A]() : StreamContext[A] = {
-    // Initialize a new RabbitMQ connection
-    val connection = rabbitCF.newConnection()
-    val channel = connection.createChannel()
+    val channel = RabbitData.createChannel()
     // Create the flow
     val publisherActor = system.actorOf(RabbitPublisher.props(
       channel, queue, exchange, routingKey), s"rabbitMQPublisher-${appId}")
@@ -41,7 +35,7 @@ class CrawlerApp(rabbitMQUri: String, appId: String)
     }
     // Return a context
     val materializer = FlowMaterializer(akka.stream.MaterializerSettings(system))
-    StreamContext(appId, flow, publisherActor)(system, connection, materializer)
+    StreamContext(appId, flow, publisherActor)(system, channel, materializer)
   }
 
 

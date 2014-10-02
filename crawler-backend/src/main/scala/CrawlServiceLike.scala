@@ -23,8 +23,6 @@ trait CrawlServiceLike {
   import context.system
   import context.dispatcher
   
-  implicit def rabbitMQ: RabbitMQConnection
-
   // Delay for requests to the same domain
   val defaultDelay = 500 
   // We can keep this many messages per domain in a buffer 
@@ -33,7 +31,7 @@ trait CrawlServiceLike {
   val requestBlockSize = 1
 
   /* The frontier */
-  def frontierProps = Frontier.props(rabbitMQ, serviceRouter)
+  def frontierProps = Frontier.props(serviceRouter)
   lazy val frontier = {
     val frontierActor = context.actorOf(frontierProps, "frontier")
     context.watch(frontierActor)
@@ -57,14 +55,15 @@ trait CrawlServiceLike {
     */
   def initializeSinks() {
     // Initialize RabbitMQ data
-    Resource.using(rabbitMQ.createChannel()) { implicit channel =>
+    Resource.using(RabbitData.createChannel()) { implicit channel =>
       RabbitData.declareAll()
     }
     // Might as well initialize the frontier here
     frontier
     log.info("Initializing output streams...")
     val input = FlowFrom(ActorPublisher[FetchResponse](responsePublisher))
-    val rabbitSubscriber = context.actorOf(RabbitMQSubscriber.props(rabbitMQ), s"rabbitSubscriber")
+    val rabbitSubscriber = context.actorOf(RabbitMQSubscriber.props(RabbitData.createChannel()), 
+      s"rabbitSubscriber")
     val rabbitSink = SubscriberSink(ActorSubscriber[FetchResponse](rabbitSubscriber))
     input.withSink(rabbitSink).run()
   }

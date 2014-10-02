@@ -14,18 +14,18 @@ import scala.concurrent.duration._
 import org.blikk.crawler.processors.ThrottleTransformer
 
 object Frontier {
-  def props(rabbitConn: RabbitConnection, target: ActorRef) = {
-    Props(classOf[Frontier], rabbitConn, target)
+  def props(target: ActorRef) = {
+    Props(classOf[Frontier], target)
   }
 }
 
-class Frontier(rabbitConn: RabbitConnection, target: ActorRef) 
+class Frontier(target: ActorRef) 
   extends Actor with ActorLogging with ImplicitFlowMaterializer {
 
   import RabbitData._
   import context.dispatcher
 
-  val rabbitChannel = rabbitConn.createChannel()
+  val rabbitChannel = RabbitData.createChannel()
   val rabbitRoutingKey = "#"
 
   // Delay for requests to the same domain
@@ -35,7 +35,7 @@ class Frontier(rabbitConn: RabbitConnection, target: ActorRef)
 
   override def preStart() {
     val publisherActor = context.actorOf(
-      RabbitPublisher.props(rabbitConn.createChannel(), 
+      RabbitPublisher.props(RabbitData.createChannel(), 
       FrontierQueue, FrontierExchange, rabbitRoutingKey), s"frontierRabbit")
     val publisher = ActorPublisher[Array[Byte]](publisherActor)
 
@@ -43,19 +43,10 @@ class Frontier(rabbitConn: RabbitConnection, target: ActorRef)
       SerializationUtils.deserialize[FetchRequest](element)
     }.groupBy(_.req.tld.trim).withSink(ForeachSink { case(key, domainFlow) =>
       log.info("starting new request stream for {}", key)
-      val tickSrc = FlowFrom(0 millis, defaultDelay.millis, () => "tick")
-      val zip = Zip[String, FetchRequest]
       domainFlow.buffer(perDomainBuffer, OverflowStrategy.backpressure)
         .timerTransform("throttle", () => new ThrottleTransformer[FetchRequest](defaultDelay.millis))
         .withSink(ForeachSink[FetchRequest](routeFetchRequestGlobally))
         .run()
-      // FlowGraph { implicit b =>
-      //   //tickSrc ~> zip.left
-
-      //      //~> zip.right
-      //   // zip.out ~> FlowFrom[(String, FetchRequest)].map(_._2)
-      //   //   .withSink(ForeachSink[FetchRequest](routeFetchRequestGlobally))
-      // }.run()
     }).run()
 
     // We need to wait a while before the rabbit consumer is done with binding
@@ -76,7 +67,7 @@ class Frontier(rabbitConn: RabbitConnection, target: ActorRef)
 
   /* Removes all elements from the frontier. Use with care! */
   def clearFrontier() : Unit = {
-    Resource.using(rabbitConn.createChannel()) { channel =>
+    Resource.using(RabbitData.createChannel()) { channel =>
       log.info("clearing frontier")
       rabbitChannel.queuePurge(FrontierQueue.name)
       rabbitChannel.queuePurge(FrontierScheduledQueue.name)

@@ -54,7 +54,6 @@ class RabbitPublisher(channel: Channel, queue: RabbitQueueDefinition,
       log.info("unbinding rabbitMQ queue {}", assignedQueue)
       if (exchange != RabbitData.DefaultExchange) 
         channel.queueUnbind(queue.name, exchange.name, routingKey)
-      channel.close()
     }
   }
 

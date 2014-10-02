@@ -15,14 +15,9 @@ object Main extends App {
     
   val appName = "com.blikk.example-app"
 
-  // Get the API endpoint from the configuration
-  // It is automatically set by the syste,
-  val config = ConfigFactory.load()
-  val rabbitMQUrl = config.getString("blikk.app.rabbitMQ.uri")
-
   // Start a new crawler app
   implicit val system = ActorSystem("appName")
-  val app = new CrawlerApp(rabbitMQUrl, appName)
+  val app = new CrawlerApp(appName)
 
   // Create a new stream context
   implicit val streamContext = app.start[CrawlItem]()
@@ -34,7 +29,6 @@ object Main extends App {
     * - For each incoming page, count the words and aggregate the count
     * - Stop at the crawl after 10 pages
     */
-    
     val seedUrls = List(WrappedHttpRequest.getUrl("http://cnn.com/"))
     val dupFilter = DuplicateFilter.buildUrlDuplicateFilter(seedUrls)
     val frontierSink = FrontierSink.build()

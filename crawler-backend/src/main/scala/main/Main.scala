@@ -14,11 +14,6 @@ object Main extends App with Logging {
   val systemName = config.getString("blikk.actor-system-name")
   val system = ActorSystem(systemName, config)
 
-  // Connect to RabbitMQ
-  val factory = new RabbitMQCF()
-  factory.setUri(config.getString("blikk.rabbitMQ.uri"))
-  val rabbitConn = factory.newConnection()
-
   // Find the seeds to join the cluster
   val seeds = Try(config.getString("blikk.cluster.seedFile")).toOption match {
     case Some(seedFile) =>
@@ -36,12 +31,9 @@ object Main extends App with Logging {
   log.info(s"Joining cluster with seeds: ${seeds}")
   Cluster.get(system).joinSeedNodes(seeds.toSeq)
   // Start the crawl service and API actors
-  val crawlService = system.actorOf(CrawlService.props(rabbitConn), "crawl-service")
+  val crawlService = system.actorOf(CrawlService.props, "crawl-service")
   val api = system.actorOf(ApiLayer.props(crawlService), "api")
   log.info("crawler ready :)")
   system.awaitTermination()
-
-  // Close RabbitMQ connection
-  rabbitConn.close()
 
 }

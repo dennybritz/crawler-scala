@@ -11,7 +11,7 @@ class FrontierSpec extends AkkaSingleNodeSpec("FrontierSpec") {
   describe("The Frontier") {
 
     it("should work with immediate requests") {
-      val frontier = TestActorRef(Frontier.props(rabbitFactory.newConnection(), self))
+      val frontier = TestActorRef(Frontier.props(self))
       val req1 = WrappedHttpRequest.getUrl("localhost:9090/1")
       val req2 = WrappedHttpRequest.getUrl("localhost:9090/2")
       frontier.receive(AddToFrontier(FetchRequest(req1, "testJob")))
@@ -24,7 +24,7 @@ class FrontierSpec extends AkkaSingleNodeSpec("FrontierSpec") {
     }
 
     it("should work with scheduled requests") {
-      val frontier = TestActorRef(Frontier.props(rabbitFactory.newConnection(), self))
+      val frontier = TestActorRef(Frontier.props(self))
       val req1 = WrappedHttpRequest.getUrl("localhost:9090/1")
       val scheduledTime = System.currentTimeMillis + 3*1000 // + 4 seconds
       val req2 = WrappedHttpRequest.getUrl("localhost:9090/2")

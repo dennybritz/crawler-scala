@@ -1,7 +1,8 @@
 package org.blikk.crawler
 
-import com.rabbitmq.client.{Channel => RabbitChannel}
+import com.rabbitmq.client.{Channel => RabbitChannel, ConnectionFactory => RabbitConnectionFactory}
 import scala.collection.JavaConversions._
+import com.typesafe.config.ConfigFactory
 
 /* RabbotMQ queue properties */
 case class RabbitQueueDefinition(
@@ -19,9 +20,22 @@ case class RabbitExchangeDefinition(
 
 /** 
   * RabbitMQ data definitions shared by several classes 
-  * Note: server-side definition are not included
   */
 object RabbitData extends Logging {
+
+  // Default configuration
+  val config = ConfigFactory.load()
+  val defaultRabbitMQUri = config.getString("blikk.rabbitMQ.uri")
+
+  // Initializes the RabbitMQ Connection Factory. 
+  // An application should use one Connection with multiple channels.
+  private val rabbitCF = new RabbitConnectionFactory()
+  setRabbitUri(defaultRabbitMQUri)
+  private lazy val rabbitConnection = rabbitCF.newConnection()
+  
+
+  /* Exchanges */
+  /* ================================================== */
 
   // The RabbitMQ default exchange
   val DefaultExchange = RabbitExchangeDefinition("", "direct", true)
@@ -29,13 +43,31 @@ object RabbitData extends Logging {
   // Used to exchange messages between crawl platform and crawl apps
   val DataExchange = RabbitExchangeDefinition("com.blikk.crawler.data-x", "direct", true)
 
+  // Send data to the frontier queue
+  val FrontierExchange = RabbitExchangeDefinition("com.blikk.crawler.frontier-x", "topic", true)
+
+  
+  /* Queues */
+  /* ================================================== */
+
   def queueForApp(appId: String) = 
     RabbitQueueDefinition(s"${appId}", true, false, false, Map.empty)
 
-  val FrontierExchange = RabbitExchangeDefinition("com.blikk.crawler.frontier-x", "topic", true)
   val FrontierQueue = RabbitQueueDefinition("com.blikk.crawler.frontier-q", true, false, false, Map.empty)
   val FrontierScheduledQueue = RabbitQueueDefinition("com.blikk.crawler.frontier-scheduled-q", true,
     false, false, Map("x-dead-letter-exchange" -> FrontierExchange.name))
+
+  
+  /* Helper Methods */
+  /* ================================================== */
+
+  def createChannel() : RabbitChannel = rabbitConnection.createChannel()
+
+  /* Changes the default connection information. This should only be called before any connection is created */
+  def setRabbitUri(rabbitMQUri: String) : Unit = {
+    log.info("Using RabbitMQ connection URI: {}", rabbitMQUri)
+    rabbitCF.setUri(rabbitMQUri)
+  }
 
   /* Declares all commonly used RabbitMQ exchanges and queues */
   def declareAll()(implicit channel: RabbitChannel) : Unit = {

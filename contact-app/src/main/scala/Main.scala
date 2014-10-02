@@ -18,22 +18,15 @@ import JsonProtocols._
 
 object Main extends App with ImplicitLogging {
 
-  // Get the API endpoint from the configuration
-  // It is automatically set by the syste,
-  val config = ConfigFactory.load()
-  val rabbitMQUri = config.getString("blikk.app.rabbitMQ.uri")
-
   implicit val system = ActorSystem("contact-app")
-  val jobManager = system.actorOf(JobManager.props(rabbitMQUri), "jobManager")
+  val jobManager = system.actorOf(JobManager.props, "jobManager")
 
   // Create a Flow for reading jobs from RabbitMQ
-  val rabbitFactory = new RabbitMQCF()
-  rabbitFactory.setUri(rabbitMQUri)
-  val rabbitConn = rabbitFactory.newConnection()
   val requestQueue = RabbitQueueDefinition("com.blikk.contactapp.requests", true, false, false)
-  val requestActor = system.actorOf(RabbitPublisher.props(rabbitConn.createChannel(), requestQueue, 
+  val requestActor = system.actorOf(RabbitPublisher.props(RabbitData.createChannel(), requestQueue, 
     RabbitData.DefaultExchange, "com.blikk.contactapp.requests"), "requestPublisher")
   val requestFlow = FlowFrom(ActorPublisher[Array[Byte]](requestActor))
+  
   implicit val materializer = FlowMaterializer(akka.stream.MaterializerSettings(system))
   requestFlow.withSink(ForeachSink[Array[Byte]] { item =>
     val requestObj = new String(item).parseJson.convertTo[Request]
