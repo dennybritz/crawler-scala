@@ -28,11 +28,6 @@ class Frontier(target: ActorRef)
   val rabbitChannel = RabbitData.createChannel()
   val rabbitRoutingKey = "#"
 
-  // Delay for requests to the same domain
-  val defaultDelay = 750 
-  // We can keep this many messages per domain in a buffer 
-  val perDomainBuffer = 5000
-
   override def preStart() {
     val publisherActor = context.actorOf(
       RabbitPublisher.props(RabbitData.createChannel(), 
@@ -43,8 +38,8 @@ class Frontier(target: ActorRef)
       SerializationUtils.deserialize[FetchRequest](element)
     }.groupBy(_.req.tld.trim).withSink(ForeachSink { case(key, domainFlow) =>
       log.info("starting new request stream for {}", key)
-      domainFlow.buffer(perDomainBuffer, OverflowStrategy.backpressure)
-        .timerTransform("throttle", () => new ThrottleTransformer[FetchRequest](defaultDelay.millis))
+      domainFlow.buffer(Config.perDomainBuffer, OverflowStrategy.backpressure)
+        .timerTransform("throttle", () => new ThrottleTransformer[FetchRequest](Config.perDomainDelay))
         .withSink(ForeachSink[FetchRequest](routeFetchRequestGlobally))
         .run()
     }).run()

@@ -9,7 +9,6 @@ import akka.stream.actor._
 import akka.stream.scaladsl2._
 import akka.stream.scaladsl2.FlowGraphImplicits._
 import akka.util.Timeout
-import com.typesafe.config.ConfigFactory
 import com.rabbitmq.client.{Connection => RabbitMQConnection, Channel => RabbitMQChannel, AMQP}
 import org.blikk.crawler.processors.RabbitMQSink
 import scala.concurrent.duration._
@@ -26,8 +25,7 @@ trait CrawlServiceLike {
   import context.system
   import context.dispatcher
 
-  lazy val config = ConfigFactory.load()
-  implicit val askTimeout = Timeout(config.getMilliseconds("blikk.crawler.requestTimeOut"))
+  implicit val askTimeout = Timeout(Config.requestTimeout)
   
   // Delay for requests to the same domain
   val defaultDelay = 500 
