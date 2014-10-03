@@ -36,7 +36,6 @@ class RabbitMQSinkSpec extends AkkaSingleNodeSpec("RabbitMQSinkSpec") {
 
       // Run the flow that writes to RabbitMQ
       val flow = FlowFrom(data).withSink(rabbitSink).run()
-
       receiveN(3).map(_.toString).toSet shouldBe Set("Are", "you", "ready?")
       expectNoMsg()
     }
