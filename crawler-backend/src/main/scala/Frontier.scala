@@ -36,7 +36,7 @@ class Frontier(target: ActorRef)
 
     FlowFrom(publisher).map { element =>
       SerializationUtils.deserialize[FetchRequest](element)
-    }.groupBy(_.req.topPrivateDomain.trim).withSink(ForeachSink { case(key, domainFlow) =>
+    }.groupBy(_.req.topPrivateDomain.getOrElse("")).withSink(ForeachSink { case(key, domainFlow) =>
       log.info("starting new request stream for {}", key)
       domainFlow.buffer(Config.perDomainBuffer, OverflowStrategy.backpressure)
         .timerTransform("throttle", () => new ThrottleTransformer[FetchRequest](Config.perDomainDelay))

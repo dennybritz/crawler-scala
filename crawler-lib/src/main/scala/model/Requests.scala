@@ -21,8 +21,14 @@ case class WrappedHttpRequest(req: HttpRequest,
 
   def host = req.uri.authority.host.toString
   def port = req.uri.authority.port
-  lazy val topPrivateDomain = InternetDomainName.from(host).topPrivateDomain.toString
-  lazy val publicSuffix = InternetDomainName.from(host).topPrivateDomain.parent.toString
+  
+  lazy val topPrivateDomain = Option(InternetDomainName.from(host))
+    .filter(_.isUnderPublicSuffix)
+    .map(_.topPrivateDomain.toString)
+
+  lazy val publicSuffix = topPrivateDomain.map(InternetDomainName.from)
+    .map(_.parent.toString)
+
   lazy val reverseHost = host.split('.').reverse.mkString(".")
 
   /** 
