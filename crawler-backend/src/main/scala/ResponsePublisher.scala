@@ -2,7 +2,7 @@ package org.blikk.crawler
 
 import akka.actor._
 import akka.stream.actor._
-import spray.http.HttpHeaders
+import spray.http.{HttpHeaders, HttpHeader}
 
 /** 
   * Receives FetchResponse and produces a stream.
@@ -23,12 +23,24 @@ class ResponsePublisher extends Actor with ActorLogging
   }
 
   def processItem(msg: FetchResponse) {
-    log.info(msg.res.headers.toString)
-    log.info(" url=\"{}\" num_bytes={} content_type=\"{}\" status=\"{}\"", 
+
+    // Logging interesting stuff :)
+    val interestingHeaders = List(
+      HttpHeaders.`Content-Length`,
+      HttpHeaders.`Content-Type`,
+      HttpHeaders.`Transfer-Encoding`,
+      HttpHeaders.`Content-Encoding`
+    ).map(_.lowercaseName);
+
+    val headerLog = msg.res.headers
+      .filter { case(name, value) => interestingHeaders.contains(name.toLowerCase) }
+      .map { case(name, value) =>  s"""${name}="${value}" """ }
+      .mkString(" ")
+
+    log.info(" url=\"{}\" status=\"{}\" {}",
       msg.fetchReq.req.uri.toString,
-      msg.res.stringEntity.getBytes.length, 
-      msg.res.headers.find(_._1.equalsIgnoreCase(HttpHeaders.`Content-Type`.name)).map(_._2).getOrElse("?"),
-      msg.res.status.value)
+      msg.res.status.value,
+      headerLog)
     if (isActive && totalDemand > 0) {
       onNext(msg)
     } else {
