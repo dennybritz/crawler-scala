@@ -28,9 +28,13 @@ object WrappedHttpResponse {
 /* A HttpResponse wrapped with additional information */ 
 case class WrappedHttpResponse(
   status: StatusCode,
-  stringEntity: String,
+  entity: Array[Byte],
   headers: List[(String, String)],
   createdAt: Long) {
-  def this(rawResponse: HttpResponse) = this(rawResponse.status, rawResponse.entity.asString,
+  
+  def this(rawResponse: HttpResponse) = this(rawResponse.status, rawResponse.entity.data.toByteArray,
     rawResponse.headers.map(HttpHeader.unapply).map(_.get), System.currentTimeMillis)
+
+  def stringEntity = new String(entity)
+
 }
