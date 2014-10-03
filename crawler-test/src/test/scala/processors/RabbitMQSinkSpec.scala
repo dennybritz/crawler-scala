@@ -24,8 +24,9 @@ class RabbitMQSinkSpec extends AkkaSingleNodeSpec("RabbitMQSinkSpec") {
 
       // Make sure the data is in RabbitMQ
       // We use our rabbitpublisher to receive the data
-      val publisherActor = system.actorOf(RabbitPublisher.props(RabbitData.createChannel(), 
-        queueDef, exchangeDef, "*"), "publisher")
+      val publisherActor = system.actorOf(
+        RabbitPublisher.props(RabbitData.createChannel(), queueDef, exchangeDef, "*"), 
+        "publisher")
       val publisherInput = ActorPublisher[Array[Byte]](publisherActor)
       FlowFrom(publisherInput).withSink(ForeachSink[Array[Byte]] { item =>
         val msgStr = new String(item)
