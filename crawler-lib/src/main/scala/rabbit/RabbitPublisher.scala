@@ -38,9 +38,6 @@ class RabbitPublisher(channel: Channel, queue: RabbitQueueDefinition,
     if (exchange != RabbitData.DefaultExchange)
       channel.queueBind(assignedQueue, exchange.name, routingKey)
     log.info("bound queue {} to exchange {}", assignedQueue, exchange.name)
-    // Wait until we are active
-    // TODO: This is ugly, refactor it into an FSM?
-    while(!isActive) { Thread.sleep(100) }
     // No autoack
     consumerTag = channel.basicConsume(assignedQueue, false, consumer)
     log.info("susbcribed to queue {}", assignedQueue)
@@ -60,25 +57,20 @@ class RabbitPublisher(channel: Channel, queue: RabbitQueueDefinition,
   def receive = {
     case x : RabbitMessage => processItem(x)
     case RabbitPublisher.CompleteStream => onComplete()
+    case ActorPublisherMessage.Request(_) => deliverBuffer()
+    case ActorPublisherMessage.Cancel => deliverBuffer(); onComplete()
     case msg : ActorPublisherMessage => // Nothing to do
     case msg => log.warning("unhandled message: {}", msg) 
   }
 
   def processItem(x: RabbitMessage) {
-    // log.debug("processing deliveryTag=\"{}\"", x.deliveryTag)
-    if (isActive) {
-      buf :+= x
-      deliverBuffer()
-      channel.basicAck(x.deliveryTag, false)
-    } else {
-      // Requeue the message
-      log.warning("requeuing deliveryTag=\"{}\", not active anymore." + 
-        "demand={} isActive={}", x.deliveryTag, totalDemand, isActive)
-      channel.basicNack(x.deliveryTag, false, true)
-    }
+    buf :+= x
+    deliverBuffer()
+    channel.basicAck(x.deliveryTag, false)
   }
 
   def deliverBuffer() {
+    log.debug("Delivering bufferSize={} with demand={}", buf.size, totalDemand.toInt)
     if (totalDemand > 0) {
       val (use, keep) = buf.splitAt(totalDemand.toInt)
       buf = keep
