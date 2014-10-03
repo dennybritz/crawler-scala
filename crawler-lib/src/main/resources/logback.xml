@@ -1,6 +1,7 @@
 <configuration>
 
   <timestamp key="bySecond" datePattern="yyyyMMdd'T'HHmmss"/>
+  <property name="APP_NAME" value="${BLIKK_APP_NAME:-unnamed_app}" />
 
   <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
     <encoder>
@@ -8,8 +9,19 @@
     </encoder>
   </appender>
 
+  <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+    <file>/usr/local/var/log/blikk/${APP_NAME}/current.log</file>
+    <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+      <fileNamePattern>/usr/local/var/log/blikk/${APP_NAME}/%d{yyyy-MM-dd}.log</fileNamePattern>
+    </rollingPolicy>
+    <encoder>
+      <pattern>%date{ISO8601} %-5level [service=${APP_NAME}][%logger{36}][%X{akkaSource}][%X{sourceThread}] - %msg%n</pattern>
+    </encoder>
+  </appender>
+
  <root level="INFO">
     <appender-ref ref="STDOUT" />
+    <appender-ref ref="FILE" />
  </root>
 
 </configuration>
