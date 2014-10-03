@@ -1,7 +1,5 @@
 package org.blikk.crawler
 
-import spray.http.HttpResponse
-import spray.http.HttpEntity
 import spray.http._
 import java.util.UUID
 
@@ -31,10 +29,14 @@ case class WrappedHttpResponse(
   entity: Array[Byte],
   headers: List[(String, String)],
   createdAt: Long) {
-  
+
   def this(rawResponse: HttpResponse) = this(rawResponse.status, rawResponse.entity.data.toByteArray,
     rawResponse.headers.map(HttpHeader.unapply).map(_.get), System.currentTimeMillis)
 
   def stringEntity = new String(entity)
+
+  lazy val contentType = headers.find { case (name, value) =>
+    name.compareToIgnoreCase(HttpHeaders.`Content-Type`.name) == 0
+  }.map(_._2)
 
 }
