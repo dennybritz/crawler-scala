@@ -38,7 +38,7 @@ object RequestExtractor extends Logging {
             None
           }
         }.filterNot { newReq =>
-          internalOnly && (newReq.tld != source.req.tld)
+          internalOnly && (newReq.topPrivateDomain != source.req.topPrivateDomain)
         }.toList
       }
   }

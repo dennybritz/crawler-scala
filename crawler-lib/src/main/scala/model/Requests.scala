@@ -1,6 +1,7 @@
 package org.blikk.crawler
 
 import spray.http.{HttpRequest, HttpMethods, Uri}
+import com.google.common.net.InternetDomainName
 
 object WrappedHttpRequest {
   
@@ -20,7 +21,8 @@ case class WrappedHttpRequest(req: HttpRequest,
 
   def host = req.uri.authority.host.toString
   def port = req.uri.authority.port
-  def tld = host.split('.').takeRight(2).mkString(".")
+  lazy val topPrivateDomain = InternetDomainName.from(host).topPrivateDomain.toString
+  lazy val publicSuffix = InternetDomainName.from(host).topPrivateDomain.parent.toString
   lazy val reverseHost = host.split('.').reverse.mkString(".")
 
   /** 
