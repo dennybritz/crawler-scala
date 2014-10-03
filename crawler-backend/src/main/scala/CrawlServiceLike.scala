@@ -10,6 +10,7 @@ import akka.stream.scaladsl2._
 import akka.stream.scaladsl2.FlowGraphImplicits._
 import akka.util.Timeout
 import com.rabbitmq.client.{Connection => RabbitMQConnection, Channel => RabbitMQChannel, AMQP}
+import org.blikk.crawler.processors.RabbitMQSink
 import scala.concurrent.duration._
 import scala.collection.immutable.Seq
 import scala.util.{Try, Success, Failure}
@@ -64,9 +65,12 @@ trait CrawlServiceLike {
     frontier
     log.info("Initializing output streams...")
     val input = FlowFrom(ActorPublisher[FetchResponse](responsePublisher))
-    val rabbitSubscriber = context.actorOf(RabbitMQSubscriber.props(RabbitData.createChannel()), 
-      s"rabbitSubscriber")
-    val rabbitSink = SubscriberSink(ActorSubscriber[FetchResponse](rabbitSubscriber))
+    val rabbitSink = RabbitMQSink.build[FetchResponse](RabbitData.createChannel(), 
+      RabbitData.DataExchange) { fetchRes =>
+      val item = CrawlItem(fetchRes.fetchReq.req, fetchRes.res)
+      val serializedItem = SerializationUtils.serialize(item)
+      (serializedItem, fetchRes.fetchReq.appId)
+    }
     input.withSink(rabbitSink).run()
   }
 
