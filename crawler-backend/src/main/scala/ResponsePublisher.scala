@@ -37,9 +37,10 @@ class ResponsePublisher extends Actor with ActorLogging
       .map { case(name, value) =>  s"""${name}="${value}" """ }
       .mkString(" ")
 
-    log.info(" url=\"{}\" status=\"{}\" {}",
+    log.info("Fetched url=\"{}\" status=\"{}\", size=\"{}\" {}",
       msg.fetchReq.req.uri.toString,
       msg.res.status.value,
+      msg.res.entity.length,
       headerLog)
     if (isActive && totalDemand > 0) {
       onNext(msg)
