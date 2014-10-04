@@ -19,7 +19,8 @@ object DuplicateFilter {
   def buildUrlDuplicateFilter(initialItems : Seq[WrappedHttpRequest] = Nil,
     expectedInsertions: Int = 1000000, fpp: Double = 0.0001) = {
     build[WrappedHttpRequest](initialItems, expectedInsertions, fpp) { req => 
-      req.uri.toString}
+      req.uri.toString
+    }
   }
 
 }

@@ -2,6 +2,7 @@ package org.blikk.crawler
 
 import spray.http.{HttpRequest, HttpMethods, Uri}
 import com.google.common.net.InternetDomainName
+import scala.util.Try
 
 object WrappedHttpRequest {
   
@@ -22,7 +23,7 @@ case class WrappedHttpRequest(req: HttpRequest,
   def host = req.uri.authority.host.toString
   def port = req.uri.authority.port
   
-  lazy val topPrivateDomain = Option(InternetDomainName.from(host))
+  lazy val topPrivateDomain = Try(InternetDomainName.from(host)).toOption
     .filter(_.isUnderPublicSuffix)
     .map(_.topPrivateDomain.toString)
 

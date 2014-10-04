@@ -23,8 +23,7 @@ object RequestExtractor extends Logging {
       // We additionaly extract the `location` header used for redirects
       val redirectUrls = item.res.headers.filter(_._1.toLowerCase == "location").map(_._2).toSet
       val links = extractor.extract(item.res.stringEntity, baseUri) ++ redirectUrls
-      val normalizedLinks = links.map(UrlNormalizer.normalize)
-      (item, normalizedLinks)
+      (item, links)
     }
   }
 
