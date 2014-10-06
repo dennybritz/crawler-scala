@@ -1,27 +1,48 @@
 package org.blikk.crawler
 
-import spray.http.{HttpRequest, HttpMethods, Uri}
+import spray.http._
 import com.google.common.net.InternetDomainName
+import com.blikk.serialization._
 import scala.util.Try
 
 object WrappedHttpRequest {
   
-  implicit def fromSpray(req: HttpRequest) = new WrappedHttpRequest(req)
-  implicit def toSpray(wrappedReq: WrappedHttpRequest) = wrappedReq.req
+  implicit def fromSpray(req: HttpRequest) = 
+    WrappedHttpRequest(
+      req.method.toString,
+      new java.net.URI(req.uri.toString),
+      req.headers.map(HttpHeader.unapply).map(_.get),
+      req.entity.data.toByteArray
+    )
+
+  implicit def toSpray(req: WrappedHttpRequest) =
+    HttpRequest(
+      HttpMethods.getForKey(req.method).get,
+      Uri(req.uri.toString),
+      req.headers.map { case(k,v) => HttpHeaders.RawHeader(k,v) },
+      HttpEntity(req.entity)
+    )
   
   /* Builds a new wrapped HTTP request with method GET for the given url */
   def getUrl(url: String) = 
-    WrappedHttpRequest(new HttpRequest(HttpMethods.GET, Uri(url)))
+    WrappedHttpRequest("GET", new java.net.URI(url), Nil, Array.empty[Byte])
 
-  def empty = WrappedHttpRequest(new HttpRequest())
+  def empty =  WrappedHttpRequest("GET", new java.net.URI(""), Nil, Array.empty[Byte])
 }
 
 /* A HTTP request with additional fields */
-case class WrappedHttpRequest(req: HttpRequest, 
-  provenance: List[WrappedHttpRequest] = List.empty) {
+case class WrappedHttpRequest(
+  method: String,
+  uri: java.net.URI,
+  headers: List[(String, String)],
+  entity: Array[Byte],
+  provenance: List[String] = List.empty) extends java.io.Serializable {
 
-  def host = req.uri.authority.host.toString
-  def port = req.uri.authority.port
+  def host = Try(uri.getHost.toString).getOrElse("")
+  def port = Try(uri.getPort).getOrElse(80)
+  
+  lazy val baseUri = new java.net.URI(uri.getScheme, uri.getUserInfo, uri.getHost, uri.getPort, 
+      uri.getPath, null, null).toString
   
   lazy val topPrivateDomain = Try(InternetDomainName.from(host)).toOption
     .filter(_.isUnderPublicSuffix)
@@ -30,14 +51,12 @@ case class WrappedHttpRequest(req: HttpRequest,
   lazy val publicSuffix = topPrivateDomain.map(InternetDomainName.from)
     .map(_.parent.toString)
 
-  lazy val reverseHost = host.split('.').reverse.mkString(".")
-
   /** 
     * Copies this request with the source request appended in the provenance list 
     * Cuts off the provenance at `maxProvenance` items.
     */
   def withProvenance(source: WrappedHttpRequest, maxProvenance : Int = 10) = {
-    val newProvenance = (source.provenance :+ source.copy(provenance=Nil)).takeRight(maxProvenance)
+    val newProvenance = (source.provenance :+ source.uri.toString).takeRight(maxProvenance)
     this.copy(provenance = newProvenance)
   }
 

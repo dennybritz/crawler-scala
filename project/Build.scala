@@ -55,6 +55,7 @@ object BlikkBuild extends Build {
   val commonLibraryDependencies = Seq(
     "ch.qos.logback" % "logback-classic" % "1.1.2",
     "com.google.guava" % "guava" % "18.0",
+    "com.google.protobuf" % "protobuf-java" % "2.6.0",
     "com.rabbitmq" % "amqp-client" % "3.3.5",
     "com.typesafe.akka" % "akka-http-experimental_2.11" % "0.7",
     "com.typesafe.akka" % "akka-stream-experimental_2.11" % "0.7",

@@ -14,7 +14,7 @@ class RequestExtractorSpec extends AkkaSingleNodeSpec("RequestExtractorSpec") {
   implicit val materializer = FlowMaterializer(akka.stream.MaterializerSettings(system))
 
   def itemWithContent(requestUrl: String, content: String) = {
-    CrawlItem(WrappedHttpRequest.getUrl(requestUrl), WrappedHttpResponse.withContent(content))
+    CrawlItem(WrappedHttpRequest.getUrl(requestUrl), WrappedHttpResponse.withContent(content), "testJob")
   }
 
   describe("Stats Collector") {

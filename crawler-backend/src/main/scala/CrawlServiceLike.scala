@@ -68,8 +68,8 @@ trait CrawlServiceLike {
     val input = FlowFrom(ActorPublisher[FetchResponse](responsePublisher))
     val rabbitSink = RabbitMQSink.build[FetchResponse](RabbitData.createChannel(), 
       RabbitData.DataExchange) { fetchRes =>
-      val item = CrawlItem(fetchRes.fetchReq.req, fetchRes.res)
-      val serializedItem = SerializationUtils.serialize(item)
+      val item = CrawlItem(fetchRes.fetchReq.req, fetchRes.res, fetchRes.fetchReq.appId)
+      val serializedItem = SerializationUtils.toProto(item).toByteArray
       (serializedItem, fetchRes.fetchReq.appId)
     }
     input.withSink(rabbitSink).run()
@@ -87,7 +87,7 @@ trait CrawlServiceLike {
   /* Executes a FetchRequest using Spray's request-level library */
   def executeFetchRequest(fetchReq: FetchRequest) : Unit = {
     log.info("fetching url=\"{}\"", fetchReq.req.uri.toString)
-    val respFuture = (IO(Http) ? fetchReq.req.req).mapTo[HttpResponse]
+    val respFuture = (IO(Http) ? WrappedHttpRequest.toSpray(fetchReq.req)).mapTo[HttpResponse]
     (respFuture.map(decode(NoEncoding) ~> decode(Gzip) ~> decode(Deflate))).map { res =>
       FetchResponse(fetchReq, res)
     } pipeTo responsePublisher

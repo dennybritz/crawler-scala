@@ -19,7 +19,7 @@ object FrontierSink {
       ctx.rabbitChannel, 
       RabbitData.FrontierExchange) { req =>
       val fetchReq = FetchRequest(req, appId)
-      val serializedItem = SerializationUtils.serialize(fetchReq)
+      val serializedItem = SerializationUtils.toProto(fetchReq).toByteArray
       (serializedItem, req.host)
     }
   }

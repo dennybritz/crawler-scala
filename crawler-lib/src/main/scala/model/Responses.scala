@@ -27,11 +27,10 @@ object WrappedHttpResponse {
 case class WrappedHttpResponse(
   status: StatusCode,
   entity: Array[Byte],
-  headers: List[(String, String)],
-  createdAt: Long) {
+  headers: List[(String, String)]) {
 
   def this(rawResponse: HttpResponse) = this(rawResponse.status, rawResponse.entity.data.toByteArray,
-    rawResponse.headers.map(HttpHeader.unapply).map(_.get), System.currentTimeMillis)
+    rawResponse.headers.map(HttpHeader.unapply).map(_.get))
 
   def stringEntity = new String(entity)
 

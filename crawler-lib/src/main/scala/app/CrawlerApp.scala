@@ -5,6 +5,7 @@ import akka.pattern.ask
 import akka.stream.actor.ActorPublisher
 import akka.stream.scaladsl2._
 import akka.util.Timeout
+import com.blikk.serialization.HttpProtos
 import com.rabbitmq.client._
 import org.blikk.crawler._
 import scala.concurrent.Await
@@ -24,14 +25,14 @@ class CrawlerApp(appId: String)
   val exchange = RabbitData.DataExchange
   val routingKey : String = appId
 
-  def start[A]() : StreamContext[A] = {
+  def start() : StreamContext[CrawlItem] = {
     val channel = RabbitData.createChannel()
     // Create the flow
     val publisherActor = system.actorOf(RabbitPublisher.props(
       channel, queue, exchange, routingKey), s"rabbitMQPublisher-${appId}")
     val publisher = ActorPublisher[Array[Byte]](publisherActor)
     val flow = FlowFrom(publisher).map { element =>
-      SerializationUtils.deserialize[A](element)
+      SerializationUtils.fromProto(HttpProtos.CrawlItem.parseFrom(element))
     }
     // Return a context
     val materializer = FlowMaterializer(akka.stream.MaterializerSettings(system))

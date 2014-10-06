@@ -19,7 +19,7 @@ object RequestExtractor extends Logging {
   def buildLinkExtractor() : ProcessorFlow[CrawlItem, (CrawlItem, Set[String])] = {
     val extractor = new LinkExtractor()
     FlowFrom[CrawlItem].map { item =>
-      val baseUri = item.req.uri.scheme + ":" + item.req.uri.authority + item.req.uri.path
+      val baseUri = item.req.baseUri
       // We additionaly extract the `location` header used for redirects
       val redirectUrls = item.res.headers.filter(_._1.toLowerCase == "location").map(_._2).toSet
       val links = extractor.extract(item.res.stringEntity, baseUri) ++ redirectUrls

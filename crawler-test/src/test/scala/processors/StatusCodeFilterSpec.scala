@@ -11,7 +11,7 @@ class StatusCodeFilterSpec extends FunSpec with Matchers {
   val scf = new StatusCodeFilter()
 
   private def itemWithCode(code: StatusCode) = 
-    CrawlItem(WrappedHttpRequest.empty, HttpResponse(code))
+    CrawlItem(WrappedHttpRequest.empty, HttpResponse(code), "testJob")
 
   describe("StatusCodeFilter") {
     

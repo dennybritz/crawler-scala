@@ -7,6 +7,7 @@ import akka.stream.OverflowStrategy
 import akka.stream.scaladsl2._
 import akka.stream.scaladsl2.FlowGraphImplicits._
 import com.rabbitmq.client.{Connection => RabbitConnection, Channel => RabbitChannel, AMQP}
+import com.blikk.serialization.HttpProtos
 import scala.collection.JavaConversions._
 import scala.collection.mutable.{Map => MutableMap}
 import scala.collection.immutable.Seq
@@ -35,7 +36,7 @@ class Frontier(target: ActorRef)
     val publisher = ActorPublisher[Array[Byte]](publisherActor)
 
     FlowFrom(publisher).map { element =>
-      SerializationUtils.deserialize[FetchRequest](element)
+      SerializationUtils.fromProto(HttpProtos.FetchRequest.parseFrom(element))
     }.groupBy(_.req.topPrivateDomain.getOrElse("")).withSink(ForeachSink { case(key, domainFlow) =>
       log.info("starting new request stream for {}", key)
       domainFlow.buffer(Config.perDomainBuffer, OverflowStrategy.backpressure)
@@ -72,7 +73,7 @@ class Frontier(target: ActorRef)
   /* Add a new request to the frontier */
   def addToFrontier(fetchReq: FetchRequest, scheduledTime: Option[Long],
     ignoreDeduplication: Boolean = false) : Unit = {
-    val serializedMsg = SerializationUtils.serialize(fetchReq)
+    val serializedMsg = SerializationUtils.toProto(fetchReq).toByteArray
     scheduledTime.map(_ - System.currentTimeMillis) match {
       case Some(delay) if delay > 0 =>
         val properties = new AMQP.BasicProperties.Builder().expiration(delay.toString).build()

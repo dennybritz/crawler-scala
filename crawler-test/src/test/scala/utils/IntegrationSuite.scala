@@ -74,7 +74,7 @@ class IntegrationSuite(val name: String) extends FunSpec with BeforeAndAfter wit
       """).withFallback(buildConfig("localhost", 0))
     val system = ActorSystem(appId, config)
     val client = new CrawlerApp(appId)(system)
-    client.start[CrawlItem]()
+    client.start()
   }
 
   /* Builds a configuration for a new actor system. */

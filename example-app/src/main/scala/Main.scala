@@ -20,7 +20,7 @@ object Main extends App {
   val app = new CrawlerApp(appName)
 
   // Create a new stream context
-  implicit val streamContext = app.start[CrawlItem]()
+  implicit val streamContext = app.start()
   import streamContext.{materializer, log}
   import system.dispatcher
 

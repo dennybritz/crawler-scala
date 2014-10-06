@@ -15,7 +15,7 @@ class StatsCollectorSpec extends AkkaSingleNodeSpec("StatsCollectorSpec") {
 
   def itemWithBytes(numBytes: Int) = {
     val dataEntity = HttpEntity(Array.ofDim[Byte](numBytes))
-    CrawlItem(WrappedHttpRequest.empty, HttpResponse(entity=dataEntity))
+    CrawlItem(WrappedHttpRequest.empty, HttpResponse(entity=dataEntity), "testJob")
   }
 
   describe("Stats Collector") {
