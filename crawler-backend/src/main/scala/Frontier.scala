@@ -34,16 +34,14 @@ class Frontier(target: ActorRef)
       RabbitPublisher.props(RabbitData.createChannel(), 
       FrontierQueue, FrontierExchange, rabbitRoutingKey), s"frontierRabbit")
     val publisher = ActorPublisher[Array[Byte]](publisherActor)
+    val throttler = new GroupThrottler[FetchRequest](
+      Config.perDomainDelay)(_.req.topPrivateDomain.getOrElse(""))
 
     FlowFrom(publisher).map { element =>
       SerializationUtils.fromProto(HttpProtos.FetchRequest.parseFrom(element))
-    }.groupBy(_.req.topPrivateDomain.getOrElse("")).withSink(ForeachSink { case(key, domainFlow) =>
-      log.info("starting new request stream for {}", key)
-      domainFlow.buffer(Config.perDomainBuffer, OverflowStrategy.backpressure)
-        .timerTransform("throttle", () => new ThrottleTransformer[FetchRequest](Config.perDomainDelay))
-        .withSink(ForeachSink[FetchRequest](routeFetchRequestGlobally))
-        .run()
-    }).run()
+    }.timerTransform("throttle", () => throttler)
+    .withSink(ForeachSink[FetchRequest](routeFetchRequestGlobally))
+    .run()
 
     // We need to wait a while before the rabbit consumer is done with binding
     // to the queue. This is ugly, is there a nicer way?
