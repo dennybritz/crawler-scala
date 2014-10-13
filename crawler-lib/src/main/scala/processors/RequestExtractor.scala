@@ -21,7 +21,12 @@ object RequestExtractor extends Logging {
     FlowFrom[CrawlItem].map { item =>
       val baseUri = item.req.baseUri
       // We additionaly extract the `location` header used for redirects
-      val redirectUrls = item.res.headers.filter(_._1.toLowerCase == "location").map(_._2).toSet
+      val redirectUrls = item.res.headers
+        .filter(_._1.toLowerCase == "location").map(_._2)
+        .map { locationStr =>
+          val uri = new java.net.URI(locationStr)
+          if (uri.isAbsolute) locationStr else item.req.hostUri + locationStr
+        }.toSet
       val links = extractor.extract(item.res.stringEntity, baseUri) ++ redirectUrls
       (item, links)
     }

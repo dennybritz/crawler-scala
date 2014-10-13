@@ -41,6 +41,9 @@ case class WrappedHttpRequest(
   def host = Try(uri.getHost.toString).getOrElse("")
   def port = Try(uri.getPort).getOrElse(80)
   
+  lazy val hostUri = new java.net.URI(uri.getScheme, uri.getUserInfo, uri.getHost, uri.getPort,
+    null, null, null).toString
+
   lazy val baseUri = new java.net.URI(uri.getScheme, uri.getUserInfo, uri.getHost, uri.getPort, 
       uri.getPath, null, null).toString
   
