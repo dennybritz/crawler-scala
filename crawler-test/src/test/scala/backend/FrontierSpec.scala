@@ -18,8 +18,8 @@ class FrontierSpec extends AkkaSingleNodeSpec("FrontierSpec") {
       frontier.receive(AddToFrontier(FetchRequest(req2, "testJob")))
 
       receiveN(2).toSet == Set(
-        ConsistentHashableEnvelope(FetchRequest(req1, "testJob"), req1.host),
-        ConsistentHashableEnvelope(FetchRequest(req2, "testJob"), req2.host))
+        FetchRequest(req1, "testJob"),
+        FetchRequest(req2, "testJob"))
       frontier.stop()
     }
 
@@ -31,16 +31,12 @@ class FrontierSpec extends AkkaSingleNodeSpec("FrontierSpec") {
       frontier.receive(AddToFrontier(FetchRequest(req1, "testJob")))
       frontier.receive(AddToFrontier(FetchRequest(req2, "testJob"), Option(scheduledTime)))
       
-      val res1 = expectMsgClass(classOf[ConsistentHashableEnvelope])
-      res1.hashKey shouldEqual "localhost"
-      res1.message shouldBe a [FetchRequest]
-      res1.message.asInstanceOf[FetchRequest].req.uri shouldEqual req1.uri
+      val res1 = expectMsgClass(classOf[FetchRequest])
+      res1.req.uri shouldEqual req1.uri
       expectNoMsg(1.seconds)
       
-      val res2 = expectMsgClass(5.seconds, classOf[ConsistentHashableEnvelope])
-      res2.hashKey shouldEqual "localhost"
-      res2.message shouldBe a [FetchRequest]
-      res2.message.asInstanceOf[FetchRequest].req.uri shouldEqual req2.uri
+      val res2 = expectMsgClass(5.seconds, classOf[FetchRequest])
+      res2.req.uri shouldEqual req2.uri
 
       frontier.stop()
     }

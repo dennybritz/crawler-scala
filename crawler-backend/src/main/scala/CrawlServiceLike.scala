@@ -35,7 +35,7 @@ trait CrawlServiceLike {
   val requestBlockSize = 1
 
   /* The frontier */
-  def frontierProps = Frontier.props(serviceRouter)
+  def frontierProps = Frontier.props(self)
   lazy val frontier = {
     val frontierActor = context.actorOf(frontierProps, "frontier")
     context.watch(frontierActor)

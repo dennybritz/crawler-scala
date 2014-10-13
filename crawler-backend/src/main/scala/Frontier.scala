@@ -83,7 +83,20 @@ class Frontier(target: ActorRef)
 
   def routeFetchRequestGlobally(fetchReq: FetchRequest) : Unit = {
     log.debug("routing {}", fetchReq.req.uri.toString)
-    target ! ConsistentHashableEnvelope(fetchReq, fetchReq.req.host)
+    /*
+     * We used to route the fetch request to nodes based on consistent hashing on the hostname.
+     * This resulted in the same domains being handled by the same nodes in the cluster, which
+     * is good for DNS caching but results in long delays since we will always use the
+     * same IP address to make requestes to that host.
+     *
+     * We now simply execute the request locally. Thus, every node in the cluster
+     * can make requestes to every domain. Because of the way RabbitMQ works requests are
+     * taken from the queue in a round-robin fashion, which also acts a simple form of load balancing.
+     * This approach is likely to work fine with as long as we stick with focused crawls.
+     * If we get into broad crawling we likely need to start worrying about DNS partitioning again.
+     */
+    // target ! ConsistentHashableEnvelope(fetchReq, fetchReq.req.host)
+    target ! fetchReq
   }
 
 }

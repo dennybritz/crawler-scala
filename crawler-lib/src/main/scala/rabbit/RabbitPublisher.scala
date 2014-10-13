@@ -32,7 +32,7 @@ class RabbitPublisher(channel: Channel, queue: RabbitQueueDefinition,
   var buf = Vector.empty[RabbitMessage]
 
   override def preStart(){
-    log.info("susbcribing consumer to RabbitMQ queue...")
+    log.info("susbcribing consumer to RabbitMQ queue=\"{}\"...", queue.name)
     assignedQueue = channel.queueDeclare(queue.name, queue.durable, 
       queue.exclusive, queue.autoDelete, queue.options).getQueue
     if (exchange != RabbitData.DefaultExchange)
