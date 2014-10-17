@@ -23,14 +23,14 @@ class StatusCodeFilterSpec extends IntegrationSuite("StatusCodeFilterSpec") {
         WrappedHttpRequest.getUrl("http://localhost:9090/status/503")
       )
       val frontier = FrontierSink.build()
-      val fLinkSender = ForeachSink[CrawlItem] { item => 
+      val fLinkSender = ForeachDrain[CrawlItem] { item => 
         log.info("{}", item.toString) 
         probes(1).ref ! item.req.uri.toString
       }
       val statusCodeFilter = StatusCodeFilter.build()
 
-      streamContext.flow.append(statusCodeFilter).withSink(fLinkSender).run()
-      FlowFrom(seeds).withSink(frontier).run()
+      streamContext.flow.connect(statusCodeFilter).connect(fLinkSender).run()
+      Source(seeds).connect(frontier).run()
 
       probes(1).receiveN(2).toSet should === (Set("http://localhost:9090/1", 
         "http://localhost:9090/status/301"))

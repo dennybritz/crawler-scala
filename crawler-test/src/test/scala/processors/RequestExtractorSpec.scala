@@ -30,10 +30,10 @@ class RequestExtractorSpec extends AkkaSingleNodeSpec("RequestExtractorSpec") {
         """))
 
       val requestExtractor = RequestExtractor.build(false)
-      val arraySink = FoldSink[List[WrappedHttpRequest], WrappedHttpRequest](Nil)(_ :+ _)
-      val flow = FlowFrom(data).append(requestExtractor)
-        .withSink(arraySink).run()
-      val finalResult = Await.result(arraySink.future(flow), 1.second)
+      val arraySink = FoldDrain[List[WrappedHttpRequest], WrappedHttpRequest](Nil)(_ :+ _)
+      val resultFuture = Source(data).connect(requestExtractor)
+        .runWith(arraySink)
+      val finalResult = Await.result(resultFuture, 1.second)
 
       finalResult.map(_.uri.toString()).toSet shouldBe Set(
         "http://google.com", "http://twitter.com", "http://twitter.com/relative")
@@ -51,10 +51,10 @@ class RequestExtractorSpec extends AkkaSingleNodeSpec("RequestExtractorSpec") {
         """))
 
       val requestExtractor = RequestExtractor.build(true)
-      val arraySink = FoldSink[List[WrappedHttpRequest], WrappedHttpRequest](Nil)(_ :+ _)
-      val flow = FlowFrom(data).append(requestExtractor)
-        .withSink(arraySink).run()
-      val finalResult = Await.result(arraySink.future(flow), 1.second)
+      val arraySink = FoldDrain[List[WrappedHttpRequest], WrappedHttpRequest](Nil)(_ :+ _)
+      val resultFuture = Source(data).connect(requestExtractor)
+        .runWith(arraySink)
+      val finalResult = Await.result(resultFuture, 1.second)
 
       finalResult.map(_.uri.toString()).toSet shouldBe Set("http://twitter.com", "http://twitter.com/relative")
     }

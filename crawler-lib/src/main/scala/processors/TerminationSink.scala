@@ -13,7 +13,7 @@ object TerminationSink {
 
     val zeroStats = CrawlStats(0, 0, System.currentTimeMillis)
 
-    FoldSink[CrawlStats, CrawlItem](zeroStats) { (currentStats, item) =>
+    FoldDrain[CrawlStats, CrawlItem](zeroStats) { (currentStats, item) =>
       val newStats = currentStats.update(item)
       if(f(newStats) && !f(currentStats) ) {
         // Shutdown if the termination condition is fulfilled

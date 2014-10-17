@@ -18,7 +18,7 @@ class DuplicateFilteringSpec extends IntegrationSuite("DuplicateFilteringSpec") 
 
       val in = streamContext.flow
       val fLinkExtractor = RequestExtractor.build()
-      val fLinkSender = ForeachSink[CrawlItem] { item => 
+      val fLinkSender = ForeachDrain[CrawlItem] { item => 
         log.info("{}", item.toString) 
         probes(1).ref ! item.req.uri.toString
       }
@@ -32,9 +32,9 @@ class DuplicateFilteringSpec extends IntegrationSuite("DuplicateFilteringSpec") 
       FlowGraph { implicit b =>
         val frontierMerge = Merge[WrappedHttpRequest]
         val bcast = Broadcast[CrawlItem]        
-        in ~> bcast ~> fLinkExtractor.append(dupFilter) ~> frontierMerge
+        in ~> bcast ~> fLinkExtractor.connect(dupFilter) ~> frontierMerge
         bcast ~> fLinkSender
-        FlowFrom(seeds) ~> frontierMerge 
+        Source(seeds) ~> frontierMerge 
         frontierMerge ~> frontier
       }.run()
 

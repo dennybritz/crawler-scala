@@ -2,14 +2,14 @@ package org.blikk.crawler.processors
 
 import org.blikk.crawler._
 import spray.http.StatusCodes._
-import akka.stream.scaladsl2.{FlowFrom, ProcessorFlow}
+import akka.stream.scaladsl2.{Flow}
 
 object StatusCodeFilter {
 
   /* Build a status code filtering flow */
-  def build() : ProcessorFlow[CrawlItem, CrawlItem] =  {
+  def build() : Flow[CrawlItem, CrawlItem] =  {
     val scf = new StatusCodeFilter()
-    FlowFrom[CrawlItem].filter(scf.filter)
+    Flow[CrawlItem].filter(scf.filter)
   }
 
 }

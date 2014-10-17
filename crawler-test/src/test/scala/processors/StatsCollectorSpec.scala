@@ -23,8 +23,8 @@ class StatsCollectorSpec extends AkkaSingleNodeSpec("StatsCollectorSpec") {
     it("should correctly aggregate items"){
       val data = List(itemWithBytes(100), itemWithBytes(200), itemWithBytes(550))
       val scSink = StatsCollector.build()
-      val flow = FlowFrom(data).withSink(scSink).run()
-      val finalStats = Await.result(scSink.future(flow), 1.second)
+      val resultFuture = Source(data).runWith(scSink)
+      val finalStats = Await.result(resultFuture, 1.second)
       finalStats.numFetched shouldBe 3
       finalStats.numBytesFetched shouldBe 850
     }

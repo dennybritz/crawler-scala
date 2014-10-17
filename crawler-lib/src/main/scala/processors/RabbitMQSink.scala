@@ -12,9 +12,9 @@ object RabbitMQSink {
     (ser: A => (Array[Byte], String)) = Props(classOf[RabbitMQSink[A]], channel, rabbitExchange, ser)
 
   def build[A](channel: RabbitChannel, rabbitExchange: RabbitExchangeDefinition) 
-    (ser: A => (Array[Byte], String))(implicit system: ActorSystem) : SubscriberSink[A] = {
+    (ser: A => (Array[Byte], String))(implicit system: ActorSystem) : SubscriberDrain[A] = {
       val rabbitSinkActor = system.actorOf(RabbitMQSink.props(channel, rabbitExchange)(ser))
-      SubscriberSink(ActorSubscriber[A](rabbitSinkActor))
+      SubscriberDrain(ActorSubscriber[A](rabbitSinkActor))
   }
 }
 

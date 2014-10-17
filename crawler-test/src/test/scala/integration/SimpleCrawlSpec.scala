@@ -19,13 +19,13 @@ class SimpleCrawlSpec extends IntegrationSuite("SimpleCrawlSpec") {
       val seeds = List(WrappedHttpRequest.getUrl("http://localhost:9090/1"))
       val frontier = FrontierSink.build()
 
-      streamContext.flow.withSink(ForeachSink { item => 
+      streamContext.flow.connect(ForeachDrain[CrawlItem] { item => 
         log.info("{}", item.toString) 
         assert(item.res.status.intValue === 200)
         probes(1).ref ! item.req.uri.toString
       }).run()
 
-      FlowFrom(seeds).withSink(frontier).run()
+      Source(seeds).connect(frontier).run()
 
       probes(1).within(5.seconds) {
         probes(1).expectMsg("http://localhost:9090/1")
@@ -44,7 +44,7 @@ class SimpleCrawlSpec extends IntegrationSuite("SimpleCrawlSpec") {
       val fLinkExtractor = RequestExtractor.build()
       val duplicateFilter = DuplicateFilter.buildUrlDuplicateFilter(
         List(WrappedHttpRequest.getUrl("http://localhost:9090/crawl/1")))
-      val fLinkSender = ForeachSink[CrawlItem] { item => 
+      val fLinkSender = ForeachDrain[CrawlItem] { item => 
         log.info("{}", item.toString) 
         probes(1).ref ! item.req.uri.toString
       }
@@ -53,9 +53,9 @@ class SimpleCrawlSpec extends IntegrationSuite("SimpleCrawlSpec") {
       val graph = FlowGraph { implicit b =>
         val bcast = Broadcast[CrawlItem]
         val frontierMerge = Merge[WrappedHttpRequest]
-        in ~> bcast ~> fLinkExtractor.append(duplicateFilter) ~> frontierMerge
+        in ~> bcast ~> fLinkExtractor.connect(duplicateFilter) ~> frontierMerge
         bcast ~> fLinkSender
-        FlowFrom(seeds) ~> frontierMerge
+        Source(seeds) ~> frontierMerge
         frontierMerge ~> frontier
       }.run()
 

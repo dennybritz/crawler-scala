@@ -31,7 +31,7 @@ class CrawlerApp(appId: String)
     val publisherActor = system.actorOf(RabbitPublisher.props(
       channel, queue, exchange, routingKey), s"rabbitMQPublisher-${appId}")
     val publisher = ActorPublisher[Array[Byte]](publisherActor)
-    val flow = FlowFrom(publisher).map { element =>
+    val flow = Source(publisher).map { element =>
       SerializationUtils.fromProto(HttpProtos.CrawlItem.parseFrom(element))
     }
     // Return a context

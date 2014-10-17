@@ -32,8 +32,8 @@ object BlikkBuild extends Build {
     name := "crawler-backend",
     envVars := Map("BLIKK_APP_NAME" -> "crawler-backend"),
     libraryDependencies ++= Seq(
-      "com.typesafe.akka" %% "akka-cluster" % "2.3.5",
-      "com.typesafe.akka" %% "akka-contrib" % "2.3.5",
+      "com.typesafe.akka" %% "akka-cluster" % "2.3.6",
+      "com.typesafe.akka" %% "akka-contrib" % "2.3.6",
       "io.spray" %% "spray-routing" % "1.3.1"
     ) ++ commonLibraryDependencies
   )
@@ -48,7 +48,7 @@ object BlikkBuild extends Build {
     libraryDependencies ++= commonLibraryDependencies ++ Seq(
       "org.scalatest" %% "scalatest" % "2.2.1" % "test",
       "com.typesafe.akka" %% "akka-multi-node-testkit" % "2.3.6",
-      "com.typesafe.akka" %% "akka-testkit" % "2.3.5"
+      "com.typesafe.akka" %% "akka-testkit" % "2.3.6"
     )
   )
 
@@ -57,11 +57,11 @@ object BlikkBuild extends Build {
     "com.google.guava" % "guava" % "18.0",
     "com.google.protobuf" % "protobuf-java" % "2.6.0",
     "com.rabbitmq" % "amqp-client" % "3.3.5",
-    "com.typesafe.akka" % "akka-http-experimental_2.11" % "0.7",
-    "com.typesafe.akka" % "akka-stream-experimental_2.11" % "0.7",
-    "com.typesafe.akka" %% "akka-actor" % "2.3.5",
-    "com.typesafe.akka" %% "akka-slf4j" % "2.3.5",
-    "com.typesafe.akka" %% "akka-remote" % "2.3.5",
+    "com.typesafe.akka" % "akka-http-experimental_2.11" % "0.9",
+    "com.typesafe.akka" % "akka-stream-experimental_2.11" % "0.9",
+    "com.typesafe.akka" %% "akka-actor" % "2.3.6",
+    "com.typesafe.akka" %% "akka-slf4j" % "2.3.6",
+    "com.typesafe.akka" %% "akka-remote" % "2.3.6",
     "io.spray" %% "spray-can" % "1.3.1",
     "io.spray" %% "spray-client" % "1.3.1",
     "io.spray" %% "spray-http" % "1.3.1",

@@ -6,7 +6,7 @@ import spray.http.{HttpHeaders, HttpHeader}
 
 /** 
   * Receives FetchResponse and produces a stream.
-  * This actor only exists so that we can generate a Crawl stream with `FlowFrom`.
+  * This actor only exists so that we can generate a Crawl stream with `Source`.
   * It does not contain any domain logic.
   */
 class ResponsePublisher extends Actor with ActorLogging 

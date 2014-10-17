@@ -1,7 +1,7 @@
 package org.blikk.crawler.app
 
 import akka.actor._
-import akka.stream.scaladsl2.{FlowWithSource, FlowMaterializer}
+import akka.stream.scaladsl2.{Source, FlowMaterializer}
 import com.rabbitmq.client.{Channel => RabbitChannel}
 import org.blikk.crawler.ImplicitLogging
 
@@ -10,7 +10,7 @@ import org.blikk.crawler.ImplicitLogging
   * Within a running application, you can interact with the API client `api`
   * The flow of the streaming context can only be consumed once.
   */
-case class StreamContext[A](appId: String, flow: FlowWithSource[Array[Byte],A], publisher: ActorRef)
+case class StreamContext[A](appId: String, flow: Source[A], publisher: ActorRef)
   (implicit _system: ActorSystem, _rabbitChannel: RabbitChannel, _materializer: FlowMaterializer) 
   extends ImplicitLogging {
 

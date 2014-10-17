@@ -1,6 +1,6 @@
 package org.blikk.crawler.processors
 
-import akka.stream.scaladsl2.{ProcessorFlow, FlowFrom}
+import akka.stream.scaladsl2.{Flow}
 import org.blikk.crawler.WrappedHttpRequest
 import com.google.common.hash.{BloomFilter, Funnel, Funnels}
 
@@ -9,10 +9,10 @@ object DuplicateFilter {
   /* Build a duplicate filter based on a string representation of an item */
   def build[A](initialItems : Seq[A] = Nil, 
     expectedInsertions: Int = 1000000, fpp: Double = 0.0001)
-  (mapFunc: A => String) : ProcessorFlow[A, A] = {
+  (mapFunc: A => String) : Flow[A,A] = {
     val sdf = new StringDuplicateFilter(expectedInsertions, fpp)
     initialItems.map(mapFunc).foreach(sdf.addItem)
-    FlowFrom[A].filter{ item => sdf.filter(mapFunc(item)) }
+    Flow[A].filter{ item => sdf.filter(mapFunc(item)) }
   }
 
   /* Builds a duplicate filter based on the URL of the request */

@@ -9,7 +9,7 @@ object StatsCollector {
   /* Builds a new stats collector sink */
   def build() = {
     val zeroStats = CrawlStats(0, 0, System.currentTimeMillis)
-    FoldSink[CrawlStats, CrawlItem](zeroStats) { (currentStats, item) =>
+    FoldDrain[CrawlStats, CrawlItem](zeroStats) { (currentStats, item) =>
       currentStats.update(item)
     }
   }

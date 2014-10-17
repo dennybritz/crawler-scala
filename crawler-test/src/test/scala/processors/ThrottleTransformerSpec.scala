@@ -16,10 +16,10 @@ class ThrottleTransformerSpec extends AkkaSingleNodeSpec("ThrottleTransformerSpe
     
     it("should work aggregate items"){
       val data = Iterator from 1
-      val senderSink = ForeachSink[Int] { self ! _ }
-      val flow = FlowFrom(data)
+      val senderSink = ForeachDrain[Int] { self ! _ }
+      val flow = Source(data)
         .timerTransform("throttler", () => new ThrottleTransformer[Int](250.millis))
-        .withSink(senderSink)
+        .connect(senderSink)
         .run()
 
       expectMsg(1)

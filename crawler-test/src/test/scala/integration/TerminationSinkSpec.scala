@@ -20,7 +20,7 @@ class TerminationSinkSpec extends IntegrationSuite("TerminationSinkSpec") {
       val seeds = List(WrappedHttpRequest.getUrl("http://localhost:9090/crawl/1"))
       val in = streamContext.flow
       val fLinkExtractor = RequestExtractor.build()
-      val fLinkSender = ForeachSink[CrawlItem] { item => 
+      val fLinkSender = ForeachDrain[CrawlItem] { item => 
         log.info("{}", item.toString) 
         probes(1).ref ! item.req.uri.toString
       }
@@ -33,7 +33,7 @@ class TerminationSinkSpec extends IntegrationSuite("TerminationSinkSpec") {
         in ~> bcast ~> fLinkExtractor ~> frontierMerge
         bcast ~> fTerminationSink
         bcast ~> fLinkSender
-        FlowFrom(seeds) ~> frontierMerge
+        Source(seeds) ~> frontierMerge
         frontierMerge ~> frontier
       }.run()
 

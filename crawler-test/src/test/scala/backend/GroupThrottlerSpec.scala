@@ -15,13 +15,13 @@ class GroupThrottlerSpec extends AkkaSingleNodeSpec("GroupThrottlerSpec") {
     it("should work with a single key") {
       val data = Iterator from 1
       val throttler = new GroupThrottler[Int](300.millis)( x => "staticKey")
-      val senderTrans = FlowFrom[Int].map { self ! _ }
+      val senderTrans = Flow[Int].map { self ! _ }
 
-      FlowFrom(data)
+      Source(data)
         .timerTransform("throttle", () => throttler)
-        .append(senderTrans)
+        .connect(senderTrans)
         .take(3)
-        .withSink(BlackholeSink)
+        .connect(BlackholeDrain)
         .run()
 
       expectMsg(1)
@@ -35,13 +35,13 @@ class GroupThrottlerSpec extends AkkaSingleNodeSpec("GroupThrottlerSpec") {
     it("should work with multiple keys") {
       val data = Iterator from 1
       val throttler = new GroupThrottler[Int](300.millis)( x => (x % 2).toString)
-      val senderTrans = FlowFrom[Int].map { self ! _ }
+      val senderTrans = Flow[Int].map { self ! _ }
 
-      FlowFrom(data)
+      Source(data)
         .timerTransform("throttle", () => throttler)
-        .append(senderTrans)
+        .connect(senderTrans)
         .take(6)
-        .withSink(BlackholeSink)
+        .connect(BlackholeDrain)
         .run()
 
       receiveN(2).toSet shouldEqual (Set(1,2))

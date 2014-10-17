@@ -65,14 +65,14 @@ trait CrawlServiceLike {
     // Might as well initialize the frontier here
     frontier
     log.info("Initializing output streams...")
-    val input = FlowFrom(ActorPublisher[FetchResponse](responsePublisher))
+    val input = Source(ActorPublisher[FetchResponse](responsePublisher))
     val rabbitSink = RabbitMQSink.build[FetchResponse](RabbitData.createChannel(), 
       RabbitData.DataExchange) { fetchRes =>
       val item = CrawlItem(fetchRes.fetchReq.req, fetchRes.res, fetchRes.fetchReq.appId)
       val serializedItem = SerializationUtils.toProto(item).toByteArray
       (serializedItem, fetchRes.fetchReq.appId)
     }
-    input.withSink(rabbitSink).run()
+    input.connect(rabbitSink).run()
   }
 
   def crawlServiceBehavior : Receive = {

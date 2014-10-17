@@ -1,6 +1,6 @@
 package org.blikk.crawler.processors
 
-import akka.stream.scaladsl2.{ProcessorFlow, FlowFrom}
+import akka.stream.scaladsl2.{Flow}
 import org.blikk.crawler._
 import org.jsoup._
 import scala.collection.JavaConversions._
@@ -16,9 +16,9 @@ object RequestExtractor extends Logging {
     * Builds a processor that exractrs links from a given CrawlItem 
     * It returns both extracted links and the original item for provenance
     */
-  def buildLinkExtractor() : ProcessorFlow[CrawlItem, (CrawlItem, Set[String])] = {
+  def buildLinkExtractor() : Flow[CrawlItem, (CrawlItem, Set[String])] = {
     val extractor = new LinkExtractor()
-    FlowFrom[CrawlItem].map { item =>
+    Flow[CrawlItem].map { item =>
       val baseUri = item.req.baseUri
       // We additionaly extract the `location` header used for redirects
       val redirectUrls = item.res.headers
@@ -34,8 +34,8 @@ object RequestExtractor extends Logging {
 
   def buildRequestGenerator(internalOnly: Boolean = true)
     (mapFunc : (CrawlItem, String) => WrappedHttpRequest) : 
-    ProcessorFlow[(CrawlItem, Set[String]), WrappedHttpRequest] = {
-      FlowFrom[(CrawlItem, Set[String])].mapConcat { case(source, links) =>
+    Flow[(CrawlItem, Set[String]), WrappedHttpRequest] = {
+      Flow[(CrawlItem, Set[String])].mapConcat { case(source, links) =>
         links.flatMap { link => 
           Try(mapFunc(source, link)).toOption orElse { 
             log.warn(s"Could not generate request from ${link}")
@@ -48,21 +48,21 @@ object RequestExtractor extends Logging {
   }
 
   def build(internalOnly: Boolean, mapFunc : (CrawlItem, String) => WrappedHttpRequest) : 
-  ProcessorFlow[CrawlItem, WrappedHttpRequest] = {
+  Flow[CrawlItem, WrappedHttpRequest] = {
     val linkExtractor = RequestExtractor.buildLinkExtractor()
     val requestGenerator = RequestExtractor.buildRequestGenerator(internalOnly)(mapFunc)
-    linkExtractor.append(requestGenerator)
+    linkExtractor.connect(requestGenerator)
   }
 
   /**
     * Builds a processor that generates new HTTP requests
     * by extracting all links from a fetched document
     */
-  def build(internalOnly: Boolean = true) : ProcessorFlow[CrawlItem, WrappedHttpRequest] = {
+  def build(internalOnly: Boolean = true) : Flow[CrawlItem, WrappedHttpRequest] = {
     val linkExtractor = RequestExtractor.buildLinkExtractor()
     val requestGenerator = RequestExtractor.buildRequestGenerator(internalOnly)((source, link) =>
       WrappedHttpRequest.getUrl(link).withProvenance(source.req))
-    linkExtractor.append(requestGenerator)
+    linkExtractor.connect(requestGenerator)
   }
 
 }

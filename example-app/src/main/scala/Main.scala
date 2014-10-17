@@ -39,7 +39,7 @@ object Main extends App {
     val terminationSink = TerminationSink.build {_.numFetched >= 100}
 
     // Create a processor that counts all words in a document
-    val wordCounter = FlowFrom[CrawlItem].map { item =>
+    val wordCounter = Flow[CrawlItem].map { item =>
       // Use Jsoup to remove all HTML tags
       val soup = Jsoup.parse(item.res.stringEntity.toLowerCase)
       val docText = soup.text()
@@ -48,7 +48,7 @@ object Main extends App {
     }
 
     // Create a processor that aggregates the counts
-    val countAggregator = FoldSink[Map[String, Int], Map[String, Int]](Map.empty) { 
+    val countAggregator = FoldDrain[Map[String, Int], Map[String, Int]](Map.empty) { 
       (counts, newCounts) =>
       counts ++ newCounts.map { case (k,v) => k -> (v + counts.getOrElse(k,0)) }
     }
@@ -56,24 +56,24 @@ object Main extends App {
     val graph = FlowGraph { implicit b =>
       val frontierMerge = Merge[WrappedHttpRequest]
       // Broadcast all items that were succesfully fetched
-      src.buffer(5000, OverflowStrategy.backpressure).append(statusCodeFilter) ~> bcast
+      src.buffer(5000, OverflowStrategy.backpressure).connect(statusCodeFilter) ~> bcast
       // Exract links and request new URLs from the crawler
-      bcast ~> reqExtractor.append(dupFilter) ~> frontierMerge
+      bcast ~> reqExtractor.connect(dupFilter) ~> frontierMerge
       // Count words and aggregate
       bcast ~> wordCounter ~> countAggregator
       // Terminate on conditions (more than 10 links fetched)
       bcast ~> terminationSink
       // Logging
-      bcast ~> ForeachSink[CrawlItem]{ item => log.info("processing: {}", item.req.uri.toString) }
+      bcast ~> ForeachDrain[CrawlItem]{ item => log.info("processing: {}", item.req.uri.toString) }
       // Iniate the crawl with the seeds
-      FlowFrom(seedUrls) ~> frontierMerge
+      Source(seedUrls) ~> frontierMerge
       frontierMerge ~> 
-        FlowFrom[WrappedHttpRequest].map{ req => log.info("Adding to frontier: {}", req.uri.toString); req } 
-        .withSink(frontierSink)
+        Flow[WrappedHttpRequest].map{ req => log.info("Adding to frontier: {}", req.uri.toString); req } 
+        .connect(frontierSink)
     }.run()
 
     // When the stream is over print the result
-    countAggregator.future(graph).onComplete { 
+    graph.materializedDrain(countAggregator).onComplete { 
       case Success(finalResult) => 
         val sortedResult = finalResult.toList.sortBy(_._2)
         Console.println(sortedResult.reverse.take(25))

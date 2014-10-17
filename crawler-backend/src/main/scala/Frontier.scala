@@ -37,10 +37,10 @@ class Frontier(target: ActorRef)
     val throttler = new GroupThrottler[FetchRequest](
       Config.perDomainDelay)(_.req.topPrivateDomain.getOrElse(""))
 
-    FlowFrom(publisher).map { element =>
+    Source(publisher).map { element =>
       SerializationUtils.fromProto(HttpProtos.FetchRequest.parseFrom(element))
     }.timerTransform("throttle", () => throttler)
-    .withSink(ForeachSink[FetchRequest](routeFetchRequestGlobally))
+    .connect(ForeachDrain[FetchRequest](routeFetchRequestGlobally))
     .run()
 
     // We need to wait a while before the rabbit consumer is done with binding
