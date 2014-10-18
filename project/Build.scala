@@ -1,5 +1,7 @@
 import sbt._
 import Keys._
+import com.typesafe.sbt.SbtNativePackager._
+import NativePackagerKeys._
 
 object BlikkBuild extends Build {
 
@@ -28,30 +30,6 @@ object BlikkBuild extends Build {
     baseDirectory in run := file(".")
   )
 
-  val crawlerSettings = commonSettings ++ Seq(
-    name := "crawler-backend",
-    envVars := Map("BLIKK_APP_NAME" -> "crawler-backend"),
-    libraryDependencies ++= Seq(
-      "com.typesafe.akka" %% "akka-cluster" % "2.3.6",
-      "com.typesafe.akka" %% "akka-contrib" % "2.3.6",
-      "io.spray" %% "spray-routing" % "1.3.1"
-    ) ++ commonLibraryDependencies
-  )
-
-  val crawlerLibSettings = commonSettings ++ Seq(
-    name := "crawler-lib",
-    libraryDependencies ++= commonLibraryDependencies
-  )
-
-  val crawlerTestSettings = commonSettings ++ Seq(
-    name := "crawler-test",
-    libraryDependencies ++= commonLibraryDependencies ++ Seq(
-      "org.scalatest" %% "scalatest" % "2.2.1" % "test",
-      "com.typesafe.akka" %% "akka-multi-node-testkit" % "2.3.6",
-      "com.typesafe.akka" %% "akka-testkit" % "2.3.6"
-    )
-  )
-
   val commonLibraryDependencies = Seq(
     "ch.qos.logback" % "logback-classic" % "1.1.2",
     "com.google.guava" % "guava" % "18.0",
@@ -70,8 +48,32 @@ object BlikkBuild extends Build {
     "org.scalautils" %% "scalautils" % "2.1.5"
   )
 
+  val crawlerSettings = commonSettings ++ Seq(
+    name := "crawler-backend",
+    envVars := Map("BLIKK_APP_NAME" -> "crawler-backend"),
+    libraryDependencies ++= Seq(
+      "com.typesafe.akka" %% "akka-cluster" % "2.3.6",
+      "com.typesafe.akka" %% "akka-contrib" % "2.3.6",
+      "io.spray" %% "spray-routing" % "1.3.1"
+    ) ++ commonLibraryDependencies
+  ) ++ packageArchetype.java_application
+
+  val crawlerLibSettings = commonSettings ++ Seq(
+    name := "crawler-lib",
+    libraryDependencies ++= commonLibraryDependencies
+  )
+
+  val crawlerTestSettings = commonSettings ++ Seq(
+    name := "crawler-test",
+    libraryDependencies ++= commonLibraryDependencies ++ Seq(
+      "org.scalatest" %% "scalatest" % "2.2.1" % "test",
+      "com.typesafe.akka" %% "akka-multi-node-testkit" % "2.3.6",
+      "com.typesafe.akka" %% "akka-testkit" % "2.3.6"
+    )
+  )
+
   val exampleAppSettings = commonSettings ++ Seq(
     name := "example-app"
-  )
+  ) ++ packageArchetype.java_application
 
 }
