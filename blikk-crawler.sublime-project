@@ -27,12 +27,6 @@
     },
     {
       "follow_symlinks": true,
-      "path": "deploy",
-      "folder_exclude_patterns": ["target"],
-      "binary_file_patterns": ["*.log"]
-    },
-    {
-      "follow_symlinks": true,
       "path": "example-app",
       "folder_exclude_patterns": ["target"],
       "binary_file_patterns": ["*.log"]
