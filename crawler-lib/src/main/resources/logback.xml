@@ -10,9 +10,9 @@
   </appender>
 
   <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
-    <file>/usr/local/var/log/blikk/current/${APP_NAME}.log</file>
+    <file>/usr/local/var/log/blikk/${APP_NAME}/${HOSTNAME}.log</file>
     <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
-      <fileNamePattern>/usr/local/var/log/blikk/archive/${APP_NAME}/%d{yyyy-MM-dd}.log</fileNamePattern>
+      <fileNamePattern>/usr/local/var/log/blikk/${APP_NAME}/archive/${HOSTNAME}-%d{yyyy-MM-dd}.log</fileNamePattern>
     </rollingPolicy>
     <encoder>
       <pattern>%date{ISO8601} %-5level [service=${APP_NAME}][%logger{36}][%X{akkaSource}][%X{sourceThread}] - %msg%n</pattern>
