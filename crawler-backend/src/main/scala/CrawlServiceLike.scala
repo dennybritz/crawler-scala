@@ -80,6 +80,8 @@ trait CrawlServiceLike {
       (serializedItem, fetchRes.fetchReq.appId)
     }
     input.connect(rabbitSink).run()
+
+    log.info("crawler ready :)")
   }
 
   def crawlServiceBehavior : Receive = {

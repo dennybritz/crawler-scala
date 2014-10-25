@@ -33,7 +33,6 @@ object Main extends App with Logging {
   // Start the crawl service and API actors
   val crawlService = system.actorOf(CrawlService.props, "crawl-service")
   val api = system.actorOf(ApiLayer.props(crawlService), "api")
-  log.info("crawler ready :)")
   system.awaitTermination()
 
 }
