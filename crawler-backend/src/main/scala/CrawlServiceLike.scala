@@ -58,10 +58,17 @@ trait CrawlServiceLike {
     * We initialize the response data stream that writes out the data
     */
   def initializeSinks() {
+    
     // Initialize RabbitMQ data
-    Resource.using(RabbitData.createChannel()) { implicit channel =>
-      RabbitData.declareAll()
+    Try(RabbitData.createChannel()) match {
+      case Success(rabbitChannel) => 
+        Resource.using(rabbitChannel) { implicit channel => RabbitData.declareAll() }
+      case Failure(err) => 
+        log.error(err, "Could not connect to RabbitMQ")
+        context.system.shutdown()
+        return System.exit(1)
     }
+
     // Might as well initialize the frontier here
     frontier
     log.info("Initializing output streams...")
