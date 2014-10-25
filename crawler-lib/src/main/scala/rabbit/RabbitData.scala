@@ -3,6 +3,7 @@ package org.blikk.crawler
 import com.rabbitmq.client.{Channel => RabbitChannel, ConnectionFactory => RabbitConnectionFactory}
 import scala.collection.JavaConversions._
 import com.typesafe.config.ConfigFactory
+import java.util.concurrent.TimeUnit
 
 /* RabbotMQ queue properties */
 case class RabbitQueueDefinition(
@@ -25,11 +26,13 @@ object RabbitData extends Logging {
 
   // Default configuration
   val config = ConfigFactory.load()
-  val defaultRabbitMQUri = config.getString("blikk.rabbitMQ.uri")
+  val defaultRabbitMQUri : String = config.getString("blikk.rabbitMQ.uri")
+  val requestHeartbeat : Int = config.getDuration("blikk.rabbitMQ.requestHeartbeat", TimeUnit.SECONDS).toInt
 
   // Initializes the RabbitMQ Connection Factory. 
   // An application should use one Connection with multiple channels.
   private val rabbitCF = new RabbitConnectionFactory()
+  rabbitCF.setRequestedHeartbeat(requestHeartbeat)
   setRabbitUri(defaultRabbitMQUri)
   private lazy val rabbitConnection = rabbitCF.newConnection()
   
