@@ -3,7 +3,8 @@ package org.blikk.crawler.app
 import akka.actor.ActorSystem
 import akka.pattern.ask
 import akka.stream.actor.ActorPublisher
-import akka.stream.scaladsl2._
+import akka.stream.scaladsl._
+import akka.stream.FlowMaterializer
 import akka.util.Timeout
 import com.blikk.serialization.HttpProtos
 import com.rabbitmq.client._

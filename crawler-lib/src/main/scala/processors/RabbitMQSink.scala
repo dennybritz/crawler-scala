@@ -2,7 +2,7 @@ package org.blikk.crawler.processors
 
 import akka.actor._
 import akka.stream.actor._
-import akka.stream.scaladsl2._
+import akka.stream.scaladsl._
 import com.rabbitmq.client.{Connection => RabbitConnection, Channel => RabbitChannel, AMQP}
 import org.blikk.crawler.{RabbitData, RabbitExchangeDefinition}
 import scala.util.{Try, Success, Failure}
@@ -12,9 +12,9 @@ object RabbitMQSink {
     (ser: A => (Array[Byte], String)) = Props(classOf[RabbitMQSink[A]], channel, rabbitExchange, ser)
 
   def build[A](channel: RabbitChannel, rabbitExchange: RabbitExchangeDefinition) 
-    (ser: A => (Array[Byte], String))(implicit system: ActorSystem) : SubscriberDrain[A] = {
+    (ser: A => (Array[Byte], String))(implicit system: ActorSystem) : Sink[A] = {
       val rabbitSinkActor = system.actorOf(RabbitMQSink.props(channel, rabbitExchange)(ser))
-      SubscriberDrain(ActorSubscriber[A](rabbitSinkActor))
+      Sink(ActorSubscriber[A](rabbitSinkActor))
   }
 }
 

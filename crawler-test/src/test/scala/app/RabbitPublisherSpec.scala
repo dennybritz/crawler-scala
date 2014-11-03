@@ -27,7 +27,7 @@ class RabbitPublisherSpec extends AkkaSingleNodeSpec("RabbitPublisherSpec")
           val actor = system.actorOf(RabbitPublisher.props(channel, 
             queue, exchange, routingKey))
           implicit val m = FlowMaterializer(MaterializerSettings(system))
-          val flow = Flow(ActorPublisher[Any](actor))
+          val flow = Source(ActorPublisher[Any](actor))
           flow.map { x => 
             new String(x.asInstanceOf[Array[Byte]]) 
           }.foreach(self ! _)

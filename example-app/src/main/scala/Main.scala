@@ -1,8 +1,8 @@
 package org.blikk.apps.example
 
 import akka.stream._
-import akka.stream.scaladsl2._
-import akka.stream.scaladsl2.FlowGraphImplicits._
+import akka.stream.scaladsl._
+import akka.stream.scaladsl.FlowGraphImplicits._
 import akka.actor.ActorSystem
 import com.typesafe.config.ConfigFactory
 import org.blikk.crawler._
@@ -48,12 +48,12 @@ object Main extends App {
     }
 
     // Create a processor that aggregates the counts
-    val countAggregator = FoldDrain[Map[String, Int], Map[String, Int]](Map.empty) { 
+    val countAggregator = Sink.fold[Map[String, Int], Map[String, Int]](Map.empty) { 
       (counts, newCounts) =>
       counts ++ newCounts.map { case (k,v) => k -> (v + counts.getOrElse(k,0)) }
     }
 
-    val graph = FlowGraph { implicit b =>
+    val matMap = FlowGraph { implicit b =>
       val frontierMerge = Merge[WrappedHttpRequest]
       // Broadcast all items that were succesfully fetched
       src.buffer(5000, OverflowStrategy.backpressure).connect(statusCodeFilter) ~> bcast
@@ -64,7 +64,7 @@ object Main extends App {
       // Terminate on conditions (more than 10 links fetched)
       bcast ~> terminationSink
       // Logging
-      bcast ~> ForeachDrain[CrawlItem]{ item => log.info("processing: {}", item.req.uri.toString) }
+      bcast ~> Sink.foreach[CrawlItem]{ item => log.info("processing: {}", item.req.uri.toString) }
       // Iniate the crawl with the seeds
       Source(seedUrls) ~> frontierMerge
       frontierMerge ~> 
@@ -73,7 +73,7 @@ object Main extends App {
     }.run()
 
     // When the stream is over print the result
-    graph.materializedDrain(countAggregator).onComplete { 
+    matMap.get(countAggregator).onComplete { 
       case Success(finalResult) => 
         val sortedResult = finalResult.toList.sortBy(_._2)
         Console.println(sortedResult.reverse.take(25))

@@ -4,8 +4,8 @@ import akka.actor._
 import akka.routing.ConsistentHashingRouter.ConsistentHashableEnvelope
 import akka.stream.actor._
 import akka.stream.OverflowStrategy
-import akka.stream.scaladsl2._
-import akka.stream.scaladsl2.FlowGraphImplicits._
+import akka.stream.scaladsl._
+import akka.stream.scaladsl.FlowGraphImplicits._
 import com.rabbitmq.client.{Connection => RabbitConnection, Channel => RabbitChannel, AMQP}
 import com.blikk.serialization.HttpProtos
 import scala.collection.JavaConversions._
@@ -20,7 +20,7 @@ object Frontier {
   }
 }
 
-class Frontier(target: ActorRef) 
+class Frontier(target: ActorRef)
   extends Actor with ActorLogging with ImplicitFlowMaterializer {
 
   import RabbitData._
@@ -31,7 +31,7 @@ class Frontier(target: ActorRef)
 
   override def preStart() {
     val publisherActor = context.actorOf(
-      RabbitPublisher.props(RabbitData.createChannel(), 
+      RabbitPublisher.props(RabbitData.createChannel(),
       FrontierQueue, FrontierExchange, rabbitRoutingKey), s"frontierRabbit")
     val publisher = ActorPublisher[Array[Byte]](publisherActor)
     val throttler = new GroupThrottler[FetchRequest](
@@ -40,7 +40,7 @@ class Frontier(target: ActorRef)
     Source(publisher).map { element =>
       SerializationUtils.fromProto(HttpProtos.FetchRequest.parseFrom(element))
     }.timerTransform("throttle", () => throttler)
-    .connect(ForeachDrain[FetchRequest](routeFetchRequestGlobally))
+    .connect(Sink.foreach[FetchRequest](routeFetchRequestGlobally))
     .run()
 
     // We need to wait a while before the rabbit consumer is done with binding

@@ -1,6 +1,7 @@
 package org.blikk.test
 
-import akka.stream.scaladsl2._
+import akka.stream.FlowMaterializer
+import akka.stream.scaladsl._
 import org.blikk.crawler._
 import scala.concurrent.duration._
 import akka.testkit._
@@ -21,7 +22,7 @@ class GroupThrottlerSpec extends AkkaSingleNodeSpec("GroupThrottlerSpec") {
         .timerTransform("throttle", () => throttler)
         .connect(senderTrans)
         .take(3)
-        .connect(BlackholeDrain)
+        .connect(Sink.ignore)
         .run()
 
       expectMsg(1)
@@ -41,7 +42,7 @@ class GroupThrottlerSpec extends AkkaSingleNodeSpec("GroupThrottlerSpec") {
         .timerTransform("throttle", () => throttler)
         .connect(senderTrans)
         .take(6)
-        .connect(BlackholeDrain)
+        .connect(Sink.ignore)
         .run()
 
       receiveN(2).toSet shouldEqual (Set(1,2))

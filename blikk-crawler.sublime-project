@@ -19,7 +19,7 @@
       "folder_exclude_patterns": ["target"],
       "binary_file_patterns": ["*.log"]
     },
-    {  
+    {
       "follow_symlinks": true,
       "path": "crawler-test",
       "folder_exclude_patterns": ["target"],

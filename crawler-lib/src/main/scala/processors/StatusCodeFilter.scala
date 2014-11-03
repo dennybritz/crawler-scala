@@ -2,7 +2,7 @@ package org.blikk.crawler.processors
 
 import org.blikk.crawler._
 import spray.http.StatusCodes._
-import akka.stream.scaladsl2.{Flow}
+import akka.stream.scaladsl.{Flow}
 
 object StatusCodeFilter {
 

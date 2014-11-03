@@ -1,6 +1,7 @@
 package org.blikk.test
 
-import akka.stream.scaladsl2._
+import akka.stream.FlowMaterializer
+import akka.stream.scaladsl._
 import akka.stream.actor._
 import org.blikk.crawler.processors.RabbitMQSink
 import org.blikk.crawler._
@@ -32,7 +33,7 @@ class RabbitMQSinkSpec extends AkkaSingleNodeSpec("RabbitMQSinkSpec") {
       Thread.sleep(100)
 
       // Create the flow
-      Source(publisherInput).connect(ForeachDrain[Array[Byte]] { item =>
+      Source(publisherInput).connect(Sink.foreach[Array[Byte]] { item =>
         val msgStr = new String(item)
         log.debug(msgStr)
         self ! msgStr

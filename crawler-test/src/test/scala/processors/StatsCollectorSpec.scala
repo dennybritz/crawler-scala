@@ -1,6 +1,7 @@
 package org.blikk.test
 
-import akka.stream.scaladsl2._
+import akka.stream.FlowMaterializer
+import akka.stream.scaladsl._
 import org.blikk.crawler.processors.{CrawlStats, StatsCollector}
 import org.blikk.crawler.{CrawlItem, WrappedHttpRequest}
 import org.scalatest._

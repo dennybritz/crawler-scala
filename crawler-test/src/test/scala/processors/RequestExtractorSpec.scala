@@ -1,6 +1,7 @@
 package org.blikk.test
 
-import akka.stream.scaladsl2._
+import akka.stream.FlowMaterializer
+import akka.stream.scaladsl._
 import org.blikk.crawler.processors.RequestExtractor
 import org.blikk.crawler.{CrawlItem, WrappedHttpRequest, WrappedHttpResponse}
 import org.scalatest._
@@ -30,7 +31,7 @@ class RequestExtractorSpec extends AkkaSingleNodeSpec("RequestExtractorSpec") {
         """))
 
       val requestExtractor = RequestExtractor.build(false)
-      val arraySink = FoldDrain[List[WrappedHttpRequest], WrappedHttpRequest](Nil)(_ :+ _)
+      val arraySink = Sink.fold[List[WrappedHttpRequest], WrappedHttpRequest](Nil)(_ :+ _)
       val resultFuture = Source(data).connect(requestExtractor)
         .runWith(arraySink)
       val finalResult = Await.result(resultFuture, 1.second)
@@ -51,7 +52,7 @@ class RequestExtractorSpec extends AkkaSingleNodeSpec("RequestExtractorSpec") {
         """))
 
       val requestExtractor = RequestExtractor.build(true)
-      val arraySink = FoldDrain[List[WrappedHttpRequest], WrappedHttpRequest](Nil)(_ :+ _)
+      val arraySink = Sink.fold[List[WrappedHttpRequest], WrappedHttpRequest](Nil)(_ :+ _)
       val resultFuture = Source(data).connect(requestExtractor)
         .runWith(arraySink)
       val finalResult = Await.result(resultFuture, 1.second)

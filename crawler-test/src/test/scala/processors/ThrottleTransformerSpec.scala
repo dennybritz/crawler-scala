@@ -1,6 +1,7 @@
 package org.blikk.test
 
-import akka.stream.scaladsl2._
+import akka.stream.FlowMaterializer
+import akka.stream.scaladsl._
 import org.blikk.crawler.processors.{ThrottleTransformer}
 import org.blikk.crawler.{CrawlItem, WrappedHttpRequest}
 import org.scalatest._
@@ -16,7 +17,7 @@ class ThrottleTransformerSpec extends AkkaSingleNodeSpec("ThrottleTransformerSpe
     
     it("should work aggregate items"){
       val data = Iterator from 1
-      val senderSink = ForeachDrain[Int] { self ! _ }
+      val senderSink = Sink.foreach[Int] { self ! _ }
       val flow = Source(data)
         .timerTransform("throttler", () => new ThrottleTransformer[Int](250.millis))
         .connect(senderSink)

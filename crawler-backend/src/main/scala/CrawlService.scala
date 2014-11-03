@@ -6,7 +6,7 @@ import akka.cluster.Cluster
 import akka.cluster.ClusterEvent._
 import akka.cluster.routing._
 import akka.routing._
-import akka.stream.scaladsl2.ImplicitFlowMaterializer
+import akka.stream.scaladsl.ImplicitFlowMaterializer
 import scala.concurrent.duration._
 
 

@@ -4,8 +4,8 @@ import org.blikk.test._
 import org.blikk.crawler._
 import scala.concurrent.duration._
 import org.blikk.crawler.app._
-import akka.stream.scaladsl2._
-import akka.stream.scaladsl2.FlowGraphImplicits._
+import akka.stream.scaladsl._
+import akka.stream.scaladsl.FlowGraphImplicits._
 import org.blikk.crawler.processors._
 
 class SimpleCrawlSpec extends IntegrationSuite("SimpleCrawlSpec") {
@@ -19,7 +19,7 @@ class SimpleCrawlSpec extends IntegrationSuite("SimpleCrawlSpec") {
       val seeds = List(WrappedHttpRequest.getUrl("http://localhost:9090/1"))
       val frontier = FrontierSink.build()
 
-      streamContext.flow.connect(ForeachDrain[CrawlItem] { item => 
+      streamContext.flow.connect(Sink.foreach[CrawlItem] { item => 
         log.info("{}", item.toString) 
         assert(item.res.status.intValue === 200)
         probes(1).ref ! item.req.uri.toString
@@ -44,7 +44,7 @@ class SimpleCrawlSpec extends IntegrationSuite("SimpleCrawlSpec") {
       val fLinkExtractor = RequestExtractor.build()
       val duplicateFilter = DuplicateFilter.buildUrlDuplicateFilter(
         List(WrappedHttpRequest.getUrl("http://localhost:9090/crawl/1")))
-      val fLinkSender = ForeachDrain[CrawlItem] { item => 
+      val fLinkSender = Sink.foreach[CrawlItem] { item => 
         log.info("{}", item.toString) 
         probes(1).ref ! item.req.uri.toString
       }

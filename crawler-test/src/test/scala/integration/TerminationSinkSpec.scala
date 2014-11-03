@@ -4,8 +4,8 @@ import org.blikk.test._
 import org.blikk.crawler._
 import scala.concurrent.duration._
 import org.blikk.crawler.app._
-import akka.stream.scaladsl2._
-import akka.stream.scaladsl2.FlowGraphImplicits._
+import akka.stream.scaladsl._
+import akka.stream.scaladsl.FlowGraphImplicits._
 import org.blikk.crawler.processors._
 
 class TerminationSinkSpec extends IntegrationSuite("TerminationSinkSpec") {
@@ -20,7 +20,7 @@ class TerminationSinkSpec extends IntegrationSuite("TerminationSinkSpec") {
       val seeds = List(WrappedHttpRequest.getUrl("http://localhost:9090/crawl/1"))
       val in = streamContext.flow
       val fLinkExtractor = RequestExtractor.build()
-      val fLinkSender = ForeachDrain[CrawlItem] { item => 
+      val fLinkSender = Sink.foreach[CrawlItem] { item => 
         log.info("{}", item.toString) 
         probes(1).ref ! item.req.uri.toString
       }

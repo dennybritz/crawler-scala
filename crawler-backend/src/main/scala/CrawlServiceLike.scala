@@ -6,8 +6,8 @@ import akka.io.IO
 import akka.pattern.{ask, pipe}
 import akka.stream.OverflowStrategy
 import akka.stream.actor._
-import akka.stream.scaladsl2._
-import akka.stream.scaladsl2.FlowGraphImplicits._
+import akka.stream.scaladsl._
+import akka.stream.scaladsl.FlowGraphImplicits._
 import akka.util.Timeout
 import com.rabbitmq.client.{Connection => RabbitMQConnection, Channel => RabbitMQChannel, AMQP}
 import org.blikk.crawler.processors.RabbitMQSink

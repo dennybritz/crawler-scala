@@ -1,6 +1,6 @@
 package org.blikk.crawler.processors
 
-import akka.stream.scaladsl2.{Flow}
+import akka.stream.scaladsl.{Flow}
 import org.blikk.crawler._
 import org.jsoup._
 import scala.collection.JavaConversions._

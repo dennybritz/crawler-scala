@@ -1,7 +1,8 @@
 package org.blikk.crawler.app
 
 import akka.actor._
-import akka.stream.scaladsl2.{Source, FlowMaterializer}
+import akka.stream.FlowMaterializer
+import akka.stream.scaladsl.Source
 import com.rabbitmq.client.{Channel => RabbitChannel}
 import org.blikk.crawler.ImplicitLogging
 
