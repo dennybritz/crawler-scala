@@ -51,7 +51,7 @@ object RequestExtractor extends Logging {
   Flow[CrawlItem, WrappedHttpRequest] = {
     val linkExtractor = RequestExtractor.buildLinkExtractor()
     val requestGenerator = RequestExtractor.buildRequestGenerator(internalOnly)(mapFunc)
-    linkExtractor.connect(requestGenerator)
+    linkExtractor.via(requestGenerator)
   }
 
   /**
@@ -62,7 +62,7 @@ object RequestExtractor extends Logging {
     val linkExtractor = RequestExtractor.buildLinkExtractor()
     val requestGenerator = RequestExtractor.buildRequestGenerator(internalOnly)((source, link) =>
       WrappedHttpRequest.getUrl(link).withProvenance(source.req))
-    linkExtractor.connect(requestGenerator)
+    linkExtractor.via(requestGenerator)
   }
 
 }

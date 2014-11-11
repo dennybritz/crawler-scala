@@ -56,9 +56,9 @@ object Main extends App {
     val matMap = FlowGraph { implicit b =>
       val frontierMerge = Merge[WrappedHttpRequest]
       // Broadcast all items that were succesfully fetched
-      src.buffer(5000, OverflowStrategy.backpressure).connect(statusCodeFilter) ~> bcast
+      src.buffer(5000, OverflowStrategy.backpressure).via(statusCodeFilter) ~> bcast
       // Exract links and request new URLs from the crawler
-      bcast ~> reqExtractor.connect(dupFilter) ~> frontierMerge
+      bcast ~> reqExtractor.via(dupFilter) ~> frontierMerge
       // Count words and aggregate
       bcast ~> wordCounter ~> countAggregator
       // Terminate on conditions (more than 10 links fetched)
@@ -69,7 +69,7 @@ object Main extends App {
       Source(seedUrls) ~> frontierMerge
       frontierMerge ~> 
         Flow[WrappedHttpRequest].map{ req => log.info("Adding to frontier: {}", req.uri.toString); req } 
-        .connect(frontierSink)
+        .to(frontierSink)
     }.run()
 
     // When the stream is over print the result

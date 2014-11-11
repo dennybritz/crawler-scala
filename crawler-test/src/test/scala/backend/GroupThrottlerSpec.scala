@@ -20,9 +20,9 @@ class GroupThrottlerSpec extends AkkaSingleNodeSpec("GroupThrottlerSpec") {
 
       Source(data)
         .timerTransform("throttle", () => throttler)
-        .connect(senderTrans)
+        .via(senderTrans)
         .take(3)
-        .connect(Sink.ignore)
+        .to(Sink.ignore)
         .run()
 
       expectMsg(1)
@@ -40,9 +40,9 @@ class GroupThrottlerSpec extends AkkaSingleNodeSpec("GroupThrottlerSpec") {
 
       Source(data)
         .timerTransform("throttle", () => throttler)
-        .connect(senderTrans)
+        .via(senderTrans)
         .take(6)
-        .connect(Sink.ignore)
+        .to(Sink.ignore)
         .run()
 
       receiveN(2).toSet shouldEqual (Set(1,2))

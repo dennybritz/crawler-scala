@@ -29,8 +29,8 @@ class StatusCodeFilterSpec extends IntegrationSuite("StatusCodeFilterSpec") {
       }
       val statusCodeFilter = StatusCodeFilter.build()
 
-      streamContext.flow.connect(statusCodeFilter).connect(fLinkSender).run()
-      Source(seeds).connect(frontier).run()
+      streamContext.flow.via(statusCodeFilter).to(fLinkSender).run()
+      Source(seeds).to(frontier).run()
 
       probes(1).receiveN(2).toSet should === (Set("http://localhost:9090/1", 
         "http://localhost:9090/status/301"))

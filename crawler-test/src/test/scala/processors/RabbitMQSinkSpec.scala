@@ -33,14 +33,14 @@ class RabbitMQSinkSpec extends AkkaSingleNodeSpec("RabbitMQSinkSpec") {
       Thread.sleep(100)
 
       // Create the flow
-      Source(publisherInput).connect(Sink.foreach[Array[Byte]] { item =>
+      Source(publisherInput).to(Sink.foreach[Array[Byte]] { item =>
         val msgStr = new String(item)
         log.debug(msgStr)
         self ! msgStr
       }).run()
 
       // Run the flow that writes to RabbitMQ
-      val flow = Source(data).connect(rabbitSink).run()
+      val flow = Source(data).to(rabbitSink).run()
       receiveN(3).map(_.toString).toSet shouldBe Set("Are", "you", "ready?")
       expectNoMsg()
     }

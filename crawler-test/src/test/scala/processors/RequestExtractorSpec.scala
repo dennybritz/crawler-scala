@@ -32,8 +32,7 @@ class RequestExtractorSpec extends AkkaSingleNodeSpec("RequestExtractorSpec") {
 
       val requestExtractor = RequestExtractor.build(false)
       val arraySink = Sink.fold[List[WrappedHttpRequest], WrappedHttpRequest](Nil)(_ :+ _)
-      val resultFuture = Source(data).connect(requestExtractor)
-        .runWith(arraySink)
+      val resultFuture = Source(data).via(requestExtractor).runWith(arraySink)
       val finalResult = Await.result(resultFuture, 1.second)
 
       finalResult.map(_.uri.toString()).toSet shouldBe Set(
@@ -53,8 +52,7 @@ class RequestExtractorSpec extends AkkaSingleNodeSpec("RequestExtractorSpec") {
 
       val requestExtractor = RequestExtractor.build(true)
       val arraySink = Sink.fold[List[WrappedHttpRequest], WrappedHttpRequest](Nil)(_ :+ _)
-      val resultFuture = Source(data).connect(requestExtractor)
-        .runWith(arraySink)
+      val resultFuture = Source(data).via(requestExtractor).runWith(arraySink)
       val finalResult = Await.result(resultFuture, 1.second)
 
       finalResult.map(_.uri.toString()).toSet shouldBe Set("http://twitter.com", "http://twitter.com/relative")

@@ -40,7 +40,7 @@ class Frontier(target: ActorRef)
     Source(publisher).map { element =>
       SerializationUtils.fromProto(HttpProtos.FetchRequest.parseFrom(element))
     }.timerTransform("throttle", () => throttler)
-    .connect(Sink.foreach[FetchRequest](routeFetchRequestGlobally))
+    .to(Sink.foreach[FetchRequest](routeFetchRequestGlobally))
     .run()
 
     // We need to wait a while before the rabbit consumer is done with binding

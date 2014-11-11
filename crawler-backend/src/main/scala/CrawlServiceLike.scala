@@ -79,7 +79,7 @@ trait CrawlServiceLike {
       val serializedItem = SerializationUtils.toProto(item).toByteArray
       (serializedItem, fetchRes.fetchReq.appId)
     }
-    input.connect(rabbitSink).run()
+    input.to(rabbitSink).run()
 
     log.info("crawler ready :)")
   }

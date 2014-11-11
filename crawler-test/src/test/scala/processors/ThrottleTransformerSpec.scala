@@ -20,7 +20,7 @@ class ThrottleTransformerSpec extends AkkaSingleNodeSpec("ThrottleTransformerSpe
       val senderSink = Sink.foreach[Int] { self ! _ }
       val flow = Source(data)
         .timerTransform("throttler", () => new ThrottleTransformer[Int](250.millis))
-        .connect(senderSink)
+        .to(senderSink)
         .run()
 
       expectMsg(1)

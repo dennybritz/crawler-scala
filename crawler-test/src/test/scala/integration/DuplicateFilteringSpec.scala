@@ -32,7 +32,7 @@ class DuplicateFilteringSpec extends IntegrationSuite("DuplicateFilteringSpec") 
       FlowGraph { implicit b =>
         val frontierMerge = Merge[WrappedHttpRequest]
         val bcast = Broadcast[CrawlItem]        
-        in ~> bcast ~> fLinkExtractor.connect(dupFilter) ~> frontierMerge
+        in ~> bcast ~> fLinkExtractor.via(dupFilter) ~> frontierMerge
         bcast ~> fLinkSender
         Source(seeds) ~> frontierMerge 
         frontierMerge ~> frontier

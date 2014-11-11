@@ -19,13 +19,13 @@ class SimpleCrawlSpec extends IntegrationSuite("SimpleCrawlSpec") {
       val seeds = List(WrappedHttpRequest.getUrl("http://localhost:9090/1"))
       val frontier = FrontierSink.build()
 
-      streamContext.flow.connect(Sink.foreach[CrawlItem] { item => 
+      streamContext.flow.to(Sink.foreach[CrawlItem] { item => 
         log.info("{}", item.toString) 
         assert(item.res.status.intValue === 200)
         probes(1).ref ! item.req.uri.toString
       }).run()
 
-      Source(seeds).connect(frontier).run()
+      Source(seeds).to(frontier).run()
 
       probes(1).within(5.seconds) {
         probes(1).expectMsg("http://localhost:9090/1")
@@ -53,7 +53,7 @@ class SimpleCrawlSpec extends IntegrationSuite("SimpleCrawlSpec") {
       val graph = FlowGraph { implicit b =>
         val bcast = Broadcast[CrawlItem]
         val frontierMerge = Merge[WrappedHttpRequest]
-        in ~> bcast ~> fLinkExtractor.connect(duplicateFilter) ~> frontierMerge
+        in ~> bcast ~> fLinkExtractor.via(duplicateFilter) ~> frontierMerge
         bcast ~> fLinkSender
         Source(seeds) ~> frontierMerge
         frontierMerge ~> frontier

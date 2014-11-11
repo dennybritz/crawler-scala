@@ -24,7 +24,7 @@ class MultiInstanceSpec extends IntegrationSuite("MultiInstanceSpec") {
       // Data should be shared
       List(streamContext1, streamContext2).foreach { streamContext =>
         import streamContext.{materializer, system}    
-        streamContext.flow.connect(Sink.foreach[CrawlItem] { item => 
+        streamContext.flow.to(Sink.foreach[CrawlItem] { item => 
           item.res.status.intValue shouldBe 200
           probes(1).ref ! item.req.uri.toString
         }).run()
@@ -35,7 +35,7 @@ class MultiInstanceSpec extends IntegrationSuite("MultiInstanceSpec") {
         WrappedHttpRequest.getUrl(s"http://localhost:9090/${i}") 
       }.toList
 
-      Source(seeds).connect(frontierSink).run()(streamContext1.materializer)
+      Source(seeds).to(frontierSink).run()(streamContext1.materializer)
 
       // Expect to receive 40 results, no more
       probes(1).receiveN(40, 20.seconds).map(_.toString).sorted shouldBe 
