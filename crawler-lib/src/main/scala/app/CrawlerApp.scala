@@ -11,6 +11,7 @@ import com.rabbitmq.client._
 import org.blikk.crawler._
 import scala.concurrent.Await
 import scala.concurrent.duration._
+import org.xerial.snappy.Snappy
 
 /**
   * The `CrawlerApp` is responsible for connecting to the crawler platform endpoint.
@@ -33,7 +34,8 @@ class CrawlerApp(appId: String)
       channel, queue, exchange, routingKey), s"rabbitMQPublisher-${appId}")
     val publisher = ActorPublisher[Array[Byte]](publisherActor)
     val flow = Source(publisher).map { element =>
-      SerializationUtils.fromProto(HttpProtos.CrawlItem.parseFrom(element))
+      val uncompressedItem = Snappy.uncompress(element)
+      SerializationUtils.fromProto(HttpProtos.CrawlItem.parseFrom(uncompressedItem))
     }
     // Return a context
     val materializer = FlowMaterializer(akka.stream.MaterializerSettings(system))

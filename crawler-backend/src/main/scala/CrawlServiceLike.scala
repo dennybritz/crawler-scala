@@ -18,6 +18,7 @@ import spray.can.Http
 import spray.http._
 import spray.httpx.encoding._
 import spray.httpx.ResponseTransformation._
+import org.xerial.snappy.Snappy
 
 trait CrawlServiceLike { 
   this: Actor with ActorLogging with ImplicitFlowMaterializer =>
@@ -77,7 +78,8 @@ trait CrawlServiceLike {
       RabbitData.DataExchange) { fetchRes =>
       val item = CrawlItem(fetchRes.fetchReq.req, fetchRes.res, fetchRes.fetchReq.appId)
       val serializedItem = SerializationUtils.toProto(item).toByteArray
-      (serializedItem, fetchRes.fetchReq.appId)
+      val compressedItem =  Snappy.compress(serializedItem)
+      (compressedItem, fetchRes.fetchReq.appId)
     }
     input.to(rabbitSink).run()
 
