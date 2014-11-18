@@ -46,7 +46,8 @@ object BlikkBuild extends Build {
     "io.spray" %%  "spray-json" % "1.3.0",
     "org.jsoup" % "jsoup" % "1.7.3",
     "org.scalautils" %% "scalautils" % "2.1.5",
-    "org.xerial.snappy" % "snappy-java" % "1.1.1.6"
+    "org.xerial.snappy" % "snappy-java" % "1.1.1.6",
+    "com.github.romix.akka" %% "akka-kryo-serialization" % "0.3.2"
   )
 
   val crawlerSettings = commonSettings ++ Seq(
