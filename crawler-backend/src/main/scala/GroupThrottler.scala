@@ -2,12 +2,13 @@ package org.blikk.crawler
 
 import akka.stream._
 import scala.concurrent.duration._
-import scala.collection.mutable.{Queue, Map}
+import scala.collection.mutable.{Queue, Map => MMap}
 
-class GroupThrottler[A](interval: FiniteDuration)(f: A => String) 
+class GroupThrottler[A](defaultInterval: FiniteDuration, 
+  keyIntervals: Map[String, FiniteDuration] = Map.empty)(f: A => String) 
   extends TimerTransformer[A,A] with Logging {
   
-  val buf = Map.empty[String, Queue[A]].withDefault(x => Queue.empty[A])
+  val buf = MMap.empty[String, Queue[A]].withDefault(x => Queue.empty[A])
 
   override def onTimer(timerKey: Any): scala.collection.immutable.Seq[A] = {
     val elementKey = timerKey.toString
@@ -25,10 +26,11 @@ class GroupThrottler[A](interval: FiniteDuration)(f: A => String)
 
   override def onNext(element: A): scala.collection.immutable.Seq[A] = {
     val elementKey = f(element)
-    // Start scheduling messages if we haven't yet
     if (buf(elementKey).isEmpty){
-      log.info("Starting new schedule for key=\"{}\"", elementKey)
-      schedulePeriodically(elementKey, interval)
+      // Start a new schedule if we don't have one yet
+      val scheduleInterval = keyIntervals.get(elementKey).getOrElse(defaultInterval)
+      log.info(s"Starting new schedule for key='${elementKey}' intervalMs='${scheduleInterval.toMillis}'")
+      schedulePeriodically(elementKey, scheduleInterval)
       buf(elementKey) = Queue.empty[A]
     }
     buf(elementKey) += element
