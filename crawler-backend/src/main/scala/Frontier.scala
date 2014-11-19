@@ -34,8 +34,8 @@ class Frontier(target: ActorRef)
       RabbitPublisher.props(RabbitData.createChannel(),
       FrontierQueue, FrontierExchange, rabbitRoutingKey), s"frontierRabbit")
     val publisher = ActorPublisher[Array[Byte]](publisherActor)
-    val throttler = new GroupThrottler[FetchRequest](
-      Config.perDomainDelay)(_.req.topPrivateDomain.getOrElse(""))
+    val throttler = new GroupThrottler[FetchRequest](Config.perDomainDelay, 
+      Config.customDomainDelays)(_.req.topPrivateDomain.getOrElse(""))
 
     Source(publisher).map { element =>
       SerializationUtils.fromProto(HttpProtos.FetchRequest.parseFrom(element))
