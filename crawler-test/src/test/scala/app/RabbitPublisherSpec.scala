@@ -10,14 +10,14 @@ import akka.stream.scaladsl._
 class RabbitPublisherSpec extends AkkaSingleNodeSpec("RabbitPublisherSpec")
   with LocalRabbitMQ  {
 
-    val exchange = RabbitExchangeDefinition(s"${this.name}-exchange", "direct", false)
+    val exchange = RabbitExchangeDefinition(s"${this.name}-exchange", "direct", false, true)
     val queue = RabbitQueueDefinition(s"${this.name}-queue", false)
     val routingKey = "*"
 
     import system.dispatcher
 
-    before { withLocalRabbit { channel =>
-      channel.exchangeDeclare(exchange.name, exchange.exchangeType, exchange.durable)
+    before { withLocalRabbit { implicit channel =>
+      RabbitData.declareExchange(exchange)
     }}
 
     describe("The RabbitPublisher") {

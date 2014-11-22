@@ -13,7 +13,7 @@ class RabbitMQSinkSpec extends AkkaSingleNodeSpec("RabbitMQSinkSpec") {
   import system.dispatcher
   implicit val materializer = FlowMaterializer(akka.stream.MaterializerSettings(system))
 
-  val exchangeDef = RabbitExchangeDefinition("RabbitMQSinkSpec-ex", "fanout", false)
+  val exchangeDef = RabbitExchangeDefinition("RabbitMQSinkSpec-ex", "fanout", false, true)
   val queueDef = RabbitQueueDefinition("", false)
 
   describe("RabbitMQ Sink") {

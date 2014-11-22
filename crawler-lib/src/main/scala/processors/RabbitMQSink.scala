@@ -6,6 +6,7 @@ import akka.stream.scaladsl._
 import com.rabbitmq.client.{Connection => RabbitConnection, Channel => RabbitChannel, AMQP}
 import org.blikk.crawler.{RabbitData, RabbitExchangeDefinition}
 import scala.util.{Try, Success, Failure}
+import scala.collection.JavaConversions._
 
 object RabbitMQSink {
   def props[A](channel: RabbitChannel, rabbitExchange: RabbitExchangeDefinition) 
@@ -33,8 +34,9 @@ class RabbitMQSink[A](rabbitMQChannel: RabbitChannel, rabbitExchange: RabbitExch
     log.info("starting")
     log.info("initializing RabbitMQ exchange {}", rabbitExchange.name)
     if (rabbitExchange != RabbitData.DefaultExchange)
-      rabbitMQChannel.exchangeDeclare(rabbitExchange.name, 
-        rabbitExchange.exchangeType, rabbitExchange.durable) 
+      rabbitMQChannel.exchangeDeclare(rabbitExchange.name, rabbitExchange.exchangeType, 
+        rabbitExchange.durable, rabbitExchange.autoDelete,
+        rabbitExchange.internal, rabbitExchange.arguments)
     log.info("started")
   }
 

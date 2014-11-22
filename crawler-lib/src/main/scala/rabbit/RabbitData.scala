@@ -17,7 +17,10 @@ case class RabbitQueueDefinition(
 case class RabbitExchangeDefinition(
   name: String, 
   exchangeType: String, 
-  durable: Boolean)
+  durable: Boolean,
+  autoDelete: Boolean,
+  internal: Boolean = false,
+  arguments: Map[String, AnyRef] = Map.empty)
 
 /** 
   * RabbitMQ data definitions shared by several classes 
@@ -41,13 +44,13 @@ object RabbitData extends Logging {
   /* ================================================== */
 
   // The RabbitMQ default exchange
-  val DefaultExchange = RabbitExchangeDefinition("", "direct", true)
+  val DefaultExchange = RabbitExchangeDefinition("", "direct", true, false)
 
   // Used to exchange messages between crawl platform and crawl apps
-  val DataExchange = RabbitExchangeDefinition("com.blikk.crawler.data-x", "direct", true)
+  val DataExchange = RabbitExchangeDefinition("com.blikk.crawler.data-x", "direct", true, false)
 
   // Send data to the frontier queue
-  val FrontierExchange = RabbitExchangeDefinition("com.blikk.crawler.frontier-x", "topic", true)
+  val FrontierExchange = RabbitExchangeDefinition("com.blikk.crawler.frontier-x", "topic", true, false)
 
   
   /* Queues */
@@ -83,7 +86,8 @@ object RabbitData extends Logging {
 
   def declareExchange(exchange: RabbitExchangeDefinition)(implicit channel: RabbitChannel) = {
     log.info("declaring RabbitMQ exchange=\"{}\"", exchange.name)
-    channel.exchangeDeclare(exchange.name, exchange.exchangeType, exchange.durable) 
+    channel.exchangeDeclare(exchange.name, exchange.exchangeType, exchange.durable, 
+      exchange.autoDelete, exchange.internal, exchange.arguments) 
   }
 
   def declareQueue(queue: RabbitQueueDefinition)(implicit channel: RabbitChannel) = {
