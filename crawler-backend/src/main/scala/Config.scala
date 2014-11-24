@@ -26,5 +26,8 @@ object Config {
 
   lazy val perDomainBuffer = config.getInt("blikk.crawler.perDomainBuffer")
 
+  val ElasticSearchDataExchange = 
+    RabbitExchangeDefinition("com.blikk.crawler.data-x-es", "fanout", true, false)
+
 
 }

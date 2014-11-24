@@ -79,9 +79,25 @@ trait CrawlServiceLike {
       val item = CrawlItem(fetchRes.fetchReq.req, fetchRes.res, fetchRes.fetchReq.appId)
       val serializedItem = SerializationUtils.toProto(item).toByteArray
       val compressedItem =  Snappy.compress(serializedItem)
-      (compressedItem, fetchRes.fetchReq.appId)
+      List((compressedItem, fetchRes.fetchReq.appId))
     }
-    input.to(rabbitSink).run()
+
+    val transformer = new ESRabbitRiverTransformer()
+    val rabbitElasticSearchSink = RabbitMQSink.build[FetchResponse](RabbitData.createChannel(), 
+      Config.ElasticSearchDataExchange) { fetchRes =>
+      val jsonData = transformer.transform(fetchRes)
+      val routingKey = fetchRes.fetchReq.req.topPrivateDomain.getOrElse("")
+      jsonData.map ( x => (x.getBytes, routingKey)).toList
+      
+    }
+
+    val responseBroadcast = Broadcast[FetchResponse]
+
+    FlowGraph { implicit b =>
+      input ~> responseBroadcast
+      responseBroadcast ~> rabbitSink
+      responseBroadcast ~> rabbitElasticSearchSink
+    }.run()
 
     log.info("crawler ready :)")
   }

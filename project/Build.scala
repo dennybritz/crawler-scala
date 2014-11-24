@@ -31,6 +31,7 @@ object BlikkBuild extends Build {
   )
 
   val commonLibraryDependencies = Seq(
+    "commons-codec" % "commons-codec" % "1.10",
     "ch.qos.logback" % "logback-classic" % "1.1.2",
     "com.google.guava" % "guava" % "18.0",
     "com.google.protobuf" % "protobuf-java" % "2.6.0",

@@ -20,7 +20,7 @@ object FrontierSink {
       RabbitData.FrontierExchange) { req =>
       val fetchReq = FetchRequest(req, appId)
       val serializedItem = SerializationUtils.toProto(fetchReq).toByteArray
-      (serializedItem, req.host)
+      List((serializedItem, req.host))
     }
   }
 
