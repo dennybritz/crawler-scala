@@ -85,10 +85,9 @@ trait CrawlServiceLike {
     val transformer = new ESRabbitRiverTransformer()
     val rabbitElasticSearchSink = RabbitMQSink.build[FetchResponse](RabbitData.createChannel(), 
       Config.ElasticSearchDataExchange) { fetchRes =>
-      val jsonData = transformer.transform(fetchRes).mkString("\n") + "\n"
+      val jsonData = transformer.transform(fetchRes)
       val routingKey = fetchRes.fetchReq.req.topPrivateDomain.getOrElse("")
       (jsonData.getBytes, routingKey)
-      
     }
 
     val responseBroadcast = Broadcast[FetchResponse]
