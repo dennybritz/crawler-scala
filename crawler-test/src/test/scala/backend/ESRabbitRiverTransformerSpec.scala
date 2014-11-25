@@ -27,7 +27,7 @@ class ESRabbitRiverTransformerSpec extends FunSpec with Matchers {
 
         result.size shouldEqual 2
         result(0).parseJson shouldEqual """
-          {"index": {"_index": "crawler", "_type": "FetchedPage", "_id": "http://blikk.co/test"}}
+          {"index": {"_index": "crawler", "_type": "document", "_id": "http://blikk.co/test"}}
         """.parseJson
 
         val source = result(1).parseJson.asJsObject

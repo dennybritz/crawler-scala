@@ -41,7 +41,7 @@ class ESRabbitRiverTransformer {
   def transform(fetchRes: FetchResponse) : Seq[String] = {
     
     val actionRecord = Map(
-      "index" -> MetadataRecord("crawler", "FetchedPage", fetchRes.fetchReq.req.uri.toString)
+      "index" -> MetadataRecord("crawler", "document", fetchRes.fetchReq.req.uri.toString)
     ).toJson.compactPrint
 
     val sourceRecord = SourceRecord(
