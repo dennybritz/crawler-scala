@@ -13,10 +13,10 @@ object RabbitMQSink {
   type PublishItem = Tuple2[Array[Byte], String]
 
   def props[A](channel: RabbitChannel, rabbitExchange: RabbitExchangeDefinition) 
-    (ser: A => Seq[PublishItem]) = Props(classOf[RabbitMQSink[A]], channel, rabbitExchange, ser)
+    (ser: A => PublishItem) = Props(classOf[RabbitMQSink[A]], channel, rabbitExchange, ser)
 
   def build[A](channel: RabbitChannel, rabbitExchange: RabbitExchangeDefinition) 
-    (ser: A => Seq[PublishItem])(implicit system: ActorSystem) : Sink[A] = {
+    (ser: A => PublishItem)(implicit system: ActorSystem) : Sink[A] = {
       val rabbitSinkActor = system.actorOf(RabbitMQSink.props(channel, rabbitExchange)(ser))
       Sink(ActorSubscriber[A](rabbitSinkActor))
   }
@@ -26,7 +26,7 @@ object RabbitMQSink {
   * Subscribes to the stream of items and publishes them into RabbitMQ
   */
 class RabbitMQSink[A](rabbitMQChannel: RabbitChannel, rabbitExchange: RabbitExchangeDefinition)
-  (ser: A => Seq[Tuple2[Array[Byte], String]]) extends Actor with ActorLogging with ActorSubscriber {
+  (ser: A => Tuple2[Array[Byte], String]) extends Actor with ActorLogging with ActorSubscriber {
 
   import ActorSubscriberMessage._
   import RabbitMQSink._
@@ -60,13 +60,11 @@ class RabbitMQSink[A](rabbitMQChannel: RabbitChannel, rabbitExchange: RabbitExch
 
   /* Writes the item to RabbitMQ */
   def writeData(item: A) : Unit = {
-    val serializedItems = ser(item)
-    serializedItems foreach { record =>
-      val Tuple2(serializedItem, routingKey) = record
-      log.info("writing numBytes={} to RabbitMQ exchange=\"{}\" routingKey=\"{}\"", 
-      serializedItem.size, rabbitExchange.name, routingKey)
-      rabbitMQChannel.basicPublish(rabbitExchange.name, routingKey, null, serializedItem)
-    }
+    val record = ser(item)
+    val Tuple2(serializedItem, routingKey) = record
+    log.info("writing numBytes={} to RabbitMQ exchange=\"{}\" routingKey=\"{}\"", 
+    serializedItem.size, rabbitExchange.name, routingKey)
+    rabbitMQChannel.basicPublish(rabbitExchange.name, routingKey, null, serializedItem)
   }
 
 

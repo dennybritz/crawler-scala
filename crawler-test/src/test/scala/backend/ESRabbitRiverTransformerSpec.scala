@@ -23,8 +23,11 @@ class ESRabbitRiverTransformerSpec extends FunSpec with Matchers {
         val fetchRes = FetchResponse(fetchReq, httpRes)
 
         val transformer = new ESRabbitRiverTransformer()
-        val result = transformer.transform(fetchRes)
+        val resultStr = transformer.transform(fetchRes)
+        val result = resultStr.split("\n")
 
+        resultStr.endsWith("\n") shouldBe true
+        
         result.size shouldEqual 2
         result(0).parseJson shouldEqual """
           {"index": {"_index": "crawler", "_type": "document", "_id": "http://blikk.co/test"}}

@@ -38,7 +38,7 @@ class ESRabbitRiverTransformer {
   implicit val sourceRecordFormat = jsonFormat10(SourceRecord)
   implicit val metadataRecordFormat = jsonFormat3(MetadataRecord)
 
-  def transform(fetchRes: FetchResponse) : Seq[String] = {
+  def transform(fetchRes: FetchResponse) : String = {
     
     val actionRecord = Map(
       "index" -> MetadataRecord("crawler", "document", fetchRes.fetchReq.req.uri.toString)
@@ -57,7 +57,7 @@ class ESRabbitRiverTransformer {
       EntityWithContentType(fetchRes.res.contentType, Base64.encodeBase64String(fetchRes.res.entity))
     ).toJson.compactPrint
 
-    List(actionRecord, sourceRecord)
+    return actionRecord + "\n" + sourceRecord + "\n"
   }
 
 

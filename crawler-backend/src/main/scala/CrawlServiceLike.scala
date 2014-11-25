@@ -79,7 +79,7 @@ trait CrawlServiceLike {
       val item = CrawlItem(fetchRes.fetchReq.req, fetchRes.res, fetchRes.fetchReq.appId)
       val serializedItem = SerializationUtils.toProto(item).toByteArray
       val compressedItem =  Snappy.compress(serializedItem)
-      List((compressedItem, fetchRes.fetchReq.appId))
+      (compressedItem, fetchRes.fetchReq.appId)
     }
 
     val transformer = new ESRabbitRiverTransformer()
@@ -87,7 +87,7 @@ trait CrawlServiceLike {
       Config.ElasticSearchDataExchange) { fetchRes =>
       val jsonData = transformer.transform(fetchRes).mkString("\n") + "\n"
       val routingKey = fetchRes.fetchReq.req.topPrivateDomain.getOrElse("")
-      List((jsonData.getBytes, routingKey))
+      (jsonData.getBytes, routingKey)
       
     }
 
