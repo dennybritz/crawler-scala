@@ -8,6 +8,7 @@ import akka.stream.scaladsl._
 import org.blikk.crawler.WrappedHttpRequest
 import com.google.common.hash.{BloomFilter, Funnel, Funnels}
 import scala.concurrent.duration._
+import scala.reflect.runtime.universe._
 
 object DuplicateFilter {
 
@@ -66,35 +67,36 @@ trait DuplicateFilter[A] {
 
 object PersistentDuplicateFilter {
 
-  def props(name: String) = Props(classOf[PersistentDuplicateFilter], name)
+  def props(name: String) = Props(classOf[PersistentDuplicateFilter[String]], name, (x: String) => x)
 
-  def flow[A](pdf: ActorRef)(implicit system: ActorSystem) : Flow[String, String] = {
+  def props[A](name: String)(f: A => String) = Props(classOf[PersistentDuplicateFilter[A]], name, f)
+
+  def flow[A](pdf: ActorRef)(implicit system: ActorSystem) : Flow[A, String] = {
     implicit val askTimeout = new akka.util.Timeout(5.seconds)
-    Flow[String].mapAsync { item =>
-      val result = pdf ? PersistentDuplicateFilter.FilterItemCommand(item, null) 
+    Flow[A].mapAsync { item =>
+      val result = pdf ? PersistentDuplicateFilter.FilterItemCommand(item) 
       pdf ! PersistentDuplicateFilter.AddItemCommand(item)
       result.mapTo[Option[String]]
     }.filter(_.isDefined).map(_.get)
   }
 
   trait Command
-  case class AddItemCommand(item: String) extends Command
-  case class FilterItemCommand(item: String, target: ActorRef) extends Command
+  case class AddItemCommand[A](item: A) extends Command
+  case class FilterItemCommand[A](item: A) extends Command
   case object SaveSnapshot extends Command
   case object DeleteMessages extends Command
   case object DeleteSnapshots extends Command
   case object Shutdown extends Command
 
   trait Event
-  case class ItemAddedEvent(item: String) extends Event
+  case class ItemAddedEvent[A](item: A) extends Event
 
-  case class State(bf: BloomFilter[CharSequence]) {
-    def update(e: ItemAddedEvent) = bf.put(e.item)
-  }
+  case class State(bf: BloomFilter[CharSequence])
 
 }
 
-class PersistentDuplicateFilter(name: String) extends PersistentActor with ActorLogging {
+class PersistentDuplicateFilter[A](name: String)(t: A => String)
+  extends PersistentActor with ActorLogging {
 
   import PersistentDuplicateFilter._
 
@@ -110,7 +112,7 @@ class PersistentDuplicateFilter(name: String) extends PersistentActor with Actor
   def updateState(e: Event) = e match {
     case event @ ItemAddedEvent(item) => 
       log.debug(event.toString)
-      state.update(event)
+      state.bf.put(t(item.asInstanceOf[A]))
   }
 
   val receiveRecover: Receive = {
@@ -124,8 +126,8 @@ class PersistentDuplicateFilter(name: String) extends PersistentActor with Actor
   val receiveCommand: Receive = {
     //case x => log.info(x.toString)
     case AddItemCommand(item) => persist(ItemAddedEvent(item))(updateState)
-    case FilterItemCommand(item, _) => 
-      sender ! (if (state.bf.mightContain(item)) None else Some(item))
+    case FilterItemCommand(item) => 
+      sender ! (if (state.bf.mightContain(t(item.asInstanceOf[A]))) None else Some(item))
     case SaveSnapshot => 
       log.info("saving snapshot")
       saveSnapshot(state)

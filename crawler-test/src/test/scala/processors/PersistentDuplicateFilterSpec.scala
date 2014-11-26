@@ -26,18 +26,34 @@ class PersistentDuplicateFilterSpec extends AkkaSingleNodeSpec("PersistentDuplic
 
     it("should forward messages not added to the filter") {
       var testProbe = TestProbe()
-      actor ! PersistentDuplicateFilter.FilterItemCommand("item1", testProbe.ref)
-      actor ! PersistentDuplicateFilter.FilterItemCommand("item2", testProbe.ref)
-      testProbe.expectMsg("item1")
-      testProbe.expectMsg("item2")
+      actor.tell(PersistentDuplicateFilter.FilterItemCommand("item1"), testProbe.ref)
+      actor.tell(PersistentDuplicateFilter.FilterItemCommand("item2"), testProbe.ref)
+      testProbe.expectMsg(Some("item1"))
+      testProbe.expectMsg(Some("item2"))
     }
 
     it("should not forward messages not added to the filter") {
       var testProbe = TestProbe()
       actor ! PersistentDuplicateFilter.AddItemCommand("item1")
-      actor ! PersistentDuplicateFilter.FilterItemCommand("item1", testProbe.ref)
-      actor ! PersistentDuplicateFilter.FilterItemCommand("item2", testProbe.ref)
-      testProbe.expectMsg("item2")
+      actor.tell(PersistentDuplicateFilter.FilterItemCommand("item1"), testProbe.ref)
+      actor.tell(PersistentDuplicateFilter.FilterItemCommand("item2"), testProbe.ref)
+      testProbe.expectMsg(None)
+      testProbe.expectMsg(Some("item2"))
+      testProbe.expectNoMsg()
+    }
+
+    it("should should work with generic items and a transformation function") {
+      actor ! PersistentDuplicateFilter.Shutdown
+      expectMsgClass(classOf[Terminated])
+      actor = system.actorOf(PersistentDuplicateFilter.props[Int]("pdf-test")(i => (i + 1).toString))
+      watch(actor)
+
+      var testProbe = TestProbe()
+      actor ! PersistentDuplicateFilter.AddItemCommand(1)
+      actor.tell(PersistentDuplicateFilter.FilterItemCommand(1), testProbe.ref)
+      actor.tell(PersistentDuplicateFilter.FilterItemCommand(2), testProbe.ref)
+      testProbe.expectMsg(None)
+      testProbe.expectMsg(Some(2))
       testProbe.expectNoMsg()
     }
 
@@ -49,9 +65,11 @@ class PersistentDuplicateFilterSpec extends AkkaSingleNodeSpec("PersistentDuplic
       actor = system.actorOf(PersistentDuplicateFilter.props("pdf-test"))
       watch(actor)
 
-      actor ! PersistentDuplicateFilter.FilterItemCommand("item1", testProbe.ref)
-      actor ! PersistentDuplicateFilter.FilterItemCommand("item2", testProbe.ref)
-      testProbe.expectMsg("item2")
+      actor.tell(PersistentDuplicateFilter.FilterItemCommand("item1"), testProbe.ref)
+      actor.tell(PersistentDuplicateFilter.FilterItemCommand("item2"), testProbe.ref)
+      testProbe.expectMsg(None)
+      testProbe.expectMsg(Some("item2"))
+      testProbe.expectNoMsg()
       testProbe.expectNoMsg()
     }
 
@@ -66,9 +84,10 @@ class PersistentDuplicateFilterSpec extends AkkaSingleNodeSpec("PersistentDuplic
       actor = system.actorOf(PersistentDuplicateFilter.props("pdf-test"))
       watch(actor)
 
-      actor ! PersistentDuplicateFilter.FilterItemCommand("item1", testProbe.ref)
-      actor ! PersistentDuplicateFilter.FilterItemCommand("item2", testProbe.ref)
-      testProbe.expectMsg("item2")
+      actor.tell(PersistentDuplicateFilter.FilterItemCommand("item1"), testProbe.ref)
+      actor.tell(PersistentDuplicateFilter.FilterItemCommand("item2"), testProbe.ref)
+      testProbe.expectMsg(None)
+      testProbe.expectMsg(Some("item2"))
       testProbe.expectNoMsg()
     }
 
