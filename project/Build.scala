@@ -44,6 +44,7 @@ object BlikkBuild extends Build {
     "com.typesafe.akka" %% "akka-slf4j" % AkkaBaseVersion,
     "com.typesafe.akka" %% "akka-remote" % AkkaBaseVersion,
     "com.typesafe.akka" %% "akka-persistence-experimental" % AkkaBaseVersion,
+    "com.typesafe.akka" %% "akka-testkit" % AkkaBaseVersion,
     "io.spray" %% "spray-can" % "1.3.1",
     "io.spray" %% "spray-client" % "1.3.1",
     "io.spray" %% "spray-http" % "1.3.1",
@@ -72,10 +73,7 @@ object BlikkBuild extends Build {
 
   val crawlerTestSettings = commonSettings ++ Seq(
     name := "crawler-test",
-    libraryDependencies ++= commonLibraryDependencies ++ Seq(
-      "com.typesafe.akka" %% "akka-multi-node-testkit" % AkkaBaseVersion,
-      "com.typesafe.akka" %% "akka-testkit" % AkkaBaseVersion
-    )
+    libraryDependencies ++= commonLibraryDependencies
   )
 
   val exampleAppSettings = commonSettings ++ Seq(
