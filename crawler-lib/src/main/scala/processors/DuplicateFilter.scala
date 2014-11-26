@@ -1,5 +1,7 @@
 package org.blikk.crawler.processors
 
+import akka.actor._
+import akka.persistence._
 import akka.stream.scaladsl.{Flow}
 import org.blikk.crawler.WrappedHttpRequest
 import com.google.common.hash.{BloomFilter, Funnel, Funnels}
@@ -57,3 +59,76 @@ trait DuplicateFilter[A] {
   def addItem(item: A) = bloomFilter.put(item)
 
 }
+
+
+object PersistentDuplicateFilter {
+
+  def props(name: String) = Props(classOf[PersistentDuplicateFilter], name)
+
+  trait Command
+  case class AddItemCommand(item: String) extends Command
+  case class FilterItemCommand(item: String, target: ActorRef) extends Command
+  case object SaveSnapshot extends Command
+  case object DeleteMessages extends Command
+  case object DeleteSnapshots extends Command
+  case object Shutdown extends Command
+
+  trait Event
+  case class ItemAddedEvent(item: String) extends Event
+
+  case class State(bf: BloomFilter[CharSequence]) {
+    def update(e: ItemAddedEvent) = bf.put(e.item)
+  }
+
+}
+
+class PersistentDuplicateFilter(name: String) extends PersistentActor with ActorLogging {
+
+  import PersistentDuplicateFilter._
+
+  val ExpectedInsertions = 1000000
+  val FalsePositiveProb = 0.0001
+
+  override def persistenceId = s"duplicate-filter-${name}"
+
+  def funnel = Funnels.stringFunnel(java.nio.charset.Charset.defaultCharset)
+  var state : State = State(
+    BloomFilter.create(funnel, ExpectedInsertions, FalsePositiveProb))
+
+  def updateState(e: Event) = e match {
+    case event @ ItemAddedEvent(item) => 
+      log.debug(event.toString)
+      state.update(event)
+  }
+
+  val receiveRecover: Receive = {
+    case e: Event => updateState(e)
+    case SnapshotOffer(metadata, snapshot: State) => 
+      log.info("recovering from snapshot: {}", metadata)
+      state = snapshot
+    case RecoveryCompleted => log.info("recovery completed")
+  }
+
+  val receiveCommand: Receive = {
+    //case x => log.info(x.toString)
+    case AddItemCommand(item) => persist(ItemAddedEvent(item))(updateState)
+    case FilterItemCommand(item, target) => 
+      if(!state.bf.mightContain(item)) target ! item
+    case SaveSnapshot => 
+      log.info("saving snapshot")
+      saveSnapshot(state)
+    case DeleteMessages => 
+      log.info("deleting journaled messages up to lastSequenceNr={}", lastSequenceNr)
+      deleteMessages(lastSequenceNr, true)
+    case DeleteSnapshots =>
+      log.info("deleting snapshots up to snapshotSequenceNr={}", snapshotSequenceNr)
+      deleteSnapshots(SnapshotSelectionCriteria.latest)
+    case SaveSnapshotSuccess(metadata) => log.info("saved snapshot")
+    case SaveSnapshotFailure(metadata, reason) => log.error(reason, "snapshot could not be saved")
+    case Shutdown => context.stop(self)
+    
+  }
+
+
+}
+

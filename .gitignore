@@ -1,7 +1,6 @@
 *.class
 *.log
 
-
 # sbt specific
 .cache/
 .history/
@@ -29,3 +28,6 @@ log
 # Project-specific local files
 config/
 seeds.txt
+
+# Akka
+journal/
