@@ -51,7 +51,8 @@ object BlikkBuild extends Build {
     "org.jsoup" % "jsoup" % "1.7.3",
     "org.scalautils" %% "scalautils" % "2.1.5",
     "org.xerial.snappy" % "snappy-java" % "1.1.1.6",
-    "com.github.romix.akka" %% "akka-kryo-serialization" % "0.3.2"
+    "com.github.romix.akka" %% "akka-kryo-serialization" % "0.3.2",
+    "org.scalatest" %% "scalatest" % "2.2.1" % "test"
   )
 
   val crawlerSettings = commonSettings ++ Seq(
@@ -72,7 +73,6 @@ object BlikkBuild extends Build {
   val crawlerTestSettings = commonSettings ++ Seq(
     name := "crawler-test",
     libraryDependencies ++= commonLibraryDependencies ++ Seq(
-      "org.scalatest" %% "scalatest" % "2.2.1" % "test",
       "com.typesafe.akka" %% "akka-multi-node-testkit" % AkkaBaseVersion,
       "com.typesafe.akka" %% "akka-testkit" % AkkaBaseVersion
     )
