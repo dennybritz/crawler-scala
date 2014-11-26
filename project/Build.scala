@@ -21,8 +21,8 @@ object BlikkBuild extends Build {
     settings = Project.defaultSettings ++ exampleAppSettings) dependsOn(crawlerLib)
 
   val commonSettings = Seq(
-    version := "0.1",
-    scalaVersion := "2.11.2",
+    version := "0.1.0",
+    scalaVersion := "2.11.4",
     resolvers += "Akka Repo Snapshots" at "http://repo.akka.io/snapshots",
     parallelExecution in Test := false,
     fork := true,
@@ -30,18 +30,20 @@ object BlikkBuild extends Build {
     baseDirectory in run := file(".")
   )
 
+  val AkkaBaseVersion = "2.3.7"
+
   val commonLibraryDependencies = Seq(
     "commons-codec" % "commons-codec" % "1.10",
     "ch.qos.logback" % "logback-classic" % "1.1.2",
     "com.google.guava" % "guava" % "18.0",
     "com.google.protobuf" % "protobuf-java" % "2.6.0",
     "com.rabbitmq" % "amqp-client" % "3.3.5",
-    "com.typesafe.akka" % "akka-http-experimental_2.11" % "0.10",
-    "com.typesafe.akka" % "akka-stream-experimental_2.11" % "0.10",
-    "com.typesafe.akka" %% "akka-actor" % "2.3.6",
-    "com.typesafe.akka" %% "akka-slf4j" % "2.3.6",
-    "com.typesafe.akka" %% "akka-remote" % "2.3.6",
-    "com.typesafe.akka" %% "akka-persistence-experimental" % "2.3.6",
+    "com.typesafe.akka" % "akka-http-experimental_2.11" % "0.11",
+    "com.typesafe.akka" % "akka-stream-experimental_2.11" % "0.11",
+    "com.typesafe.akka" %% "akka-actor" % AkkaBaseVersion,
+    "com.typesafe.akka" %% "akka-slf4j" % AkkaBaseVersion,
+    "com.typesafe.akka" %% "akka-remote" % AkkaBaseVersion,
+    "com.typesafe.akka" %% "akka-persistence-experimental" % AkkaBaseVersion,
     "io.spray" %% "spray-can" % "1.3.1",
     "io.spray" %% "spray-client" % "1.3.1",
     "io.spray" %% "spray-http" % "1.3.1",
@@ -56,8 +58,8 @@ object BlikkBuild extends Build {
     name := "crawler-backend",
     envVars := Map("BLIKK_APP_NAME" -> "crawler-backend"),
     libraryDependencies ++= Seq(
-      "com.typesafe.akka" %% "akka-cluster" % "2.3.6",
-      "com.typesafe.akka" %% "akka-contrib" % "2.3.6",
+      "com.typesafe.akka" %% "akka-cluster" % AkkaBaseVersion,
+      "com.typesafe.akka" %% "akka-contrib" % AkkaBaseVersion,
       "io.spray" %% "spray-routing" % "1.3.1"
     ) ++ commonLibraryDependencies
   ) ++ packageArchetype.java_application
@@ -71,8 +73,8 @@ object BlikkBuild extends Build {
     name := "crawler-test",
     libraryDependencies ++= commonLibraryDependencies ++ Seq(
       "org.scalatest" %% "scalatest" % "2.2.1" % "test",
-      "com.typesafe.akka" %% "akka-multi-node-testkit" % "2.3.6",
-      "com.typesafe.akka" %% "akka-testkit" % "2.3.6"
+      "com.typesafe.akka" %% "akka-multi-node-testkit" % AkkaBaseVersion,
+      "com.typesafe.akka" %% "akka-testkit" % AkkaBaseVersion
     )
   )
 
