@@ -1,10 +1,13 @@
 package org.blikk.crawler.processors
 
 import akka.actor._
+import akka.pattern.ask
 import akka.persistence._
-import akka.stream.scaladsl.{Flow}
+import akka.stream.actor._
+import akka.stream.scaladsl._
 import org.blikk.crawler.WrappedHttpRequest
 import com.google.common.hash.{BloomFilter, Funnel, Funnels}
+import scala.concurrent.duration._
 
 object DuplicateFilter {
 
@@ -65,6 +68,15 @@ object PersistentDuplicateFilter {
 
   def props(name: String) = Props(classOf[PersistentDuplicateFilter], name)
 
+  def flow[A](pdf: ActorRef)(implicit system: ActorSystem) : Flow[String, String] = {
+    implicit val askTimeout = new akka.util.Timeout(5.seconds)
+    Flow[String].mapAsync { item =>
+      val result = pdf ? PersistentDuplicateFilter.FilterItemCommand(item, null) 
+      pdf ! PersistentDuplicateFilter.AddItemCommand(item)
+      result.mapTo[Option[String]]
+    }.filter(_.isDefined).map(_.get)
+  }
+
   trait Command
   case class AddItemCommand(item: String) extends Command
   case class FilterItemCommand(item: String, target: ActorRef) extends Command
@@ -112,8 +124,8 @@ class PersistentDuplicateFilter(name: String) extends PersistentActor with Actor
   val receiveCommand: Receive = {
     //case x => log.info(x.toString)
     case AddItemCommand(item) => persist(ItemAddedEvent(item))(updateState)
-    case FilterItemCommand(item, target) => 
-      if(!state.bf.mightContain(item)) target ! item
+    case FilterItemCommand(item, _) => 
+      sender ! (if (state.bf.mightContain(item)) None else Some(item))
     case SaveSnapshot => 
       log.info("saving snapshot")
       saveSnapshot(state)
@@ -125,10 +137,10 @@ class PersistentDuplicateFilter(name: String) extends PersistentActor with Actor
       deleteSnapshots(SnapshotSelectionCriteria.latest)
     case SaveSnapshotSuccess(metadata) => log.info("saved snapshot")
     case SaveSnapshotFailure(metadata, reason) => log.error(reason, "snapshot could not be saved")
-    case Shutdown => context.stop(self)
-    
+    case Shutdown => context.stop(self) 
   }
 
 
 }
+
 
