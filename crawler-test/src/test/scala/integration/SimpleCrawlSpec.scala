@@ -41,7 +41,7 @@ class SimpleCrawlSpec extends IntegrationSuite("SimpleCrawlSpec") {
 
       val seeds = List(WrappedHttpRequest.getUrl("http://localhost:9090/crawl/1"))
       val in = streamContext.flow
-      val fLinkExtractor = RequestExtractor.build()
+      val fLinkExtractor = RequestExtractor()
       val duplicateFilter = DuplicateFilter.buildUrlDuplicateFilter(
         List(WrappedHttpRequest.getUrl("http://localhost:9090/crawl/1")))
       val fLinkSender = Sink.foreach[CrawlItem] { item => 

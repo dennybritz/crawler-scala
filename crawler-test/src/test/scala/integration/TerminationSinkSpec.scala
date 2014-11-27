@@ -19,7 +19,7 @@ class TerminationSinkSpec extends IntegrationSuite("TerminationSinkSpec") {
 
       val seeds = List(WrappedHttpRequest.getUrl("http://localhost:9090/crawl/1"))
       val in = streamContext.flow
-      val fLinkExtractor = RequestExtractor.build()
+      val fLinkExtractor = RequestExtractor()
       val fLinkSender = Sink.foreach[CrawlItem] { item => 
         log.info("{}", item.toString) 
         probes(1).ref ! item.req.uri.toString

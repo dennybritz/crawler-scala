@@ -32,7 +32,7 @@ object Main extends App {
     val seedUrls = List(WrappedHttpRequest.getUrl("http://cnn.com/"))
     val dupFilter = DuplicateFilter.buildUrlDuplicateFilter(seedUrls)
     val frontierSink = FrontierSink.build()
-    val reqExtractor = RequestExtractor.build()
+    val reqExtractor = RequestExtractor()
     val statusCodeFilter = StatusCodeFilter.build()
     val src = streamContext.flow
     val bcast = Broadcast[CrawlItem]

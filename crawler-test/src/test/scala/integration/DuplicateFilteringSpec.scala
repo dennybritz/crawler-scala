@@ -17,7 +17,7 @@ class DuplicateFilteringSpec extends IntegrationSuite("DuplicateFilteringSpec") 
       import streamContext.{materializer, system}
 
       val in = streamContext.flow
-      val fLinkExtractor = RequestExtractor.build()
+      val fLinkExtractor = RequestExtractor()
       val fLinkSender = Sink.foreach[CrawlItem] { item => 
         log.info("{}", item.toString) 
         probes(1).ref ! item.req.uri.toString
