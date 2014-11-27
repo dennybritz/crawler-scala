@@ -77,6 +77,19 @@ class RequestExtractorSpec extends AkkaSingleNodeSpec("RequestExtractorSpec") {
       finalResult.map(_.uri.toString()).toSet shouldBe Set("http://somesite.com/I%20am%20a%20link/with")
     }
 
+    it("shold be able to handle URLs that are already escaped") {
+      val data = List(
+        itemWithContent("http://somesite.com/",
+          """<a href='http://somesite.com/I%20am%20a%20link/with'>I am a link with spaces</a>"""))
+
+      val requestExtractor = RequestExtractor(true)
+      val arraySink = Sink.fold[List[WrappedHttpRequest], WrappedHttpRequest](Nil)(_ :+ _)
+      val resultFuture = Source(data).via(requestExtractor).runWith(arraySink)
+      val finalResult = Await.result(resultFuture, 1.second)
+
+      finalResult.map(_.uri.toString()).toSet shouldBe Set("http://somesite.com/I%20am%20a%20link/with")
+    }
+
     it("should extract absolute links from location headers") {
       val data = List(
         itemWithLocationHeader("http://somesite.com", "http://www.somesite.com"),
