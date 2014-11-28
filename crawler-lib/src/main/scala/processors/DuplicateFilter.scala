@@ -71,12 +71,12 @@ object PersistentDuplicateFilter {
 
   def props[A](name: String)(f: A => String) = Props(classOf[PersistentDuplicateFilter[A]], name, f)
 
-  def flow[A](pdf: ActorRef)(implicit system: ActorSystem) : Flow[A, String] = {
+  def flow[A](pdf: ActorRef)(implicit system: ActorSystem) : Flow[A, A] = {
     implicit val askTimeout = new akka.util.Timeout(5.seconds)
     Flow[A].mapAsync { item =>
       val result = pdf ? PersistentDuplicateFilter.FilterItemCommand(item) 
       pdf ! PersistentDuplicateFilter.AddItemCommand(item)
-      result.mapTo[Option[String]]
+      result.mapTo[Option[A]]
     }.filter(_.isDefined).map(_.get)
   }
 

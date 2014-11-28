@@ -32,7 +32,7 @@ class DuplicateFilterFlowSpec extends AkkaSingleNodeSpec("DuplicateFilterFlowSpe
     it("should work") {
       val testProbe = TestProbe()
       val data = List("item1", "item2", "item1", "item3", "item2")
-      val duplicateFilter = PersistentDuplicateFilter.flow(pdfActor)
+      val duplicateFilter = PersistentDuplicateFilter.flow[String](pdfActor)
       Source(data).via(duplicateFilter).runWith(ForeachSink { item => testProbe.ref ! item })
       testProbe.expectMsg("item1")
       testProbe.expectMsg("item2")
