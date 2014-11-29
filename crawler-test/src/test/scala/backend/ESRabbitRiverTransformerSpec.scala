@@ -55,7 +55,7 @@ class ESRabbitRiverTransformerSpec extends FunSpec with Matchers {
             "response_content_type": "text/html",
             "response_entity": {
               "_content_type": "text/html",
-              "content": "${Base64.encodeBase64String("OK!".getBytes)}"
+              "_content": "${Base64.encodeBase64String("OK!".getBytes)}"
             }
           }
         """.parseJson

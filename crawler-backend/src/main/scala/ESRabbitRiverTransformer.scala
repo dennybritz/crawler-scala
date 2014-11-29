@@ -12,7 +12,7 @@ class ESRabbitRiverTransformer {
 
   case class EntityWithContentType(
     _content_type: Option[String],
-    content: String
+    _content: String
   )
 
   case class SourceRecord(
