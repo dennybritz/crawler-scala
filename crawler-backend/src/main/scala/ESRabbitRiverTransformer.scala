@@ -21,11 +21,11 @@ class ESRabbitRiverTransformer {
     request_method: String,
     request_headers: List[(String, String)],
     request_provenance: List[String],
-    request_entity: EntityWithContentType,
+    request_entity: Option[EntityWithContentType],
     response_headers: List[(String, String)],
     response_status: Int,
     response_content_type: Option[String],
-    response_entity: EntityWithContentType
+    response_entity: Option[EntityWithContentType]
   )
 
   case class MetadataRecord(
@@ -44,17 +44,28 @@ class ESRabbitRiverTransformer {
       "index" -> MetadataRecord("crawler", "document", fetchRes.fetchReq.req.uri.toString)
     ).toJson.compactPrint
 
+    // Only include the request and response entittoes if they are non-empty 
+    val requestEntity = Base64.encodeBase64String(fetchRes.fetchReq.req.entity) match {
+      case "" | null => None
+      case x => Option(EntityWithContentType(None,x))
+    }
+
+    val responseEntity = Base64.encodeBase64String(fetchRes.res.entity) match {
+      case "" | null => None
+      case x => Option(EntityWithContentType(fetchRes.res.contentType, x))
+    }
+
     val sourceRecord = SourceRecord(
       System.currentTimeMillis,
       fetchRes.fetchReq.req.uri.toString,
       fetchRes.fetchReq.req.method,
       fetchRes.fetchReq.req.headers,
       fetchRes.fetchReq.req.provenance,
-      EntityWithContentType(None, Base64.encodeBase64String(fetchRes.fetchReq.req.entity)),
+      requestEntity,
       fetchRes.res.headers,
       fetchRes.res.status.intValue,
       fetchRes.res.contentType,
-      EntityWithContentType(fetchRes.res.contentType, Base64.encodeBase64String(fetchRes.res.entity))
+      responseEntity
     ).toJson.compactPrint
 
     return actionRecord + "\n" + sourceRecord + "\n"
