@@ -43,10 +43,7 @@ class ESRabbitRiverTransformerSpec extends FunSpec with Matchers {
             "request_uri": "http://blikk.co/test",
             "request_method": "GET",
             "request_headers": [],
-            "request_provenance": [],
-            "request_entity": {
-              "content": ""
-            }
+            "request_provenance": []
           }
         """.parseJson
 
