@@ -18,14 +18,7 @@ object WrappedHttpRequest {
   implicit def toSpray(req: WrappedHttpRequest) =
     HttpRequest(
       HttpMethods.getForKey(req.method).get,
-      Uri.from(
-        Option(req.uri.getScheme).getOrElse(""),
-        Option(req.uri.getUserInfo).getOrElse(""),
-        Option(req.uri.getHost).getOrElse(""),
-        Option(req.uri.getPort).filterNot(_ == 1).getOrElse(0),
-        Option(req.uri.getPath).getOrElse(""),
-        Uri.Query(Option(req.uri.getQuery).getOrElse("")), 
-        Option(req.uri.getFragment).filterNot(_.isEmpty)),
+      Uri(req.uri.toString),
       req.headers.map { case(k,v) => HttpHeaders.RawHeader(k,v) },
       HttpEntity(req.entity)
     )
