@@ -113,7 +113,15 @@ trait CrawlServiceLike {
   /* Executes a FetchRequest using Spray's request-level library */
   def executeFetchRequest(fetchReq: FetchRequest) : Unit = {
     log.info("fetching url=\"{}\"", fetchReq.req.uri.toString)
-    val respFuture = (IO(Http) ? WrappedHttpRequest.toSpray(fetchReq.req)).mapTo[HttpResponse]
+
+    val sprayHttpRequest = Try(WrappedHttpRequest.toSpray(fetchReq.req)) match {
+      case Success(req) => req
+      case Failure(err) => 
+        log.error(err, "Could not convert HTTP request to spray for uri='{}'", fetchReq.req.uri)
+        return
+    }
+
+    val respFuture = (IO(Http) ? sprayHttpRequest).mapTo[HttpResponse]
     (respFuture.map(decode(NoEncoding) ~> decode(Gzip) ~> decode(Deflate))).map { res =>
       FetchResponse(fetchReq, res)
     } pipeTo responsePublisher
