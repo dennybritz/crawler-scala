@@ -12,7 +12,6 @@ import scala.collection.JavaConversions._
 import scala.collection.mutable.{Map => MutableMap}
 import scala.collection.immutable.Seq
 import scala.concurrent.duration._
-import org.blikk.crawler.processors.ThrottleTransformer
 
 object Frontier {
   def props(target: ActorRef) = {
@@ -33,15 +32,21 @@ class Frontier(target: ActorRef)
     val publisherActor = context.actorOf(
       RabbitPublisher.props(RabbitData.createChannel(),
       FrontierQueue, FrontierExchange, rabbitRoutingKey), s"frontierRabbit")
+    
     val publisher = ActorPublisher[Array[Byte]](publisherActor)
-    val throttler = new GroupThrottler[FetchRequest](Config.perDomainDelay, 
-      Config.customDomainDelays)(_.req.topPrivateDomain.getOrElse(""))
-
-    Source(publisher).map { element =>
+    
+    val groupedRequestFlows = Source(publisher).map { element =>
       SerializationUtils.fromProto(HttpProtos.FetchRequest.parseFrom(element))
-    }.timerTransform("throttle", () => throttler)
-    .to(Sink.foreach[FetchRequest](routeFetchRequestGlobally))
-    .run()
+    }.groupBy(_.req.topPrivateDomain.getOrElse(""))
+    val frontierSink = Sink.foreach[FetchRequest](routeFetchRequestGlobally)
+
+    // We run a flow for each domain
+    // TODO: This is probabl very resource-intensive. Should refactor it.
+    groupedRequestFlows.map { case (tpd, domainSrc) =>
+      val interval = Config.customDomainDelays.get(tpd).getOrElse(Config.perDomainDelay)
+      log.info(s"Starting new schedule for tpd='{}' intervalMs='{}'", tpd, interval)
+      domainSrc.via(PerDomainFlow(tpd, interval)).runWith(frontierSink)
+    }.runWith(Sink.ignore)
 
     // We need to wait a while before the rabbit consumer is done with binding
     // to the queue. This is ugly, is there a nicer way?
