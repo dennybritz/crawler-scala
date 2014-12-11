@@ -96,4 +96,9 @@ object RabbitData extends Logging {
       queue.autoDelete, queue.options)
   }
 
+  def deleteExchange(exchange: RabbitExchangeDefinition)(implicit channel: RabbitChannel) = {
+    log.info("deleting RabbitMQ exchange=\"{}\"", exchange.name)
+    channel.exchangeDelete(exchange.name) 
+  }
+
 }

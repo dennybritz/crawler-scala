@@ -1,7 +1,7 @@
 package org.blikk.test
 
 import com.rabbitmq.client._
-import org.blikk.crawler.{Resource, Frontier, RabbitData}
+import org.blikk.crawler.{Resource, Frontier, RabbitData, Logging}
 import scala.util.Try
 
 trait LocalRabbitMQ {
@@ -9,11 +9,8 @@ trait LocalRabbitMQ {
   val rabbitMQconnectionString = TestConfig.RabbitMQUri
   RabbitData.setRabbitUri(rabbitMQconnectionString)
 
-//  val rabbitFactory = new ConnectionFactory()
-//  rabbitFactory.setUri(rabbitMQconnectionString)
-
   /* Executes the block within a new connection and channel */
-  def withLocalRabbit[A](func: Channel => A) : A = {
+  def withLocalRabbit[A](func: Channel => A) : Unit = {
     Resource.using(RabbitData.createChannel()) { channel =>
       func(channel)
     }
@@ -29,10 +26,7 @@ trait LocalRabbitMQ {
 
   def deleteQueue(queueName: String){
     withLocalRabbit { channel =>
-      val result = Try {
-        channel.queueDeclarePassive(queueName)
-        channel.queuePurge(queueName)
-      }
+      channel.queueDelete(queueName)
     }
   }
 
