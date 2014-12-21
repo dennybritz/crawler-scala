@@ -17,7 +17,7 @@ class SimpleCrawlSpec extends IntegrationSuite("SimpleCrawlSpec") {
       import streamContext.{materializer, system}
       
       val seeds = List(WrappedHttpRequest.getUrl("http://localhost:9090/1"))
-      val frontier = FrontierSink.build()
+      val frontier = FrontierSink.build(streamContext.appId)
 
       streamContext.flow.to(Sink.foreach[CrawlItem] { item => 
         log.info("{}", item.toString) 
@@ -48,7 +48,7 @@ class SimpleCrawlSpec extends IntegrationSuite("SimpleCrawlSpec") {
         log.info("{}", item.toString) 
         probes(1).ref ! item.req.uri.toString
       }
-      val frontier = FrontierSink.build()
+      val frontier = FrontierSink.build(streamContext.appId)
       
       val graph = FlowGraph { implicit b =>
         val bcast = Broadcast[CrawlItem]

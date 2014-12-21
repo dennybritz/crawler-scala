@@ -24,7 +24,7 @@ class TerminationSinkSpec extends IntegrationSuite("TerminationSinkSpec") {
         log.info("{}", item.toString) 
         probes(1).ref ! item.req.uri.toString
       }
-      val frontier = FrontierSink.build()
+      val frontier = FrontierSink.build(streamContext.appId)
       
       val graph = FlowGraph { implicit b =>
         val frontierMerge = Merge[WrappedHttpRequest]

@@ -1,5 +1,6 @@
 package org.blikk.crawler.processors
 
+import akka.actor.ActorSystem
 import akka.stream.scaladsl.Sink
 import org.blikk.crawler.{RabbitData, Resource, FetchRequest, SerializationUtils}
 import org.blikk.crawler.app.StreamContext
@@ -12,16 +13,15 @@ object FrontierSink {
   /** 
     * Builds a sink that sends incoming requests to the crawler frontier
     */ 
-  def build()(implicit ctx: StreamContext[_]) : Sink[WrappedHttpRequest] = {
-    import ctx.system
-    val appId = ctx.appId
+  def build(appId: String)(implicit system: ActorSystem) : Sink[WrappedHttpRequest] = {
+    val rabbitChannel = RabbitData.createChannel()
     RabbitMQSink.build[WrappedHttpRequest](
-      ctx.rabbitChannel, 
+      rabbitChannel, 
       RabbitData.FrontierExchange) { req =>
       val fetchReq = FetchRequest(req, appId)
       val serializedItem = SerializationUtils.toProto(fetchReq).toByteArray
-      (serializedItem, req.host)
+      (serializedItem, req.topPrivateDomain)
     }
   }
-
+ 
 }

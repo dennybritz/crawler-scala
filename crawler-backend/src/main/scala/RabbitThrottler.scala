@@ -8,6 +8,7 @@ object RabbitThrottler {
   case class AddSchedule(routingKey: String, initialDelay: FiniteDuration, interval: FiniteDuration)
   case class RemoveSchedule(routingKey: String)
   case class DequeueItem(routingKey: String)
+  case class AddQueue(routingKey: String, queueProperties: RabbitQueueDefinition)
 
 }
 
@@ -16,28 +17,35 @@ trait RabbitThrottler extends Actor with ActorLogging {
   import RabbitThrottler._
   import context.dispatcher
 
-  /* You must implement this method */  
-  def handleItem(item: RabbitMessage) : Unit
+  // Needs implementation: What happens to dequeued items?
+  def handleItem(routingKey: String, item: RabbitMessage) : Unit
+  // Needs implementation: Called when no item was in RabbitMQ
+  // Can be used to time out schedules
+  def handleNoItem(routingKey: String) : Unit
 
+  // Needs implementation: The exchange we bind our queues to
   def rabbitExchange : RabbitExchangeDefinition
-  def bindRoutingKey : String
-  var cancelTokens = Map[String, Cancellable]()
+  
+  var schedules = Map[String, Cancellable]()
   var rabbitQueues = Map[String, String]()
 
-  implicit lazy val rabbitChannel = RabbitData.createChannel()
+  lazy val rabbitChannel = RabbitData.createChannel()
 
-  def receive = {
+  def rabbitThrottlerBehavior : Receive = {
     case AddSchedule(routingKey, initialDelay, interval) => 
       addSchedule(routingKey, initialDelay, interval)
+      sender ! "OK"
     case RemoveSchedule(routingKey) =>
       removeSchedule(routingKey)
     case DequeueItem(routingKey) =>
       dequeueItem(routingKey)
+    case AddQueue(routingKey, queueProperties) =>
+      sender ! addQueue(routingKey, queueProperties)
   }
 
   override def postStop(){
     // Remove all schedules
-    cancelTokens.values.foreach(_.cancel())
+    schedules.values.foreach(_.cancel())
     log.info("Shutdown: Cancelled all schedules.")
     // Unbind all queues
     rabbitQueues.foreach { case(routingKey, queueName) =>
@@ -48,42 +56,38 @@ trait RabbitThrottler extends Actor with ActorLogging {
     rabbitChannel.close()
   }
 
-  def addSchedule(routingKey: String, initialDelay: FiniteDuration, interval: FiniteDuration) : Unit = {
-    // Make sure the timer doesn't already exist
-    if (cancelTokens.contains(routingKey)){
-      log.warning("Schedule for routingKey='{}' already exists, not creating.", routingKey)
-      return
-    }
-
-    // Reuse an existing queue if possible. If not, create a new one.
-    // TODO: The queues should be persisted. Use Akka's persistent actors?
-    val queueName = rabbitQueues.get(routingKey).getOrElse {
-      val newQueue = rabbitChannel.queueDeclare().getQueue()
-      rabbitQueues += Tuple2(routingKey, newQueue)
-      newQueue
-    }
-    rabbitChannel.queueBind(queueName, rabbitExchange.name, routingKey)
-    log.info("Binding routingKey='{}' queueName='{}' exchangeName='{}'", routingKey, queueName, rabbitExchange.name)
-
-    // Add to the scheduler
-    val cancelToken = context.system.scheduler.schedule(initialDelay, interval) {
-      self ! DequeueItem(routingKey)
-    }
-    cancelTokens += Tuple2(routingKey, cancelToken)
-    log.info("Added schedule for routingKey='{}'", routingKey)
-
-    // Say OK
-    sender ! queueName
+  def addSchedule(routingKey: String, initialDelay: FiniteDuration, interval: FiniteDuration) : Cancellable = {
+    schedules.get(routingKey) getOrElse {
+      val cancelToken = context.system.scheduler.schedule(initialDelay, interval) { self ! DequeueItem(routingKey) }
+      schedules += Tuple2(routingKey, cancelToken)
+      log.info("Added schedule for routingKey='{}'", routingKey)
+      cancelToken
+    }    
   }
 
   def removeSchedule(routingKey: String) : Unit = {
-    cancelTokens.get(routingKey) match {
+    schedules.get(routingKey) match {
       case Some(token) => 
         token.cancel()
-        cancelTokens -= routingKey
+        schedules -= routingKey
         log.info("Cancelled timer for routingKey='{}'", routingKey)
       case None =>
         log.error("No timer for routingKey='{}' found. Not cancelling.", routingKey)
+    }
+  }
+
+  def addQueue(routingKey: String, queueProperties: RabbitQueueDefinition) : String = {
+    // Reuse an existing queue if possible. If not, create a new one.
+    // TODO: The queues should be persisted. Use Akka's persistent actors?
+    rabbitQueues.get(routingKey).getOrElse {
+      implicit val channel = RabbitData.createChannel()
+      val newQueueName = RabbitData.declareQueue(queueProperties).getQueue()
+      channel.queueBind(newQueueName, rabbitExchange.name, routingKey)
+      channel.close()
+      rabbitQueues += Tuple2(routingKey, newQueueName)
+      log.info("Bound routingKey='{}' queueName='{}' exchangeName='{}'", 
+        routingKey, newQueueName, rabbitExchange.name)
+      newQueueName
     }
   }
 
@@ -94,12 +98,15 @@ trait RabbitThrottler extends Actor with ActorLogging {
       return
     }
 
-    Option(rabbitChannel.basicGet(queueName, true)).map { response =>
+    Option(rabbitChannel.basicGet(queueName, false)).map { response =>
       RabbitMessage(
         response.getEnvelope.getRoutingKey, 
         response.getProps.getContentType, 
         response.getEnvelope.getDeliveryTag, 
         response.getBody)
-    }.foreach(handleItem)
+    } match {
+      case Some(item) => handleItem(routingKey, item)
+      case None => handleNoItem(routingKey)
+    }
   }
 }

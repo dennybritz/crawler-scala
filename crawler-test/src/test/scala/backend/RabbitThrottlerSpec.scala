@@ -9,20 +9,27 @@ class RabbitThrottlerSpec extends AkkaSingleNodeSpec("RabbitThrottlerSpec") {
 
   val TestRoutingKey = "some.routing.key"
   val TestExchange = RabbitExchangeDefinition("com.blikk.test.rabbit-throttler-spec-ex", "topic", false, false)
+  val TestQueue = RabbitQueueDefinition("com.blikk.test.rabbit-throttler-spec-ex", false, true)
+  val TestQueue2 = RabbitQueueDefinition("com.blikk.test.rabbit-throttler-spec-ex-2", false, true)
+  
   implicit val rabbitChannel = RabbitData.createChannel()
 
   class TestRabbitThrottler(target: ActorRef) extends RabbitThrottler {
     def rabbitExchange = TestExchange
     def bindRoutingKey = "#"
-    def handleItem(item: RabbitMessage) {
+    def handleItem(routingKey: String, item: RabbitMessage) {
       target ! new String(item.payload)
     }
+    def handleNoItem(routingKey: String) : Unit = {}
+    def receive = rabbitThrottlerBehavior
   }
 
   describe("RabbitThrottler") {
 
     before {
       RabbitData.declareExchange(TestExchange)
+      deleteQueue(TestQueue.name)
+      deleteQueue(TestQueue2.name)
     }
 
     after {
@@ -32,6 +39,7 @@ class RabbitThrottlerSpec extends AkkaSingleNodeSpec("RabbitThrottlerSpec") {
     it("should work with one schedule") {
       val probe = TestProbe()
       val throttler = system.actorOf(Props(new TestRabbitThrottler(probe.ref)))
+      throttler ! RabbitThrottler.AddQueue(TestRoutingKey, TestQueue)
       throttler ! RabbitThrottler.AddSchedule(TestRoutingKey, 0.millis, 200.millis)
       // Wait for the throttler to startup before we publish messages
       expectMsgClass(classOf[String])
@@ -52,6 +60,7 @@ class RabbitThrottlerSpec extends AkkaSingleNodeSpec("RabbitThrottlerSpec") {
     it("should be indempotent to adding the same schedule") {
       val probe = TestProbe()
       val throttler = system.actorOf(Props(new TestRabbitThrottler(probe.ref)))
+      throttler ! RabbitThrottler.AddQueue(TestRoutingKey, TestQueue)
       throttler ! RabbitThrottler.AddSchedule(TestRoutingKey, 0.millis, 200.millis)
       throttler ! RabbitThrottler.AddSchedule(TestRoutingKey, 0.millis, 200.millis)
       throttler ! RabbitThrottler.AddSchedule(TestRoutingKey, 0.millis, 200.millis)
@@ -66,8 +75,10 @@ class RabbitThrottlerSpec extends AkkaSingleNodeSpec("RabbitThrottlerSpec") {
     it("should work with multiple schedules") {
       val probe = TestProbe()
       val throttler = system.actorOf(Props(new TestRabbitThrottler(probe.ref)))
+      throttler ! RabbitThrottler.AddQueue(TestRoutingKey, TestQueue)
       throttler ! RabbitThrottler.AddSchedule(TestRoutingKey, 0.millis, 200.millis)
       expectMsgClass(classOf[String])
+      throttler ! RabbitThrottler.AddQueue("anotherRoutingKey", TestQueue2)
       throttler ! RabbitThrottler.AddSchedule("anotherRoutingKey", 0.millis, 500.millis)
       expectMsgClass(classOf[String])
       Thread.sleep(100)

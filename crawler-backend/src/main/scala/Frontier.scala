@@ -12,7 +12,7 @@ import scala.collection.JavaConversions._
 import scala.collection.mutable.{Map => MutableMap}
 import scala.collection.immutable.Seq
 import scala.concurrent.duration._
-import org.blikk.crawler.processors.ThrottleTransformer
+import org.blikk.crawler.processors.RabbitMQSink
 
 object Frontier {
   def props(target: ActorRef) = {
@@ -25,23 +25,17 @@ class Frontier(target: ActorRef)
 
   import RabbitData._
   import context.dispatcher
+  import context.system
 
   val rabbitChannel = RabbitData.createChannel()
   val rabbitRoutingKey = "#"
 
   override def preStart() {
-    val publisherActor = context.actorOf(
-      RabbitPublisher.props(RabbitData.createChannel(),
-      FrontierQueue, FrontierExchange, rabbitRoutingKey), s"frontierRabbit")
-    val publisher = ActorPublisher[Array[Byte]](publisherActor)
-    val throttler = new GroupThrottler[FetchRequest](Config.perDomainDelay, 
-      Config.customDomainDelays)(_.req.topPrivateDomain.getOrElse(""))
+    RabbitData.declareAll()(rabbitChannel)
 
-    Source(publisher).map { element =>
-      SerializationUtils.fromProto(HttpProtos.FetchRequest.parseFrom(element))
-    }.timerTransform("throttle", () => throttler)
-    .to(Sink.foreach[FetchRequest](routeFetchRequestGlobally))
-    .run()
+    val frontierThrottlerActor = context.actorOf(FrontierThrottler.props(100), "frontierThrottler")
+    val throttledRequestStream = ActorPublisher(frontierThrottlerActor)
+    Source(throttledRequestStream).runWith(Sink.foreach[FetchRequest](routeFetchRequestGlobally))
 
     // We need to wait a while before the rabbit consumer is done with binding
     // to the queue. This is ugly, is there a nicer way?
@@ -50,10 +44,6 @@ class Frontier(target: ActorRef)
 
   /* Additional actor behavior */
   def receive = {
-    case msg @ AddToFrontier(req, scheduledTime, ignoreDeduplication) =>
-      val requestTime = scheduledTime
-      log.debug("adding to frontier: {} (scheduled: {})", req.req.uri.toString, requestTime)
-      addToFrontier(req, requestTime, ignoreDeduplication)
     case ClearFrontier =>
       log.info("clearing frontier")
       clearFrontier()
@@ -65,19 +55,6 @@ class Frontier(target: ActorRef)
       log.info("clearing frontier")
       rabbitChannel.queuePurge(FrontierQueue.name)
       rabbitChannel.queuePurge(FrontierScheduledQueue.name)
-    }
-  }
-
-  /* Add a new request to the frontier */
-  def addToFrontier(fetchReq: FetchRequest, scheduledTime: Option[Long],
-    ignoreDeduplication: Boolean = false) : Unit = {
-    val serializedMsg = SerializationUtils.toProto(fetchReq).toByteArray
-    scheduledTime.map(_ - System.currentTimeMillis) match {
-      case Some(delay) if delay > 0 =>
-        val properties = new AMQP.BasicProperties.Builder().expiration(delay.toString).build()
-        rabbitChannel.basicPublish("", FrontierScheduledQueue.name, properties, serializedMsg)
-      case _ =>
-        rabbitChannel.basicPublish(FrontierExchange.name, fetchReq.req.host, null, serializedMsg)
     }
   }
 

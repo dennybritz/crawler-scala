@@ -20,7 +20,6 @@ class IntegrationSuite(val name: String) extends FunSpec with BeforeAndAfter wit
   val httpSystem = ActorSystem("httpServer", TestConfig.config)
   var systems = ArrayBuffer[ActorSystem]()
   var services = ArrayBuffer[ActorRef]()
-  var apis = ArrayBuffer[ActorRef]()
   var probes = ArrayBuffer[TestProbe]()
   var addresses = ArrayBuffer[String]()
 
@@ -61,8 +60,6 @@ class IntegrationSuite(val name: String) extends FunSpec with BeforeAndAfter wit
     val newService = newSystem.actorOf(
       CrawlService.props, s"crawl-service")
     services += newService
-    val newApi = newSystem.actorOf(ApiLayer.props(newService), "api")
-    apis += newApi
     val newProbe = new TestProbe(newSystem)
     probes += newProbe
   }

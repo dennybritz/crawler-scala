@@ -39,7 +39,7 @@ class ResponsePublisher extends Actor with ActorLogging
 
     log.info(log.format("Fetched url=\"{}\" tpd=\"{}\" status=\"{}\", size=\"{}\" {}",
       msg.fetchReq.req.uri.toString,
-      msg.fetchReq.req.topPrivateDomain.getOrElse(""),
+      msg.fetchReq.req.topPrivateDomain,
       msg.res.status.value,
       msg.res.entity.length.toString,
       headerLog))
