@@ -40,7 +40,7 @@ class FrontierThrottler(scheduleTimeout: Int) extends RabbitThrottler
       val fetchReq = SerializationUtils.fromProto(HttpProtos.FetchRequest.parseFrom(element))
       val tpd = fetchReq.req.topPrivateDomain
       val interval = Config.customDomainDelays.get(tpd).getOrElse(Config.perDomainDelay)
-      addQueue(tpd, RabbitQueueDefinition(s"com.blikk.crawler.requests.${tpd}", false, true))
+      addQueue(tpd, RabbitQueueDefinition(s"com.blikk.crawler.requests.${tpd}", false, false, false))
       self ! RabbitThrottler.AddSchedule(tpd, interval, interval)
       fetchReq
     } runWith(routeSink)
