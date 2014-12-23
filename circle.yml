@@ -2,8 +2,6 @@ machine:
   services:
     - rabbitmq-server
     - docker
-  environment:
-    BLIKK_RABBITMQ_URI: amqp://guest:guest@localhost:5672
 
 dependencies:
   pre:
@@ -13,4 +11,4 @@ dependencies:
 
 test:    
   override:
-    - docker run --net=host blikk/crawler:$CIRCLE_SHA1 sbt test
+    - docker run -e "BLIKK_RABBITMQ_URI=amqp://guest:guest@localhost:5672" --net=host blikk/crawler:$CIRCLE_SHA1 sbt test
