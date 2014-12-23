@@ -1,7 +1,7 @@
 package org.blikk.test
 
 import com.rabbitmq.client._
-import org.blikk.crawler.{Resource, Frontier, RabbitData, Logging}
+import org.blikk.crawler.{Resource, RabbitData, Logging}
 import scala.util.Try
 
 trait LocalRabbitMQ {
