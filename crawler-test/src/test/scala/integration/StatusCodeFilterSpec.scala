@@ -22,7 +22,7 @@ class StatusCodeFilterSpec extends IntegrationSuite("StatusCodeFilterSpec") {
         WrappedHttpRequest.getUrl("http://localhost:9090/status/404"),
         WrappedHttpRequest.getUrl("http://localhost:9090/status/503")
       )
-      val frontier = FrontierSink.build()
+      val frontier = FrontierSink.build(streamContext.appId)
       val fLinkSender = Sink.foreach[CrawlItem] { item => 
         log.info("{}", item.toString) 
         probes(1).ref ! item.req.uri.toString

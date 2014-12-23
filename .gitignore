@@ -31,3 +31,4 @@ seeds.txt
 
 # Akka
 journal/
+snapshots/

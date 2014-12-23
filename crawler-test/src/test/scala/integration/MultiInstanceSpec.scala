@@ -18,7 +18,7 @@ class MultiInstanceSpec extends IntegrationSuite("MultiInstanceSpec") {
       // Create two apps
       val streamContext1 = createStreamContext()
       val streamContext2 = createStreamContext()
-      val frontierSink = FrontierSink.build()(streamContext1)
+      val frontierSink = FrontierSink.build(streamContext1.appId)(streamContext1.system)
 
       // Run the same graph in each context
       // Data should be shared

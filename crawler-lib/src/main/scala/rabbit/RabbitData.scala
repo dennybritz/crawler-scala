@@ -51,6 +51,8 @@ object RabbitData extends Logging {
 
   // Send data to the frontier queue
   val FrontierExchange = RabbitExchangeDefinition("com.blikk.crawler.frontier-x", "topic", true, false)
+  val FrontierExchangeThrottled = 
+    RabbitExchangeDefinition("com.blikk.crawler.frontier-throttled-x", "direct", true, false)
 
   
   /* Queues */
@@ -80,6 +82,7 @@ object RabbitData extends Logging {
     // Data Exchange
     declareExchange(DataExchange)
     declareExchange(FrontierExchange)
+    declareExchange(FrontierExchangeThrottled)
     declareQueue(FrontierQueue)
     declareQueue(FrontierScheduledQueue)
   }
@@ -94,6 +97,11 @@ object RabbitData extends Logging {
     log.info("declaring RabbitMQ queue=\"{}\"", queue.name)
     channel.queueDeclare(queue.name, queue.durable, queue.exclusive, 
       queue.autoDelete, queue.options)
+  }
+
+  def deleteExchange(exchange: RabbitExchangeDefinition)(implicit channel: RabbitChannel) = {
+    log.info("deleting RabbitMQ exchange=\"{}\"", exchange.name)
+    channel.exchangeDelete(exchange.name) 
   }
 
 }

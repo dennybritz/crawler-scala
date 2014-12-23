@@ -21,11 +21,11 @@ class WrappedHttpRequestSpec extends FunSpec with Matchers {
 
     it("should return the correct base top private domain") {
       WrappedHttpRequest.getUrl("http://www.google.com/some/base/uri-comes-here?aa")
-        .topPrivateDomain.get shouldEqual ("google.com")
+        .topPrivateDomain shouldEqual ("google.com")
       WrappedHttpRequest.getUrl("http://amazon.co.jp")
-        .topPrivateDomain.get shouldEqual ("amazon.co.jp")
+        .topPrivateDomain shouldEqual ("amazon.co.jp")
       WrappedHttpRequest.getUrl("http://blog.amazon.co.jp")
-        .topPrivateDomain.get shouldEqual ("amazon.co.jp")
+        .topPrivateDomain shouldEqual ("amazon.co.jp")
     }
 
   }

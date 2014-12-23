@@ -15,7 +15,7 @@ object BlikkBuild extends Build {
     settings = Project.defaultSettings ++ crawlerLibSettings)
 
   lazy val crawlerTest = Project(id="crawler-tests", base=file("./crawler-test"), 
-    settings = Project.defaultSettings ++ crawlerTestSettings) dependsOn(crawlerLib, crawlerBackend)
+    settings = Project.defaultSettings ++ crawlerTestSettings) dependsOn(crawlerLib, crawlerLib % "test->test", crawlerBackend)
 
   lazy val exampleApp = Project(id="example-app", base=file("./example-app"),
     settings = Project.defaultSettings ++ exampleAppSettings) dependsOn(crawlerLib)
@@ -45,10 +45,12 @@ object BlikkBuild extends Build {
     "com.typesafe.akka" %% "akka-remote" % AkkaBaseVersion,
     "com.typesafe.akka" %% "akka-persistence-experimental" % AkkaBaseVersion,
     "com.typesafe.akka" %% "akka-testkit" % AkkaBaseVersion,
+    "com.typesafe.akka" %% "akka-cluster" % AkkaBaseVersion,
     "io.spray" %% "spray-can" % "1.3.1",
     "io.spray" %% "spray-client" % "1.3.1",
     "io.spray" %% "spray-http" % "1.3.1",
     "io.spray" %%  "spray-json" % "1.3.0",
+    "io.spray" %% "spray-routing" % "1.3.1",
     "org.jsoup" % "jsoup" % "1.7.3",
     "org.scalautils" %% "scalautils" % "2.1.5",
     "org.xerial.snappy" % "snappy-java" % "1.1.1.6",
@@ -60,9 +62,7 @@ object BlikkBuild extends Build {
     name := "crawler-backend",
     envVars := Map("BLIKK_APP_NAME" -> "crawler-backend"),
     libraryDependencies ++= Seq(
-      "com.typesafe.akka" %% "akka-cluster" % AkkaBaseVersion,
-      "com.typesafe.akka" %% "akka-contrib" % AkkaBaseVersion,
-      "io.spray" %% "spray-routing" % "1.3.1"
+      "com.typesafe.akka" %% "akka-contrib" % AkkaBaseVersion
     ) ++ commonLibraryDependencies
   ) ++ packageArchetype.java_application
 

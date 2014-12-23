@@ -27,7 +27,7 @@ class DuplicateFilteringSpec extends IntegrationSuite("DuplicateFilteringSpec") 
         WrappedHttpRequest.getUrl("http://localhost:9090/links/1"),
         WrappedHttpRequest.getUrl("http://localhost:9090/links/1")
       )
-      val frontier = FrontierSink.build()
+      val frontier = FrontierSink.build(streamContext.appId)
 
       FlowGraph { implicit b =>
         val frontierMerge = Merge[WrappedHttpRequest]

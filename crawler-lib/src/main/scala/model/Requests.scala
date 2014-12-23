@@ -47,11 +47,12 @@ case class WrappedHttpRequest(
   lazy val baseUri = new java.net.URI(uri.getScheme, uri.getUserInfo, uri.getHost, uri.getPort, 
       uri.getPath, null, null).toString
   
-  lazy val topPrivateDomain = Try(InternetDomainName.from(host)).toOption
+  lazy val topPrivateDomain : String = Try(InternetDomainName.from(host)).toOption
     .filter(_.isUnderPublicSuffix)
     .map(_.topPrivateDomain.toString)
+    .getOrElse("notpd")
 
-  lazy val publicSuffix = topPrivateDomain.map(InternetDomainName.from)
+  lazy val publicSuffix = Try(InternetDomainName.from(topPrivateDomain)).toOption
     .map(_.parent.toString)
 
   /** 

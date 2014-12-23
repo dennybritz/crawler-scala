@@ -21,7 +21,7 @@ case class StreamContext[A](appId: String, flow: Source[A], publisher: ActorRef)
 
   def shutdown(){
     system.synchronized {
-      log.info("shutting down app={}", appId)
+      log.info("shutting down appId=\"{}\"", appId)
       _system.stop(publisher)
     }
   }

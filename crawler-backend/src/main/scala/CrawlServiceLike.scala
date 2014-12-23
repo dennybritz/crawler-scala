@@ -10,11 +10,13 @@ import akka.stream.scaladsl._
 import akka.stream.scaladsl.FlowGraphImplicits._
 import akka.util.Timeout
 import com.rabbitmq.client.{Connection => RabbitMQConnection, Channel => RabbitMQChannel, AMQP}
-import org.blikk.crawler.processors.RabbitMQSink
+import org.blikk.crawler.processors.{RabbitMQSink, ESRabbitRiverTransformer}
+import org.blikk.crawler.model.ESJsonTransformations
 import scala.concurrent.duration._
 import scala.collection.immutable.Seq
 import scala.util.{Try, Success, Failure}
 import spray.can.Http
+import spray.json._
 import spray.http._
 import spray.httpx.encoding._
 import spray.httpx.ResponseTransformation._
@@ -82,11 +84,12 @@ trait CrawlServiceLike {
       (compressedItem, fetchRes.fetchReq.appId)
     }
 
-    val transformer = new ESRabbitRiverTransformer()
+    import ESJsonTransformations._
+    val transformer = new ESRabbitRiverTransformer("crawler", "document")
     val rabbitElasticSearchSink = RabbitMQSink.build[FetchResponse](RabbitData.createChannel(), 
       Config.ElasticSearchDataExchange) { fetchRes =>
-      val jsonData = transformer.transform(fetchRes)
-      val routingKey = fetchRes.fetchReq.req.topPrivateDomain.getOrElse("")
+      val jsonData = transformer.transform(fetchRes.fetchReq.req.uri.toString, fetchRes.toJson)
+      val routingKey = fetchRes.fetchReq.req.topPrivateDomain
       (jsonData.getBytes, routingKey)
     }
 

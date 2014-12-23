@@ -39,3 +39,6 @@ case class WrappedHttpResponse(
   }.map(_._2)
 
 }
+
+/* Convenience wrapper for a fetch response */
+case class FetchResponse(fetchReq: FetchRequest, res: WrappedHttpResponse)

@@ -32,7 +32,6 @@ object Main extends App with Logging {
   Cluster.get(system).joinSeedNodes(seeds.toSeq)
   // Start the crawl service and API actors
   val crawlService = system.actorOf(CrawlService.props, "crawl-service")
-  val api = system.actorOf(ApiLayer.props(crawlService), "api")
   system.awaitTermination()
 
 }
