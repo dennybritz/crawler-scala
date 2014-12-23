@@ -1,0 +1,14 @@
+machine:
+  services:
+    - rabbitmq-server
+    - docker
+
+dependencies:
+  pre:
+    - docker login -e $DOCKER_EMAIL  -u $DOCKER_USER -p $DOCKER_PASSWORD
+  override:
+    - docker build -t blikk/crawler:$CIRCLE_SHA1 ./docker
+
+test:    
+  override:
+    - docker run --net=host blikk/crawler:$CIRCLE_SHA1 sbt test
