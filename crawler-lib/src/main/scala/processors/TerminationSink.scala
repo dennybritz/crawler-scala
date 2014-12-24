@@ -1,28 +1,32 @@
 package org.blikk.crawler.processors
 
+import akka.stream.stage._
 import akka.stream.scaladsl._
 import org.blikk.crawler._
-import org.blikk.crawler.app._
 
 object TerminationSink {
 
-  /* Builds a sink that defines termination conditions based on crawl statistics */
-  def build(f: CrawlStats => Boolean)(implicit ctx: StreamContext[_]) = {
+  class TerminationPushTage(f: CrawlStats => Boolean) extends PushStage[CrawlItem, Unit]{
     
-    import ctx.{log, system}
+    var stats = CrawlStats(0, 0, System.currentTimeMillis)
 
-    val zeroStats = CrawlStats(0, 0, System.currentTimeMillis)
-
-    Sink.fold[CrawlStats, CrawlItem](zeroStats) { (currentStats, item) =>
-      val newStats = currentStats.update(item)
-      if(f(newStats) && !f(currentStats) ) {
-        // Shutdown if the termination condition is fulfilled
-        log.info("Terminating with: {}", newStats)
-        ctx.publisher !  RabbitPublisher.CompleteStream
-        system.stop(ctx.publisher)
+    override def onPush(element: CrawlItem, ctx: Context[Unit]): Directive = {
+      stats = stats.update(element)
+      if(f(stats)){
+        Console.println("Finishing!")
+        ctx.finish()
       }
-      newStats
+      else {
+        Console.println("Pushing!")
+        ctx.push(Unit)
+      }
     }
+
+  }
+
+  /* Builds a sink that defines termination conditions based on crawl statistics */
+  def build(f: CrawlStats => Boolean) : Sink[CrawlItem] = {
+    Flow[CrawlItem].transform(() => new TerminationPushTage(f)).to(Sink.ignore)
   }
 
 }

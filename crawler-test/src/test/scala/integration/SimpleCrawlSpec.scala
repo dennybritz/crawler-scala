@@ -3,7 +3,7 @@ package org.blikk.test.integration
 import org.blikk.test._
 import org.blikk.crawler._
 import scala.concurrent.duration._
-import org.blikk.crawler.app._
+import akka.stream.FlowMaterializer
 import akka.stream.scaladsl._
 import akka.stream.scaladsl.FlowGraphImplicits._
 import org.blikk.crawler.processors._
@@ -13,14 +13,15 @@ class SimpleCrawlSpec extends IntegrationSuite("SimpleCrawlSpec") {
   describe("crawler") {
     
     it("should be able to crawl one link"){
-      implicit val streamContext = createStreamContext()
-      import streamContext.{materializer, system}
+      val appId = "SimpleCrawlSpec"
+      implicit val (src, system) = createSource()
+      implicit val mat = FlowMaterializer()
       
       val seeds = List(WrappedHttpRequest.getUrl("http://localhost:9090/1"))
-      val frontier = FrontierSink.build(streamContext.appId)
+      val frontier = FrontierSink.build(appId)
 
-      streamContext.flow.to(Sink.foreach[CrawlItem] { item => 
-        log.info("{}", item.toString) 
+      src.to(Sink.foreach[CrawlItem] { item => 
+        log.info("got data {}", item.toString) 
         assert(item.res.status.intValue === 200)
         probes(1).ref ! item.req.uri.toString
       }).run()
@@ -31,29 +32,35 @@ class SimpleCrawlSpec extends IntegrationSuite("SimpleCrawlSpec") {
         probes(1).expectMsg("http://localhost:9090/1")
       }
       probes(1).expectNoMsg()
-      streamContext.shutdown()
+      system.shutdown()
+      system.awaitTermination()
     }
 
     it("should be able to extract and crawl multiple links") {
-      implicit val streamContext = createStreamContext()
-      import streamContext.{materializer, system}
+      val appId = "SimpleCrawlSpec"
+      implicit val (in, system) = createSource()
+      implicit val mat = FlowMaterializer()
+      
       import system.dispatcher
 
       val seeds = List(WrappedHttpRequest.getUrl("http://localhost:9090/crawl/1"))
-      val in = streamContext.flow
       val fLinkExtractor = RequestExtractor()
       val duplicateFilter = DuplicateFilter.buildUrlDuplicateFilter(
         List(WrappedHttpRequest.getUrl("http://localhost:9090/crawl/1")))
       val fLinkSender = Sink.foreach[CrawlItem] { item => 
-        log.info("{}", item.toString) 
+        log.info("Got data for {}", item.req.uri.toString) 
         probes(1).ref ! item.req.uri.toString
       }
-      val frontier = FrontierSink.build(streamContext.appId)
+      val frontier = Flow[WrappedHttpRequest].map { item =>
+        log.info("Adding to frontier: {}", item.uri.toString)
+        item
+      }.to(FrontierSink.build(appId))
       
       val graph = FlowGraph { implicit b =>
         val bcast = Broadcast[CrawlItem]
         val frontierMerge = Merge[WrappedHttpRequest]
-        in ~> bcast ~> fLinkExtractor.via(duplicateFilter) ~> frontierMerge
+        in ~> bcast 
+        bcast ~> fLinkExtractor.via(duplicateFilter) ~> frontierMerge
         bcast ~> fLinkSender
         Source(seeds) ~> frontierMerge
         frontierMerge ~> frontier
@@ -65,7 +72,8 @@ class SimpleCrawlSpec extends IntegrationSuite("SimpleCrawlSpec") {
       }
 
       probes(1).expectNoMsg()
-      streamContext.shutdown()
+      system.shutdown()
+      system.awaitTermination()
     }
 
   }

@@ -7,7 +7,7 @@ import akka.routing.{AddRoutee, ActorRefRoutee}
 import akka.testkit._
 import com.typesafe.config.ConfigFactory
 import org.blikk.crawler._
-import org.blikk.crawler.app._
+import org.blikk.crawler.processors.CrawledItemSource
 import org.scalatest.{FunSpec, BeforeAndAfter, BeforeAndAfterAll, Matchers}
 import scala.collection.mutable.ArrayBuffer
 
@@ -65,13 +65,12 @@ class IntegrationSuite(val name: String) extends FunSpec with BeforeAndAfter wit
   }
 
   /* Runs the program */
-  def createStreamContext() = {
-    val config = ConfigFactory.parseString(s"""
-      akka.actor.provider = akka.remote.RemoteActorRefProvider
-      """).withFallback(buildConfig("localhost", 0))
-    val system = ActorSystem(appId, config)
-    val client = new CrawlerApp(appId)(system)
-    client.start()
+  def createSource() = {
+    val sourceSystemConfig = ConfigFactory.parseString(s"""
+    akka.actor.provider = akka.remote.RemoteActorRefProvider
+    """).withFallback(buildConfig("localhost", 0))
+    val sourceSystem = ActorSystem(appId, sourceSystemConfig)
+    (CrawledItemSource(appId)(sourceSystem), sourceSystem)
   }
 
   /* Builds a configuration for a new actor system. */

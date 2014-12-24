@@ -3,7 +3,7 @@ package org.blikk.test.integration
 import org.blikk.test._
 import org.blikk.crawler._
 import scala.concurrent.duration._
-import org.blikk.crawler.app._
+import akka.stream.FlowMaterializer
 import akka.stream.scaladsl._
 import akka.stream.scaladsl.FlowGraphImplicits._
 import org.blikk.crawler.processors._
@@ -15,16 +15,18 @@ class MultiInstanceSpec extends IntegrationSuite("MultiInstanceSpec") {
     
     it("should support multiple app instances"){
 
+      val appId = "MultiInstanceSpec"
+
       // Create two apps
-      val streamContext1 = createStreamContext()
-      val streamContext2 = createStreamContext()
-      val frontierSink = FrontierSink.build(streamContext1.appId)(streamContext1.system)
+      val (source1, system1) = createSource()
+      val (source2, system2) = createSource()
+      val frontierSink = FrontierSink.build(appId)(system1)
 
       // Run the same graph in each context
       // Data should be shared
-      List(streamContext1, streamContext2).foreach { streamContext =>
-        import streamContext.{materializer, system}    
-        streamContext.flow.to(Sink.foreach[CrawlItem] { item => 
+      List((source1, system1), (source2, system2)).foreach { case(source, system) =>
+        implicit val mat = FlowMaterializer()(system)
+        source.to(Sink.foreach[CrawlItem] { item => 
           item.res.status.intValue shouldBe 200
           probes(1).ref ! item.req.uri.toString
         }).run()
@@ -35,16 +37,12 @@ class MultiInstanceSpec extends IntegrationSuite("MultiInstanceSpec") {
         WrappedHttpRequest.getUrl(s"http://localhost:9090/${i}") 
       }.toList
 
-      Source(seeds).to(frontierSink).run()(streamContext1.materializer)
+      Source(seeds).to(frontierSink).run()(FlowMaterializer()(system1))
 
       // Expect to receive 40 results, no more
       probes(1).receiveN(40, 20.seconds).map(_.toString).sorted shouldBe 
         (1 to 40).map(i => s"http://localhost:9090/${i}").sorted 
       probes(1).expectNoMsg()
-
-      // Clean up
-      streamContext1.shutdown()
-      streamContext2.shutdown()
       
     }
   }

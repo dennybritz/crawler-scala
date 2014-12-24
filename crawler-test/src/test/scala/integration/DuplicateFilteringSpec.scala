@@ -3,7 +3,7 @@ package org.blikk.test.integration
 import org.blikk.test._
 import org.blikk.crawler._
 import scala.concurrent.duration._
-import org.blikk.crawler.app._
+import akka.stream.FlowMaterializer
 import akka.stream.scaladsl._
 import akka.stream.scaladsl.FlowGraphImplicits._
 import org.blikk.crawler.processors._
@@ -13,10 +13,10 @@ class DuplicateFilteringSpec extends IntegrationSuite("DuplicateFilteringSpec") 
   describe("crawler") {
     
     it("should be able to filter duplicate links") {
-      implicit val streamContext = createStreamContext()
-      import streamContext.{materializer, system}
 
-      val in = streamContext.flow
+      val (in, system) = createSource()
+      implicit val flowMat = FlowMaterializer()(system)
+      
       val fLinkExtractor = RequestExtractor()
       val fLinkSender = Sink.foreach[CrawlItem] { item => 
         log.info("{}", item.toString) 
@@ -27,7 +27,7 @@ class DuplicateFilteringSpec extends IntegrationSuite("DuplicateFilteringSpec") 
         WrappedHttpRequest.getUrl("http://localhost:9090/links/1"),
         WrappedHttpRequest.getUrl("http://localhost:9090/links/1")
       )
-      val frontier = FrontierSink.build(streamContext.appId)
+      val frontier = FrontierSink.build(appId)(system)
 
       FlowGraph { implicit b =>
         val frontierMerge = Merge[WrappedHttpRequest]
@@ -42,7 +42,6 @@ class DuplicateFilteringSpec extends IntegrationSuite("DuplicateFilteringSpec") 
       probes(1).receiveN(4).toSet should === (Set("http://localhost:9090/links/1", 
               "http://localhost:9090/links/2", "http://localhost:9090/links/3"))
       probes(1).expectNoMsg()
-      streamContext.shutdown()
     }
 
   }

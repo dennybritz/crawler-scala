@@ -4,9 +4,9 @@ import akka.stream._
 import akka.stream.scaladsl._
 import akka.stream.scaladsl.FlowGraphImplicits._
 import akka.actor.ActorSystem
+import akka.event.Logging
 import com.typesafe.config.ConfigFactory
 import org.blikk.crawler._
-import org.blikk.crawler.app._
 import org.blikk.crawler.processors._
 import org.jsoup.Jsoup
 import scala.util.{Success, Failure}
@@ -15,14 +15,12 @@ object Main extends App {
     
   val appName = "com.blikk.example-app"
 
-  // Start a new crawler app
-  implicit val system = ActorSystem("appName")
-  val app = new CrawlerApp(appName)
+  implicit val system = ActorSystem(appName)
+  val log = Logging(system, getClass.getName.toString)
 
-  // Create a new stream context
-  implicit val streamContext = app.start()
-  import streamContext.{materializer, log}
   import system.dispatcher
+
+  implicit val flowMat = FlowMaterializer()
 
   /** 
     * Define the flow of the program:
@@ -31,10 +29,10 @@ object Main extends App {
     */
     val seedUrls = List(WrappedHttpRequest.getUrl("http://cnn.com/"))
     val dupFilter = DuplicateFilter.buildUrlDuplicateFilter(seedUrls)
-    val frontierSink = FrontierSink.build(streamContext.appId)
+    val frontierSink = FrontierSink.build(appName)
     val reqExtractor = RequestExtractor()
     val statusCodeFilter = StatusCodeFilter.build()
-    val src = streamContext.flow
+    val src = CrawledItemSource(appName)
     val bcast = Broadcast[CrawlItem]
     val terminationSink = TerminationSink.build {_.numFetched >= 100}
 
@@ -77,10 +75,8 @@ object Main extends App {
       case Success(finalResult) => 
         val sortedResult = finalResult.toList.sortBy(_._2)
         Console.println(sortedResult.reverse.take(25))
-        streamContext.shutdown()
       case Failure(err) => 
         log.error(err.toString)
-        streamContext.shutdown()
     }
     
     system.awaitTermination()

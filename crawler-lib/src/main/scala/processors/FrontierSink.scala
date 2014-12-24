@@ -3,7 +3,6 @@ package org.blikk.crawler.processors
 import akka.actor.ActorSystem
 import akka.stream.scaladsl.Sink
 import org.blikk.crawler.{RabbitData, Resource, FetchRequest, SerializationUtils}
-import org.blikk.crawler.app.StreamContext
 import org.blikk.crawler.{CrawlItem, WrappedHttpRequest}
 
 object FrontierSink {
