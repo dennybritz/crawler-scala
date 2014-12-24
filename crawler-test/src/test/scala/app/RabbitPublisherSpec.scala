@@ -1,6 +1,5 @@
 package org.blikk.test
 
-import org.blikk.crawler.app._
 import org.blikk.crawler._
 import akka.actor._
 import akka.stream._

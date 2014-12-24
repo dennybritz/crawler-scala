@@ -2,7 +2,6 @@ package org.blikk.crawler.processors
 
 import akka.stream.scaladsl._
 import org.blikk.crawler._
-import org.blikk.crawler.app._
 
 object StatsCollector {
 
