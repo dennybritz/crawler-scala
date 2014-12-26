@@ -27,7 +27,7 @@ class StatusCodeFilterSpec extends IntegrationSuite("StatusCodeFilterSpec") {
         log.info("{}", item.toString) 
         probes(1).ref ! item.req.uri.toString
       }
-      val statusCodeFilter = StatusCodeFilter.build()
+      val statusCodeFilter = StatusCodeFilter()
 
       in.via(statusCodeFilter).to(fLinkSender).run()
       Source(seeds).to(frontier).run()

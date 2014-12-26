@@ -31,7 +31,7 @@ object Main extends App {
     val dupFilter = DuplicateFilter.buildUrlDuplicateFilter(seedUrls)
     val frontierSink = FrontierSink.build(appName)
     val reqExtractor = RequestExtractor()
-    val statusCodeFilter = StatusCodeFilter.build()
+    val statusCodeFilter = StatusCodeFilter()
     val src = CrawledItemSource(appName)
     val bcast = Broadcast[CrawlItem]
     val terminationSink = TerminationSink.build {_.numFetched >= 100}

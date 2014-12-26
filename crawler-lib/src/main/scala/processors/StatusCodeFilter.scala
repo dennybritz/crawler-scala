@@ -7,7 +7,7 @@ import akka.stream.scaladsl.{Flow}
 object StatusCodeFilter {
 
   /* Build a status code filtering flow */
-  def build() : Flow[CrawlItem, CrawlItem] =  {
+  def apply() : Flow[CrawlItem, CrawlItem] =  {
     val scf = new StatusCodeFilter()
     Flow[CrawlItem].filter(scf.filter)
   }

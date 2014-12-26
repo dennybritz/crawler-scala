@@ -15,8 +15,7 @@ object CrawledItemSource {
       RabbitData.createChannel(), 
       RabbitData.queueForApp(appId), 
       RabbitData.DataExchange, 
-      appId), 
-    s"rabbitMQPublisher-${appId}")
+      appId))
     val publisher = ActorPublisher[Array[Byte]](publisherActor)
     // Uncompresses and Deserializes the elements
     Source(publisher).map { element =>
